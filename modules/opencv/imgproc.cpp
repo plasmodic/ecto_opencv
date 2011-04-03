@@ -1,10 +1,8 @@
 #include <ecto/ecto.hpp>
 
 #include <iostream>
-#include <boost/format.hpp>
-#include <boost/foreach.hpp>
+
 #include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/highgui/highgui.hpp>
 
 //disable show in here
 #if 1
@@ -14,96 +12,6 @@
 #endif
 #endif
 
-struct VideoCapture : ecto::module
-{
-  VideoCapture()
-  {
-    SHOW();
-    setOut<cv::Mat> ("out", "A video frame.", cv::Mat());
-    setOut<int> ("frame_number", "The number of frames captured.", 0);
-  }
-
-  void Config()
-  {
-    SHOW();
-    int video_device = getParam<int> ("video_device");
-    capture = cv::VideoCapture();
-    capture.open(video_device);
-    if (!capture.isOpened())
-      throw std::runtime_error("Could not open video device " + video_device);
-  }
-
-  static void Params(tendrils_t& c)
-  {
-    SHOW();
-    c["video_device"].set<int> ("The device ID to open", 0);
-  }
-
-  void Process()
-  {
-    SHOW();
-    //getOut is a reference;
-    capture >> getOut<cv::Mat> ("out");
-    ++(getOut<int> ("frame_number"));
-  }
-  cv::VideoCapture capture;
-
-};
-
-struct imshow : ecto::module
-{
-  imshow() :
-    window_name_("window"), waitkey_(10), auto_size_(true)
-  {
-    SHOW();
-    setIn<cv::Mat> ("in", "The image to show");
-    setOut<int> ("out", "Character pressed.");
-  }
-
-  static void Params(tendrils_t& c)
-  {
-    SHOW();
-    c["name"].set<std::string> ("The window name", "image");
-    c["waitKey"].set<int> ("Number of millis to wait, -1 for not at all, 0 for infinity.", -1);
-    c["autoSize"].set<bool> ("Autosize the window.", true);
-  }
-
-  void Config()
-  {
-    SHOW();
-    window_name_ = getParam<std::string> ("name");
-    waitkey_ = getParam<int> ("waitKey");
-    auto_size_ = getParam<bool> ("autoSize");
-  }
-  void Process()
-  {
-    SHOW();
-    const cv::Mat& image = getIn<cv::Mat> ("in");
-    if (image.empty())
-    {
-      getOut<int> ("out") = 0;
-      throw std::logic_error("empty image!");
-      return;
-    }
-
-    if (auto_size_)
-    {
-      cv::namedWindow(window_name_, CV_WINDOW_KEEPRATIO);
-    }
-    cv::imshow(window_name_, image);
-    if (waitkey_ >= 0)
-    {
-      getOut<int> ("out") = int(0xff & cv::waitKey(waitkey_));
-    }
-    else
-    {
-      getOut<int> ("out") = 0;
-    }
-  }
-  std::string window_name_;
-  int waitkey_;
-  bool auto_size_;
-};
 
 struct cvtColor : ecto::module
 {
@@ -240,10 +148,8 @@ struct AbsNormalized : ecto::module
   }
 };
 
-ECTO_MODULE(imageproc)
+ECTO_MODULE(imgproc)
 {
-  ecto::wrap<VideoCapture>("VideoCapture");
-  ecto::wrap<imshow>("imshow");
   ecto::wrap<AbsNormalized>("AbsNormalized");
   ecto::wrap<Sobel>("Sobel");
   ecto::wrap<cvtColor>("cvtColor");

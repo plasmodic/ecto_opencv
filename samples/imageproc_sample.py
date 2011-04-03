@@ -2,28 +2,22 @@
 
 import ecto
 from ecto.doc import printModuleDoc,graphviz
-import imageproc as im
+from ecto_opencv import highgui
+from ecto_opencv import imgproc
 
-video = ecto.make(im.VideoCapture)
-printModuleDoc(video)
+video = ecto.make(highgui.VideoCapture)
+imshow = ecto.make(highgui.imshow,name="video",waitKey=10)
+sobelShower = ecto.make(highgui.imshow,name="sobel",waitKey=-1)
+grayShower = ecto.make(highgui.imshow,name="gray",waitKey=-1)
 
-imshow = ecto.make(im.imshow,name="video",waitKey=10)
-printModuleDoc(imshow)
+sobelX = ecto.make(imgproc.Sobel, x= 1, y = 0)
+sobelY = ecto.make(imgproc.Sobel, x= 0, y = 1)
 
-sobelShower = ecto.make(im.imshow,name="sobel",waitKey=-1)
+rgb2gray = ecto.make(imgproc.cvtColor, flag=7)
 
-grayShower = ecto.make(im.imshow,name="gray",waitKey=-1)
-
-
-sobelX = ecto.make(im.Sobel, x= 1, y = 0)
-sobelY = ecto.make(im.Sobel, x= 0, y = 1)
-
-rgb2gray = ecto.make(im.cvtColor, flag=7)
-
-adder = ecto.make(im.ImageAdder)
-printModuleDoc(adder)
-abs1 = ecto.make(im.AbsNormalized)
-abs2 = ecto.make(im.AbsNormalized)
+adder = ecto.make(imgproc.ImageAdder)
+abs1 = ecto.make(imgproc.AbsNormalized)
+abs2 = ecto.make(imgproc.AbsNormalized)
 
 plasm = ecto.Plasm()
 
@@ -40,7 +34,7 @@ plasm.connect(adder, "out", sobelShower, "in")
 
 print plasm.viz()
 
-while(imshow.outputs["out"].get() != 27):
+while(imshow.o.out.get() != 27):
     plasm.markDirty(video)
     # TODO just call go on the whole plasm, to trigger all leaves being called. 
     plasm.go(sobelShower)

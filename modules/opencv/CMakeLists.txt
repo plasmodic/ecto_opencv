@@ -1,8 +1,10 @@
 project(opencv)
 ectomodule(calib calib.cpp)
 link_ecto(calib ${OpenCV_LIBS})
-ectomodule(imageproc imageproc.cpp)
-link_ecto(imageproc ${OpenCV_LIBS})
+ectomodule(highgui highgui.cpp)
+link_ecto(highgui ${OpenCV_LIBS})
+ectomodule(imgproc imgproc.cpp)
+link_ecto(imgproc ${OpenCV_LIBS})
 
 add_subdirectory(wrappings)
 

@@ -8,7 +8,7 @@ import calib
 debug = True
 
 plasm = ecto.Plasm()
-rows = 5
+rows = 9
 cols = 3
 square_size = 40 # in millis
 pattern_show = ecto.make(imageproc.imshow, name="pattern", waitKey=10, autoSize=True)

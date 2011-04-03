@@ -1,0 +1,17 @@
+<package>
+<description brief="ecto_opencv">ecto_opencv is ecto wrappers for opencv high level functionality</description>
+<author>Ethan Rublee</author>
+<license>BSD</license>
+<depend package="ecto"/>
+<export>
+    <python path="${prefix}/build/lib" />
+</export>
+
+<rosbuild2>
+<export>
+  <include_dir>${${PROJECT_NAME}_SOURCE_DIR}/include</include_dir>
+  <lib>${PROJECT_NAME}</lib>
+</export>
+</rosbuild2>
+
+</package>
