@@ -1,6 +1,6 @@
 #!/bin/python
 import ecto
-from ecto.doc import printModuleDoc, graphviz
+from ecto.doc import print_module_doc, graphviz
 import imageproc
 #import orb as imageproc
 import calib
@@ -17,7 +17,7 @@ video = ecto.make(imageproc.VideoCapture, video_device=0)
 circle_detector = ecto.make(calib.PatternDetector, rows=rows, cols=cols)
 circle_drawer = ecto.make(calib.PatternDrawer, rows=rows, cols=cols)
 camera_calibrator = ecto.make(calib.CameraCalibrator, rows=rows, cols=cols, square_size=square_size)
-printModuleDoc(camera_calibrator)
+print_module_doc(camera_calibrator)
 plasm.connect(video, "out", rgb2gray, "in")
 plasm.connect(rgb2gray, "out", circle_detector, "in")
 plasm.connect(video, "out", circle_drawer, "in")

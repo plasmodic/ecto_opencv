@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import ecto
-from ecto.doc import printModuleDoc,graphviz
+from ecto.doc import print_module_doc,graphviz
 from ecto_opencv import highgui
 from ecto_opencv import imgproc
 
@@ -32,8 +32,8 @@ plasm.connect(abs1, "out", adder , "a")
 plasm.connect(abs2, "out", adder , "b")
 plasm.connect(adder, "out", sobelShower, "in")
 
-print plasm.viz()
-
+#print plasm.viz()
+ecto.view_plasm(plasm)
 while(imshow.o.out.get() != 27):
     plasm.markDirty(video)
     # TODO just call go on the whole plasm, to trigger all leaves being called. 

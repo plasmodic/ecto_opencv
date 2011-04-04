@@ -1,6 +1,6 @@
 #!/bin/python
 import ecto
-from ecto.doc import printModuleDoc, graphviz
+from ecto.doc import print_module_doc, graphviz
 import imageproc
 #import orb as imageproc
 import lazer
@@ -20,10 +20,10 @@ pattern_show = ecto.make(imageproc.imshow, name="pattern", waitKey= -1, autoSize
 lazer_show = ecto.make(imageproc.imshow, name="lazer", waitKey= -1, autoSize=True)
 rgb2gray = ecto.make(imageproc.cvtColor, flag=7)
 bgr2lab = ecto.make(imageproc.cvtColor, flag=44)
-printModuleDoc(rgb2gray)
+print_module_doc(rgb2gray)
 video = ecto.make(imageproc.VideoCapture, video_device=0)
 camera_calibrator = ecto.make(calib.CameraCalibrator, rows=11, cols=4)
-printModuleDoc(camera_calibrator)
+print_module_doc(camera_calibrator)
 
 plasm.connect(video, "out", rgb2gray, "in")
 plasm.connect(video, "out", bgr2lab, "in")

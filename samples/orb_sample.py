@@ -1,6 +1,6 @@
 #!/bin/python
 import ecto
-from ecto.doc import printModuleDoc, graphviz
+from ecto.doc import print_module_doc, graphviz
 import imageproc
 #import orb as imageproc
 import orb
@@ -24,18 +24,18 @@ plasm = ecto.Plasm()
 
 levels = 1
 pyramid = ecto.make(orb.Pyramid, levels=levels, magnification=0, scale_factor=1.3)
-printModuleDoc(pyramid)
+print_module_doc(pyramid)
 #rescale needs the same number of levels as the pyramid
 rescale = ecto.make(orb.PyramidRescale, levels=levels)
 imshow = ecto.make(imageproc.imshow)
 #configure the imshow
 ecto.config(imshow, name="video", waitKey=2, autoSize=True)
 rgb2gray = ecto.make(imageproc.cvtColor, flag=7)
-printModuleDoc(rgb2gray)
+print_module_doc(rgb2gray)
 
 
 video = ecto.make(imageproc.VideoCapture,video_device=0)
-printModuleDoc(video)
+print_module_doc(video)
 plasm.connect(video, "out", rgb2gray , "in")
 plasm.connect(rgb2gray, "out", pyramid, "in")
 
