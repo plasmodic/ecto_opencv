@@ -1,27 +1,23 @@
 #!/bin/python
 import ecto
 from ecto.doc import print_module_doc, graphviz
-import imageproc
-#import orb as imageproc
-import lazer
-import calib
-
+from ecto_opencv import highgui, imgproc, lazer, calib
 debug = True
 
 plasm = ecto.Plasm()
 
-splitter = ecto.make(imageproc.ChannelSplitter)
+splitter = ecto.make(imgproc.ChannelSplitter)
 sl_drawer = ecto.make(lazer.ScanLineDrawer)
 laser_detector = ecto.make(lazer.LaserDetector)
-imshowL = ecto.make(imageproc.imshow, name="L", waitKey=10, autoSize=True)
-imshowA = ecto.make(imageproc.imshow, name="A", waitKey= -1, autoSize=True)
-imshowB = ecto.make(imageproc.imshow, name="B", waitKey= -1, autoSize=True)
-pattern_show = ecto.make(imageproc.imshow, name="pattern", waitKey= -1, autoSize=True)
-lazer_show = ecto.make(imageproc.imshow, name="lazer", waitKey= -1, autoSize=True)
-rgb2gray = ecto.make(imageproc.cvtColor, flag=7)
-bgr2lab = ecto.make(imageproc.cvtColor, flag=44)
+imshowL = ecto.make(highgui.imshow, name="L", waitKey=10, autoSize=True)
+imshowA = ecto.make(highgui.imshow, name="A", waitKey= -1, autoSize=True)
+imshowB = ecto.make(highgui.imshow, name="B", waitKey= -1, autoSize=True)
+pattern_show = ecto.make(highgui.imshow, name="pattern", waitKey= -1, autoSize=True)
+lazer_show = ecto.make(highgui.imshow, name="lazer", waitKey= -1, autoSize=True)
+rgb2gray = ecto.make(imgproc.cvtColor, flag=7)
+bgr2lab = ecto.make(imgproc.cvtColor, flag=44)
 print_module_doc(rgb2gray)
-video = ecto.make(imageproc.VideoCapture, video_device=0)
+video = ecto.make(highgui.VideoCapture, video_device=0)
 camera_calibrator = ecto.make(calib.CameraCalibrator, rows=11, cols=4)
 print_module_doc(camera_calibrator)
 
@@ -36,6 +32,7 @@ plasm.connect(splitter, "out_1", sl_drawer, "in")
 plasm.connect(sl_drawer, "out", lazer_show, "in")
 
 graphviz(plasm)
+ecto.view_plasm(plasm)
 
 while(imshowL.o.out.get() != 27):
     plasm.markDirty(video)

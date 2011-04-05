@@ -49,7 +49,7 @@ void mat_set(cv::Mat& m, bp::object o, int type)
   }
 
 }
-cv::Size mat_size(const cv::Mat&m){
+cv::Size mat_size(cv::Mat& m){
 	return m.size();
 }
 void mat_set(cv::Mat& m, bp::object o)
@@ -80,7 +80,7 @@ namespace opencv_wrappers
        .def("col",&cv::Mat::col, "get the column at index")
        .def("fromarray",mat_set_p2)
        .def("fromarray",mat_set_p3)
-       .def("size",&mat_size)
+       .def("size",mat_size)
        ;
   //define opencv consts
   bp::object opencv = bp::scope();
