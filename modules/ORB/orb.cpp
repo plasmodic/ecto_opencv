@@ -189,6 +189,7 @@ struct DrawKeypoints : ecto::module
     SHOW();
   }
 };
+
 ECTO_MODULE(orb)
 {
   ecto::wrap<Pyramid>("Pyramid");
