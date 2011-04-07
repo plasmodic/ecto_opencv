@@ -61,7 +61,7 @@ prev = time.time()
 count = 0
     
 while(imshow.o.out.get() != 27):
-    plasm.markDirty(video)
+    plasm.mark_dirty(video)
     if debug:
         for x in imshows:
             plasm.go(x)

@@ -1,9 +1,7 @@
 #!/bin/python
 import ecto
-from ecto.doc import print_module_doc, graphviz
-import imageproc
-#import orb as imageproc
-import calib
+
+from ecto_opencv import highgui,calib,imgproc
 
 debug = True
 
@@ -11,13 +9,13 @@ plasm = ecto.Plasm()
 rows = 9
 cols = 3
 square_size = 40 # in millis
-pattern_show = ecto.make(imageproc.imshow, name="pattern", waitKey=10, autoSize=True)
-rgb2gray = ecto.make(imageproc.cvtColor, flag=7)
-video = ecto.make(imageproc.VideoCapture, video_device=0)
+pattern_show = ecto.make(highgui.imshow, name="pattern", waitKey=10, autoSize=True)
+rgb2gray = ecto.make(imgproc.cvtColor, flag=7)
+video = ecto.make(highgui.VideoCapture, video_device=0)
 circle_detector = ecto.make(calib.PatternDetector, rows=rows, cols=cols)
 circle_drawer = ecto.make(calib.PatternDrawer, rows=rows, cols=cols)
 camera_calibrator = ecto.make(calib.CameraCalibrator, rows=rows, cols=cols, square_size=square_size)
-print_module_doc(camera_calibrator)
+ecto.print_module_doc(camera_calibrator)
 plasm.connect(video, "out", rgb2gray, "in")
 plasm.connect(rgb2gray, "out", circle_detector, "in")
 plasm.connect(video, "out", circle_drawer, "in")
@@ -28,10 +26,8 @@ plasm.connect(video, "out", camera_calibrator, "image")
 plasm.connect(circle_detector, "out", camera_calibrator,"points")
 plasm.connect(circle_detector, "found", camera_calibrator, "found")
 
-print graphviz(plasm)
-
 while(pattern_show.o.out.get() != 27):
-    plasm.markDirty(video)
+    plasm.mark_dirty(video)
     #plasm.go(lazer_show)
     plasm.go(pattern_show)
     plasm.go(camera_calibrator)

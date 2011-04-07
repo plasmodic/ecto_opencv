@@ -35,7 +35,7 @@ graphviz(plasm)
 ecto.view_plasm(plasm)
 
 while(imshowL.o.out.get() != 27):
-    plasm.markDirty(video)
+    plasm.mark_dirty(video)
     plasm.go(lazer_show)
     # TODO just call go on the whole plasm, to trigger all leaves being called. 
     plasm.go(imshowA)
