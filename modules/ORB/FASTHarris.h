@@ -10,6 +10,8 @@ struct HarrisResponse
   cv::Mat image;
   cv::Rect imgroi;
   double k;
+  std::vector<int> dX_offsets_,
+                      dY_offsets_;
 };
 
 inline bool keypointResponseLess(const cv::KeyPoint& lhs, const cv::KeyPoint& rhs)

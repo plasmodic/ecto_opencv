@@ -7,6 +7,8 @@
 #include <cmath>
 #include "FASTHarris.h"
 
+#include <boost/python/suite/indexing/vector_indexing_suite.hpp>
+
 //disable show in here
 #define DISABLE_SHOW 1
 #if DISABLE_SHOW
@@ -190,8 +192,46 @@ struct DrawKeypoints : ecto::module
   }
 };
 
+struct ScoreZipper : ecto::module
+{
+  typedef std::vector<std::pair<float,float> > pairs_t;
+  void Config()
+  {
+    SHOW();
+    setIn<std::vector<cv::KeyPoint> > ("kpts_0", "The keypoints to draw.");
+    setIn<std::vector<cv::KeyPoint> > ("kpts_1", "The keypoints to draw.");
+    setOut<pairs_t>("scores", "the scores of the keypoint");
+  }
+  void Process()
+  {
+    SHOW();
+    const std::vector<cv::KeyPoint>& kpts_in = getIn<std::vector<cv::KeyPoint> > ("kpts_0");
+    const std::vector<cv::KeyPoint>& kpts_in2 = getIn<std::vector<cv::KeyPoint> > ("kpts_1");
+    pairs_t&  out = getOut<pairs_t> ("scores");
+    out.clear();
+    out.reserve(kpts_in.size());
+    for(size_t i = 0,end = kpts_in.size(); i < end; ++i)
+    {
+      out.push_back(std::make_pair(kpts_in[i].response,kpts_in2[i].response));
+      //std::cout << out.back().first << " " << out.back().second << std::endl;
+    }
+  }
+  static void Params(tendrils_t& p)
+  {
+    SHOW();
+  }
+};
+
 ECTO_MODULE(orb)
 {
+  namespace bp = boost::python;
+  typedef std::vector<std::pair<float,float> > pairs_t;
+  bp::class_<pairs_t> ("scores")
+  .def(bp::vector_indexing_suite<pairs_t, false>() );
+  bp::class_<std::pair<float,float> > ("pair_float")
+    .def_readwrite("first",&std::pair<float,float>::first)
+    .def_readwrite("second",&std::pair<float,float>::second);
+  ecto::wrap<ScoreZipper>("ScoreZipper");
   ecto::wrap<Pyramid>("Pyramid");
   ecto::wrap<FAST>("FAST");
   ecto::wrap<Harris>("Harris");
