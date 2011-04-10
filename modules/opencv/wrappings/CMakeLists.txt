@@ -1,6 +1,9 @@
 add_library(opencv_python SHARED
   opencv.cpp
   cv_core.cpp
+  cv_mat.cpp
+  cv_points.cpp
+  cv_highgui.cpp
   )
 
 set_target_properties(opencv_python
