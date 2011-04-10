@@ -5,6 +5,4 @@ ectomodule(highgui highgui.cpp)
 link_ecto(highgui ${OpenCV_LIBS})
 ectomodule(imgproc imgproc.cpp)
 link_ecto(imgproc ${OpenCV_LIBS})
-
 add_subdirectory(wrappings)
-
