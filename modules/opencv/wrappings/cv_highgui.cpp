@@ -42,28 +42,28 @@ namespace opencv_wrappers
   void wrap_highgui()
   {
     bp::object opencv = bp::scope();
-    opencv.attr("CV_WINDOW_AUTOSIZE") = CV_WINDOW_AUTOSIZE;
-    opencv.attr("CV_CAP_ANY") = CV_CAP_ANY;
-    opencv.attr("CV_CAP_MIL") = CV_CAP_MIL;
-    opencv.attr("CV_CAP_VFW") = CV_CAP_VFW;
-    opencv.attr("CV_CAP_V4L") = CV_CAP_V4L;
-    opencv.attr("CV_CAP_V4L2") = CV_CAP_V4L2;
-    opencv.attr("CV_CAP_FIREWARE") = CV_CAP_FIREWARE;
-    opencv.attr("CV_CAP_FIREWIRE") = CV_CAP_FIREWIRE;
-    opencv.attr("CV_CAP_IEEE1394") = CV_CAP_IEEE1394;
-    opencv.attr("CV_CAP_DC1394") = CV_CAP_DC1394;
-    opencv.attr("CV_CAP_CMU1394") = CV_CAP_CMU1394;
-    opencv.attr("CV_CAP_STEREO") = CV_CAP_STEREO;
-    opencv.attr("CV_CAP_TYZX") = CV_CAP_TYZX;
-    opencv.attr("CV_TYZX_LEFT") = CV_TYZX_LEFT;
-    opencv.attr("CV_TYZX_RIGHT") = CV_TYZX_RIGHT;
-    opencv.attr("CV_TYZX_COLOR") = CV_TYZX_COLOR;
-    opencv.attr("CV_TYZX_Z") = CV_TYZX_Z;
-    opencv.attr("CV_CAP_QT") = CV_CAP_QT;
-    opencv.attr("CV_CAP_UNICAP") = CV_CAP_UNICAP;
-    opencv.attr("CV_CAP_DSHOW") = CV_CAP_DSHOW;
-    opencv.attr("CV_CAP_PVAPI") = CV_CAP_PVAPI;
-    opencv.attr("CV_CAP_OPENNI") = CV_CAP_OPENNI;
+    opencv.attr("CV_WINDOW_AUTOSIZE") = int(CV_WINDOW_AUTOSIZE);
+    opencv.attr("CV_CAP_ANY") = int(CV_CAP_ANY);
+    opencv.attr("CV_CAP_MIL") = int(CV_CAP_MIL);
+    opencv.attr("CV_CAP_VFW") = int(CV_CAP_VFW);
+    opencv.attr("CV_CAP_V4L") = int(CV_CAP_V4L);
+    opencv.attr("CV_CAP_V4L2") = int(CV_CAP_V4L2);
+    opencv.attr("CV_CAP_FIREWARE") = int(CV_CAP_FIREWARE);
+    opencv.attr("CV_CAP_FIREWIRE") = int(CV_CAP_FIREWIRE);
+    opencv.attr("CV_CAP_IEEE1394") = int(CV_CAP_IEEE1394);
+    opencv.attr("CV_CAP_DC1394") = int(CV_CAP_DC1394);
+    opencv.attr("CV_CAP_CMU1394") = int(CV_CAP_CMU1394);
+    opencv.attr("CV_CAP_STEREO") = int(CV_CAP_STEREO);
+    opencv.attr("CV_CAP_TYZX") = int(CV_CAP_TYZX);
+    opencv.attr("CV_TYZX_LEFT") = int(CV_TYZX_LEFT);
+    opencv.attr("CV_TYZX_RIGHT") = int(CV_TYZX_RIGHT);
+    opencv.attr("CV_TYZX_COLOR") = int(CV_TYZX_COLOR);
+    opencv.attr("CV_TYZX_Z") = int(CV_TYZX_Z);
+    opencv.attr("CV_CAP_QT") = int(CV_CAP_QT);
+    opencv.attr("CV_CAP_UNICAP") = int(CV_CAP_UNICAP);
+    opencv.attr("CV_CAP_DSHOW") = int(CV_CAP_DSHOW);
+    opencv.attr("CV_CAP_PVAPI") = int(CV_CAP_PVAPI);
+    opencv.attr("CV_CAP_OPENNI") = int(CV_CAP_OPENNI);
 
     //video stuff.
     wrap_video_capture();

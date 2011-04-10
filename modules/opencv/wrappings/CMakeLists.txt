@@ -8,7 +8,7 @@ add_library(opencv_python SHARED
 
 set_target_properties(opencv_python
   PROPERTIES
-  OUTPUT_NAME bindings
+  OUTPUT_NAME opencv
   PREFIX ""
   )
 
