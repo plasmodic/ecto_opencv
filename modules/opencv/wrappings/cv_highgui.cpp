@@ -1,15 +1,24 @@
 #include <boost/python.hpp>
-
+#include <boost/python/overloads.hpp>
+#include <iostream>
+#include <fstream>
 #include <opencv2/highgui/highgui.hpp>
 
 namespace bp = boost::python;
 
 namespace
 {
+  BOOST_PYTHON_FUNCTION_OVERLOADS(imread_overloads,cv::imread,1,2)
+  ;
 
+  BOOST_PYTHON_FUNCTION_OVERLOADS(imwrite_overloads,cv::imwrite,2,3)
+  ;
+  BOOST_PYTHON_FUNCTION_OVERLOADS(imencode_overloads,cv::imencode,3,4)
+  ;
 }
 namespace opencv_wrappers
 {
+  void wrap_highgui_defines();
   void wrap_video_capture()
   {
     bp::class_<cv::VideoCapture> VideoCapture_("VideoCapture");
@@ -39,32 +48,53 @@ namespace opencv_wrappers
     VideoWriter_.def("write", &cv::VideoWriter::write);
   }
 
+  void depth2points(const cv::Mat& depth, cv::Mat& points)
+  {
+    const float f = 575;
+    const float finv = 1 / f;
+    const float cx = depth.size().width / 2;
+    const float cy = depth.size().height / 2;
+    points.create(depth.size(), CV_32FC3);
+    cv::Mat_<cv::Point3f>::iterator itp = points.begin<cv::Point3f> ();
+    cv::Mat_<uint16_t>::const_iterator it = depth.begin<uint16_t> ();
+    for (int y = 0; y < 480; y++)
+    {
+      for (int x = 0; x < 640; x++, ++it, ++itp)
+      {
+        const float Z = *it * 0.001f;
+        cv::Point3f& p = *itp;
+        p.z = Z;
+        p.x = (x - cx) * Z * finv;
+        p.y = (y - cy) * Z * finv;
+      }
+    }
+  }
+
+  void savePoints(std::string filename, const cv::Mat& points)
+  {
+    cv::Mat_<cv::Point3f>::const_iterator itp = points.begin<cv::Point3f> (), end = points.end<cv::Point3f> ();
+    std::ofstream out(filename.c_str());
+    out << "ply\n"
+      "format ascii 1.0\n"
+      "comment made by anonymous  { comments keyword specified, like all lines }\n"
+      "comment this file is a cube\n"
+      "element vertex " << points.size().area()<<"          { define vertex element, 8 of them in file }\n"
+      "property float32 x         { vertex contains float x coordinate }\n"
+      "property float32 y         { y coordinate is also a vertex property }\n"
+      "property float32 z         { z coordinate, too }\n"
+      "end_header                 { delimits the end of the header }\n";
+
+    while (itp != end)
+    {
+      const cv::Point3f& p = *itp;
+      out << p.x << " " << p.y << " " << p.z << "\n";
+      ++itp;
+    }
+
+  }
   void wrap_highgui()
   {
-    bp::object opencv = bp::scope();
-    opencv.attr("CV_WINDOW_AUTOSIZE") = int(CV_WINDOW_AUTOSIZE);
-    opencv.attr("CV_CAP_ANY") = int(CV_CAP_ANY);
-    opencv.attr("CV_CAP_MIL") = int(CV_CAP_MIL);
-    opencv.attr("CV_CAP_VFW") = int(CV_CAP_VFW);
-    opencv.attr("CV_CAP_V4L") = int(CV_CAP_V4L);
-    opencv.attr("CV_CAP_V4L2") = int(CV_CAP_V4L2);
-    opencv.attr("CV_CAP_FIREWARE") = int(CV_CAP_FIREWARE);
-    opencv.attr("CV_CAP_FIREWIRE") = int(CV_CAP_FIREWIRE);
-    opencv.attr("CV_CAP_IEEE1394") = int(CV_CAP_IEEE1394);
-    opencv.attr("CV_CAP_DC1394") = int(CV_CAP_DC1394);
-    opencv.attr("CV_CAP_CMU1394") = int(CV_CAP_CMU1394);
-    opencv.attr("CV_CAP_STEREO") = int(CV_CAP_STEREO);
-    opencv.attr("CV_CAP_TYZX") = int(CV_CAP_TYZX);
-    opencv.attr("CV_TYZX_LEFT") = int(CV_TYZX_LEFT);
-    opencv.attr("CV_TYZX_RIGHT") = int(CV_TYZX_RIGHT);
-    opencv.attr("CV_TYZX_COLOR") = int(CV_TYZX_COLOR);
-    opencv.attr("CV_TYZX_Z") = int(CV_TYZX_Z);
-    opencv.attr("CV_CAP_QT") = int(CV_CAP_QT);
-    opencv.attr("CV_CAP_UNICAP") = int(CV_CAP_UNICAP);
-    opencv.attr("CV_CAP_DSHOW") = int(CV_CAP_DSHOW);
-    opencv.attr("CV_CAP_PVAPI") = int(CV_CAP_PVAPI);
-    opencv.attr("CV_CAP_OPENNI") = int(CV_CAP_OPENNI);
-
+    wrap_highgui_defines();
     //video stuff.
     wrap_video_capture();
     wrap_video_writer();
@@ -73,9 +103,12 @@ namespace opencv_wrappers
     bp::def("waitKey", cv::waitKey);
     bp::def("namedWindow", cv::namedWindow);
     //image io
-    bp::def("imread", cv::imread);
-    bp::def("imwrite", cv::imwrite);
+    bp::def("imread", cv::imread, imread_overloads());
+    bp::def("imwrite", cv::imwrite, imwrite_overloads());
     bp::def("imdecode", cv::imdecode);
-    bp::def("imencode", cv::imencode);
+
+    bp::def("imencode", cv::imencode, imencode_overloads());
+    bp::def("depth2points", depth2points);
+    bp::def("savepoints",savePoints);
   }
 }
