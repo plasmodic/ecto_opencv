@@ -19,8 +19,8 @@ struct VideoCapture : ecto::module
   void Config()
   {
     SHOW();
-    int video_device = getParam<int> ("video_device");
-    std::string video_file = getParam<std::string> ("video_file");
+    int video_device = params.get<int> ("video_device");
+    std::string video_file = params.get<std::string> ("video_file");
     capture = cv::VideoCapture();
     if (!video_file.empty())
     {
@@ -36,24 +36,24 @@ struct VideoCapture : ecto::module
     }
 
     //set outputs
-    setOut<cv::Mat> ("out", "A video frame.", cv::Mat());
-    setOut<int> ("frame_number", "The number of frames captured.", 0);
+    outputs.declare<cv::Mat> ("out", "A video frame.", cv::Mat());
+    outputs.declare<int> ("frame_number", "The number of frames captured.", 0);
   }
 
   static void Params(tendrils_t& params)
   {
     SHOW();
-    params.set<int> ("video_device", "The device ID to open.", 0);
-    params.set<std::string> ("video_file", "A video file to read, leave empty to open a video device.", "");
+    params.declare<int> ("video_device", "The device ID to open.", 0);
+    params.declare<std::string> ("video_file", "A video file to read, leave empty to open a video device.", "");
   }
 
   void Process()
   {
     SHOW();
-    //getOut is a reference;
-    capture >> getOut<cv::Mat> ("out");
+    //outputs.get is a reference;
+    capture >> outputs.get<cv::Mat> ("out");
     //increment our frame number.
-    ++(getOut<int> ("frame_number"));
+    ++(outputs.get<int> ("frame_number"));
   }
   cv::VideoCapture capture;
 
@@ -64,28 +64,28 @@ struct imshow : ecto::module
   static void Params(tendrils_t& params)
   {
     SHOW();
-    params.set<std::string> ("name", "The window name", "image");
-    params.set<int> ("waitKey", "Number of millis to wait, -1 for not at all, 0 for infinity.", -1);
-    params.set<bool> ("autoSize", "Autosize the window.", true);
+    params.declare<std::string> ("name", "The window name", "image");
+    params.declare<int> ("waitKey", "Number of millis to wait, -1 for not at all, 0 for infinity.", -1);
+    params.declare<bool> ("autoSize", "Autosize the window.", true);
   }
 
   void Config()
   {
     SHOW();
-    window_name_ = getParam<std::string> ("name");
-    waitkey_ = getParam<int> ("waitKey");
-    auto_size_ = getParam<bool> ("autoSize");
-    setIn<cv::Mat> ("in", "The image to show");
-    setOut<int> ("out", "Character pressed.");
+    window_name_ = params.get<std::string> ("name");
+    waitkey_ = params.get<int> ("waitKey");
+    auto_size_ = params.get<bool> ("autoSize");
+    inputs.declare<cv::Mat> ("in", "The image to show");
+    outputs.declare<int> ("out", "Character pressed.");
   }
 
   void Process()
   {
     SHOW();
-    const cv::Mat& image = getIn<cv::Mat> ("in");
+    const cv::Mat& image = inputs.get<cv::Mat> ("in");
     if (image.empty())
     {
-      getOut<int> ("out") = 0;
+      outputs.get<int> ("out") = 0;
       throw std::logic_error("empty image!");
       return;
     }
@@ -97,11 +97,11 @@ struct imshow : ecto::module
     cv::imshow(window_name_, image);
     if (waitkey_ >= 0)
     {
-      getOut<int> ("out") = int(0xff & cv::waitKey(waitkey_));
+      outputs.get<int> ("out") = int(0xff & cv::waitKey(waitkey_));
     }
     else
     {
-      getOut<int> ("out") = 0;
+      outputs.get<int> ("out") = 0;
     }
   }
   std::string window_name_;
@@ -109,7 +109,7 @@ struct imshow : ecto::module
   bool auto_size_;
 };
 
-ECTO_MODULE(highgui)
+BOOST_PYTHON_MODULE(highgui)
 {
   ecto::wrap<VideoCapture>("VideoCapture");
   ecto::wrap<imshow>("imshow");

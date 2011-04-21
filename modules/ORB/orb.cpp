@@ -24,25 +24,25 @@ struct Pyramid : ecto::module
   void Config()
   {
     SHOW();
-    levels_ = getParam<int> ("levels");
-    scale_factor_ = getParam<float> ("scale_factor");
-    magnification_ = getParam<int> ("magnification");
+    levels_ = params.get<int> ("levels");
+    scale_factor_ = params.get<float> ("scale_factor");
+    magnification_ = params.get<int> ("magnification");
     for (int i = 0; i < levels_; i++)
     {
-      setOut<cv::Mat> (str(boost::format("out_%d") % i));
-      setOut<float> (str(boost::format("scale_%d") % i));
+      outputs.declare<cv::Mat> (str(boost::format("out_%d") % i));
+      outputs.declare<float> (str(boost::format("scale_%d") % i));
     }
-    setIn<cv::Mat> ("in");
+    inputs.declare<cv::Mat> ("in");
   }
 
   void Process()
   {
     SHOW();
-    const cv::Mat& in = getIn<cv::Mat> ("in");
+    const cv::Mat& in = inputs.get<cv::Mat> ("in");
     for (int i = 0; i < levels_; i++)
     {
-      cv::Mat& out = getOut<cv::Mat> (str(boost::format("out_%d") % i));
-      float & scale = getOut<float> (str(boost::format("scale_%d") % i));
+      cv::Mat& out = outputs.get<cv::Mat> (str(boost::format("out_%d") % i));
+      float & scale = outputs.get<float> (str(boost::format("scale_%d") % i));
       scale = 1.0f / float(std::pow(scale_factor_, i - magnification_));
       //use liner interp if magnifying, area based if decimating
       cv::resize(in, out, cv::Size(), scale, scale, i - magnification_ < 0 ? CV_INTER_LINEAR : CV_INTER_AREA);
@@ -67,23 +67,23 @@ struct PyramidRescale : ecto::module
   void Config()
   {
     SHOW();
-    levels_ = getParam<int> ("levels");
+    levels_ = params.get<int> ("levels");
     for (int i = 0; i < levels_; i++)
     {
-      setIn<float> (str(boost::format("scale_%d") % i), "The scale of the level i");
-      setIn<std::vector<cv::KeyPoint> > (str(boost::format("kpts_%d") % i), "The kpts at level i.");
+      inputs.declare<float> (str(boost::format("scale_%d") % i), "The scale of the level i");
+      inputs.declare<std::vector<cv::KeyPoint> > (str(boost::format("kpts_%d") % i), "The kpts at level i.");
     }
-    setOut<std::vector<cv::KeyPoint> > ("out", "The rescaled kpts.");
+    outputs.declare<std::vector<cv::KeyPoint> > ("out", "The rescaled kpts.");
   }
   void Process()
   {
     SHOW();
-    std::vector<cv::KeyPoint>& kpts = getOut<std::vector<cv::KeyPoint> > ("out");
+    std::vector<cv::KeyPoint>& kpts = outputs.get<std::vector<cv::KeyPoint> > ("out");
     kpts.clear();
     for (int i = 0; i < levels_; i++)
     {
-      float scale = getIn<float> (str(boost::format("scale_%d") % i));
-      const std::vector<cv::KeyPoint>& kpts_in = getIn<std::vector<cv::KeyPoint> > (str(boost::format("kpts_%d") % i));
+      float scale = inputs.get<float> (str(boost::format("scale_%d") % i));
+      const std::vector<cv::KeyPoint>& kpts_in = inputs.get<std::vector<cv::KeyPoint> > (str(boost::format("kpts_%d") % i));
       kpts.reserve(kpts.size()+kpts_in.size());
       for(size_t j = 0; j < kpts_in.size(); j++)
       {
@@ -107,18 +107,18 @@ struct FAST : ecto::module
   void Config()
   {
     SHOW();
-    thresh_ = getParam<int> ("thresh");
-    N_max_ = getParam<int> ("N_max");
-    setOut<std::vector<cv::KeyPoint> > ("out", "Detected keypoints");
-    setIn<cv::Mat> ("image", "The image to detect FAST on.");
-    setIn<cv::Mat> ("mask", "optional mask");
+    thresh_ = params.get<int> ("thresh");
+    N_max_ = params.get<int> ("N_max");
+    outputs.declare<std::vector<cv::KeyPoint> > ("out", "Detected keypoints");
+    inputs.declare<cv::Mat> ("image", "The image to detect FAST on.");
+    inputs.declare<cv::Mat> ("mask", "optional mask");
   }
   void Process()
   {
     SHOW();
-    const cv::Mat& in = getIn<cv::Mat> ("image");
-    const cv::Mat& mask = getIn<cv::Mat> ("mask");
-    std::vector<cv::KeyPoint>& kpts = getOut<std::vector<cv::KeyPoint> > ("out");
+    const cv::Mat& in = inputs.get<cv::Mat> ("image");
+    const cv::Mat& mask = inputs.get<cv::Mat> ("mask");
+    std::vector<cv::KeyPoint>& kpts = outputs.get<std::vector<cv::KeyPoint> > ("out");
     cv::FastFeatureDetector fd(thresh_, true);
     fd.detect(in, kpts, mask);
     if (int(kpts.size()) > N_max_)
@@ -141,17 +141,17 @@ struct Harris : ecto::module
   void Config()
   {
     SHOW();
-    N_max_ = getParam<int> ("N_max");
-    setOut<std::vector<cv::KeyPoint> > ("out", "Detected keypoints, with Harris");
-    setIn<cv::Mat> ("image", "The image to calc harris response from.");
-    setIn<std::vector<cv::KeyPoint> > ("kpts", "The keypoints to fill with Harris response.");
+    N_max_ = params.get<int> ("N_max");
+    outputs.declare<std::vector<cv::KeyPoint> > ("out", "Detected keypoints, with Harris");
+    inputs.declare<cv::Mat> ("image", "The image to calc harris response from.");
+    inputs.declare<std::vector<cv::KeyPoint> > ("kpts", "The keypoints to fill with Harris response.");
   }
   void Process()
   {
     SHOW();
-    const cv::Mat& image = getIn<cv::Mat> ("image");
-    const std::vector<cv::KeyPoint>& kpts_in = getIn<std::vector<cv::KeyPoint> > ("kpts");
-    std::vector<cv::KeyPoint>& kpts = getOut<std::vector<cv::KeyPoint> > ("out");
+    const cv::Mat& image = inputs.get<cv::Mat> ("image");
+    const std::vector<cv::KeyPoint>& kpts_in = inputs.get<std::vector<cv::KeyPoint> > ("kpts");
+    std::vector<cv::KeyPoint>& kpts = outputs.get<std::vector<cv::KeyPoint> > ("out");
     FASTHarris::HarrisResponse h(image);
     kpts = kpts_in;
     h(kpts);
@@ -174,16 +174,16 @@ struct DrawKeypoints : ecto::module
   void Config()
   {
     SHOW();
-    setIn<cv::Mat> ("image", "The input image, to draw over.");
-    setOut<cv::Mat> ("image", "The output image.");
-    setIn<std::vector<cv::KeyPoint> > ("kpts", "The keypoints to draw.");
+    inputs.declare<cv::Mat>("image", "The input image, to draw over.");
+    outputs.declare<cv::Mat> ("image", "The output image.");
+    inputs.declare<std::vector<cv::KeyPoint> > ("kpts", "The keypoints to draw.");
   }
   void Process()
   {
     SHOW();
-    const cv::Mat& image = getIn<cv::Mat> ("image");
-    const std::vector<cv::KeyPoint>& kpts_in = getIn<std::vector<cv::KeyPoint> > ("kpts");
-    cv::Mat& out_image = getOut<cv::Mat> ("image");
+    const cv::Mat& image = inputs.get<cv::Mat> ("image");
+    const std::vector<cv::KeyPoint>& kpts_in = inputs.get<std::vector<cv::KeyPoint> > ("kpts");
+    cv::Mat& out_image = outputs.get<cv::Mat> ("image");
     cv::drawKeypoints(image, kpts_in, out_image);
   }
   static void Params(tendrils_t& p)
@@ -198,16 +198,16 @@ struct ScoreZipper : ecto::module
   void Config()
   {
     SHOW();
-    setIn<std::vector<cv::KeyPoint> > ("kpts_0", "The keypoints to draw.");
-    setIn<std::vector<cv::KeyPoint> > ("kpts_1", "The keypoints to draw.");
-    setOut<pairs_t>("scores", "the scores of the keypoint");
+    inputs.declare<std::vector<cv::KeyPoint> > ("kpts_0", "The keypoints to draw.");
+    inputs.declare<std::vector<cv::KeyPoint> > ("kpts_1", "The keypoints to draw.");
+    outputs.declare<pairs_t>("scores", "the scores of the keypoint");
   }
   void Process()
   {
     SHOW();
-    const std::vector<cv::KeyPoint>& kpts_in = getIn<std::vector<cv::KeyPoint> > ("kpts_0");
-    const std::vector<cv::KeyPoint>& kpts_in2 = getIn<std::vector<cv::KeyPoint> > ("kpts_1");
-    pairs_t&  out = getOut<pairs_t> ("scores");
+    const std::vector<cv::KeyPoint>& kpts_in = inputs.get<std::vector<cv::KeyPoint> > ("kpts_0");
+    const std::vector<cv::KeyPoint>& kpts_in2 = inputs.get<std::vector<cv::KeyPoint> > ("kpts_1");
+    pairs_t&  out = outputs.get<pairs_t> ("scores");
     out.clear();
     out.reserve(kpts_in.size());
     for(size_t i = 0,end = kpts_in.size(); i < end; ++i)
@@ -222,7 +222,7 @@ struct ScoreZipper : ecto::module
   }
 };
 
-ECTO_MODULE(orb)
+BOOST_PYTHON_MODULE(orb)
 {
   namespace bp = boost::python;
   typedef std::vector<std::pair<float,float> > pairs_t;

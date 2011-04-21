@@ -34,16 +34,16 @@ struct ScanLineDrawer : ecto::module
   void Config()
   {
     SHOW();
-    setIn<cv::Mat> ("in", "The image to draw a scan line from.");
-    setOut<cv::Mat> ("out", "The scan line image.");
-    scan_idx_ = 0;//getParam<float> ("scan_idx");
-    auto_scan_ = getParam<bool> ("auto_scan");
+    inputs.declare<cv::Mat> ("in", "The image to draw a scan line from.");
+    outputs.declare<cv::Mat> ("out", "The scan line image.");
+    scan_idx_ = 0;//params.get<float> ("scan_idx");
+    auto_scan_ = params.get<bool> ("auto_scan");
   }
   void Process()
   {
     SHOW();
-    const cv::Mat& in = getIn<cv::Mat> ("in");
-    cv::Mat& out = getOut<cv::Mat> ("out");
+    const cv::Mat& in = inputs.get<cv::Mat> ("in");
+    cv::Mat& out = outputs.get<cv::Mat> ("out");
     drawScaneLine(in, out, scan_idx_);
     if (auto_scan_)
       scan_idx_++;
@@ -53,8 +53,8 @@ struct ScanLineDrawer : ecto::module
   static void Params(ecto::tendrils& p)
   {
     SHOW();
-    p.set<float> ("scan_idx", "The scan line index, [0,1]", 0.5f);
-    p.set<bool> ("auto_scan", "After each process, increment the scanline", true);
+    p.declare<float> ("scan_idx", "The scan line index, [0,1]", 0.5f);
+    p.declare<bool> ("auto_scan", "After each process, increment the scanline", true);
   }
   int scan_idx_;
   bool auto_scan_;
@@ -65,14 +65,14 @@ struct mm : ecto::module
   void Config()
   {
     SHOW();
-    setIn<cv::Mat> ("in", "The image to to find a vertical lazer line in.");
-    setOut<cv::Mat> ("out", "The lazer image (0 - no lazer, 255 - lazer).");
+    inputs.declare<cv::Mat> ("in", "The image to to find a vertical lazer line in.");
+    outputs.declare<cv::Mat> ("out", "The lazer image (0 - no lazer, 255 - lazer).");
   }
   void Process()
   {
     SHOW();
-    //const cv::Mat& in = getIn<cv::Mat> ("in");
-    //cv::Mat& out = getOut<cv::Mat> ("out");
+    //const cv::Mat& in = inputs.get<cv::Mat> ("in");
+    //cv::Mat& out = outputs.get<cv::Mat> ("out");
   }
   static void Params(ecto::tendrils& p)
   {
@@ -85,14 +85,14 @@ struct LaserDetector : ecto::module
   void Config()
   {
     SHOW();
-    setIn<cv::Mat> ("in", "The image to to find a vertical lazer line in.");
-    setOut<cv::Mat> ("out", "The lazer image (0 - no lazer, 255 - lazer).");
+    inputs.declare<cv::Mat> ("in", "The image to to find a vertical lazer line in.");
+    outputs.declare<cv::Mat> ("out", "The lazer image (0 - no lazer, 255 - lazer).");
   }
   void Process()
   {
     SHOW();
-    //const cv::Mat& in = getIn<cv::Mat> ("in");
-    //cv::Mat& out = getOut<cv::Mat> ("out");
+    //const cv::Mat& in = inputs.get<cv::Mat> ("in");
+    //cv::Mat& out = outputs.get<cv::Mat> ("out");
   }
   static void Params(ecto::tendrils& p)
   {
@@ -100,7 +100,7 @@ struct LaserDetector : ecto::module
   }
 };
 
-ECTO_MODULE(lazer)
+BOOST_PYTHON_MODULE(lazer)
 {
   ecto::wrap<ScanLineDrawer>("ScanLineDrawer");
   ecto::wrap<LaserDetector>("LaserDetector");

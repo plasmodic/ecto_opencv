@@ -41,27 +41,3 @@ opencv.attr("CV_64FC1") = CV_64FC1;
 opencv.attr("CV_64FC2") = CV_64FC2;
 opencv.attr("CV_64FC3") = CV_64FC3;
 opencv.attr("CV_64FC4") = CV_64FC4;
-
-// matrix decomposition types
-enum
-{
-  DECOMP_LU = 0, DECOMP_SVD = 1, DECOMP_EIG = 2, DECOMP_CHOLESKY = 3, DECOMP_QR = 4, DECOMP_NORMAL = 16
-};
-enum
-{
-  NORM_INF = 1, NORM_L1 = 2, NORM_L2 = 4, NORM_TYPE_MASK = 7, NORM_RELATIVE = 8, NORM_MINMAX = 32
-};
-enum
-{
-  CMP_EQ = 0, CMP_GT = 1, CMP_GE = 2, CMP_LT = 3, CMP_LE = 4, CMP_NE = 5
-};
-enum
-{
-  GEMM_1_T = 1, GEMM_2_T = 2, GEMM_3_T = 4
-};
-enum
-{
-  DFT_INVERSE = 1, DFT_SCALE = 2, DFT_ROWS = 4, DFT_COMPLEX_OUTPUT = 16, DFT_REAL_OUTPUT = 32,
-  DCT_INVERSE = DFT_INVERSE, DCT_ROWS = DFT_ROWS
-};
-
