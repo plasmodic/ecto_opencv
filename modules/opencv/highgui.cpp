@@ -75,14 +75,14 @@ struct imshow : ecto::module
     window_name_ = params.get<std::string> ("name");
     waitkey_ = params.get<int> ("waitKey");
     auto_size_ = params.get<bool> ("autoSize");
-    inputs.declare<cv::Mat> ("in", "The image to show");
+    inputs.declare<cv::Mat> ("input", "The image to show");
     outputs.declare<int> ("out", "Character pressed.");
   }
 
   void Process()
   {
     SHOW();
-    const cv::Mat& image = inputs.get<cv::Mat> ("in");
+    const cv::Mat& image = inputs.get<cv::Mat> ("input");
     if (image.empty())
     {
       outputs.get<int> ("out") = 0;

@@ -22,13 +22,13 @@ struct cvtColor : ecto::module
   {
     SHOW();
     flag_ = params.get<int> ("flag");
-    inputs.declare<cv::Mat> ("in", "Color image.");
+    inputs.declare<cv::Mat> ("input", "Color image.");
     outputs.declare<cv::Mat> ("out", "input as a Gray image.");
   }
   void Process()
   {
     SHOW();
-    cv::cvtColor(inputs.get<cv::Mat> ("in"), outputs.get<cv::Mat> ("out"), flag_);
+    cv::cvtColor(inputs.get<cv::Mat> ("input"), outputs.get<cv::Mat> ("out"), flag_);
   }
   static void Params(tendrils_t& p)
   {
@@ -37,8 +37,8 @@ struct cvtColor : ecto::module
     ss << "Convert an image's color using opencv, possible flags are:\n"
         << " RGB2GRAY = " << CV_RGB2GRAY << "\n"
         << " RGB2BGR = " << CV_RGB2BGR  << "\n"
-        << " RGB2LAB=" << CV_RGB2Lab << "\n"
-        << " BGR2LAB=" << CV_BGR2Lab;
+        << " RGB2LAB = " << CV_RGB2Lab << "\n"
+        << " BGR2LAB = " << CV_BGR2Lab;
     p["flag"].set<int> (ss.str(), CV_RGB2BGR);
   }
   int flag_;
@@ -49,7 +49,7 @@ struct ChannelSplitter : ecto::module
     void Config()
     {
       SHOW();
-      inputs.declare<cv::Mat> ("in", "The 3 channel image to split.");
+      inputs.declare<cv::Mat> ("input", "The 3 channel image to split.");
       outputs.declare<cv::Mat> ("out_0", "Channel 0.");
       outputs.declare<cv::Mat> ("out_1", "Channel 1.");
       outputs.declare<cv::Mat> ("out_2", "Channel 2.");
@@ -57,7 +57,7 @@ struct ChannelSplitter : ecto::module
     void Process()
     {
       SHOW();
-      const cv::Mat& in = inputs.get<cv::Mat> ("in");
+      const cv::Mat& in = inputs.get<cv::Mat> ("input");
       if (in.channels() == 3)
         cv::split(in, channels_);
       else if (in.channels() == 1)
@@ -86,7 +86,7 @@ struct Sobel : ecto::module
   Sobel() :
     x_(1), y_(1)
   {
-    inputs.declare<cv::Mat> ("in", "image.");
+    inputs.declare<cv::Mat> ("input", "image.");
     outputs.declare<cv::Mat> ("out", "sobel image");
   }
 
@@ -105,7 +105,7 @@ struct Sobel : ecto::module
   void Process()
   {
     SHOW();
-    cv::Sobel(inputs.get<cv::Mat> ("in"), outputs.get<cv::Mat> ("out"), CV_32F, x_, y_);
+    cv::Sobel(inputs.get<cv::Mat> ("input"), outputs.get<cv::Mat> ("out"), CV_32F, x_, y_);
   }
   int x_, y_;
 };
@@ -133,7 +133,7 @@ struct AbsNormalized : ecto::module
 {
   AbsNormalized()
   {
-    inputs.declare<cv::Mat> ("in", "image.");
+    inputs.declare<cv::Mat> ("input", "image.");
     outputs.declare<cv::Mat> ("out", "absolute and normalized");
   }
   static void Params(tendrils_t& p)
@@ -142,7 +142,7 @@ struct AbsNormalized : ecto::module
   void Process()
   {
     SHOW();
-    const cv::Mat& m = inputs.get<cv::Mat> ("in");
+    const cv::Mat& m = inputs.get<cv::Mat> ("input");
     cv::Mat& out = outputs.get<cv::Mat> ("out");
     out = cv::abs(m) / (cv::norm(m, cv::NORM_INF) * 0.5);
   }
