@@ -32,13 +32,13 @@ struct Pyramid : ecto::module
       outputs.declare<cv::Mat> (str(boost::format("out_%d") % i));
       outputs.declare<float> (str(boost::format("scale_%d") % i));
     }
-    inputs.declare<cv::Mat> ("in");
+    inputs.declare<cv::Mat> ("input");
   }
 
   void Process()
   {
     SHOW();
-    const cv::Mat& in = inputs.get<cv::Mat> ("in");
+    const cv::Mat& in = inputs.get<cv::Mat> ("input");
     for (int i = 0; i < levels_; i++)
     {
       cv::Mat& out = outputs.get<cv::Mat> (str(boost::format("out_%d") % i));
