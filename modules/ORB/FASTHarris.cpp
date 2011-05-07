@@ -9,7 +9,8 @@
 
 
 namespace FASTHarris
-{template<typename PatchType, typename SumType>
+{
+template<typename PatchType, typename SumType>
   inline float harris(const cv::Mat& patch, float k, const std::vector<int> &dX_offsets,
                       const std::vector<int> &dY_offsets)
   {
@@ -35,13 +36,10 @@ namespace FASTHarris
     {
       for (size_t u = 0; u <= 6; u++, ++dX_data, ++dY_data)
       {
-        //float weight = 10 - std::sqrt((v - 4) * (v - 4) + (u - 4) * (u - 4));
-        float weight = 1.0f;// / (9.0 * 9.0);
-        float Ix = 3 * (*dX_data + *(dX_data + 14)) + 10 * (*(dX_data + 7));
-        float Iy = 3 * (*dY_data + *(dY_data + 2)) + 10 * (*(dY_data + 1));
+        // 1, 2 for Sobel, 3 and 10 for Scharr
+        float Ix = 1 * (*dX_data + *(dX_data + 14)) + 2 * (*(dX_data + 7));
+        float Iy = 1 * (*dY_data + *(dY_data + 2)) + 2 * (*(dY_data + 1));
 
-        Ix *= weight;
-        Iy *= weight;
         a += Ix * Ix;
         b += Iy * Iy;
         c += Ix * Iy;
@@ -81,6 +79,15 @@ HarrisResponse::HarrisResponse(const cv::Mat& image, double k) :
 
 void HarrisResponse::operator()(std::vector<cv::KeyPoint>& kpts) const
 {
+  float scale = (1 << 2) * 7.0 * 255.0;
+  scale = 1.0 / scale;
+  float scale_sq_sq = scale * scale * scale * scale;
+
+#define HARRIS_TEST 0
+#if HARRIS_TEST
+  cv::Mat_<float> dst;
+  cv::cornerHarris(image, dst, 7, 3, k);
+#endif
   BOOST_FOREACH(cv::KeyPoint & kpt, kpts)
         {
           // make sure the keypoint and its neighborhood is fully in the image
@@ -91,13 +98,11 @@ void HarrisResponse::operator()(std::vector<cv::KeyPoint>& kpts) const
             cv::Mat patch = image(cv::Rect(kpt.pt.x - 4, kpt.pt.y - 4, 9, 9));
 
             // Compute the response
-#if 0
+#if HARRIS_TEST
             cv::Mat_<float> Ix(9, 9), Iy(9, 9);
 
-            cv::Scharr(patch, Ix, CV_32F, 1, 0);
-            cv::Scharr(patch, Iy, CV_32F, 0, 1);
-            Ix = Ix / (9.0 * 9.0);
-            Iy = Iy / (9.0 * 9.0);
+            cv::Sobel(patch, Ix, CV_32F, 1, 0, 3, scale);
+            cv::Sobel(patch, Iy, CV_32F, 0, 1, 3, scale);
             float a = 0, b = 0, c = 0;
             for (unsigned int y = 1; y <= 7; ++y)
             {
@@ -112,13 +117,13 @@ void HarrisResponse::operator()(std::vector<cv::KeyPoint>& kpts) const
             //[ c b ]
             float response = (float)((a * b - c * c) - k * ((a + b) * (a + b)));
 #endif
-            kpt.response = harris<uchar, int> (patch, k, dX_offsets_, dY_offsets_);
-#if 0
-            std::cout << response - kpt.response << std::endl;
+            kpt.response = harris<uchar, int> (patch, k, dX_offsets_, dY_offsets_) * scale_sq_sq;
+#if HARRIS_TEST
+            std::cout << kpt.response << " " << response << " " << dst(kpt.pt.y,kpt.pt.x) << std::endl;
 #endif
           }
         }
-}
+        }
 void SimpleFASTHarris::detectImpl(const cv::Mat& image, std::vector<cv::KeyPoint>& keypoints, const cv::Mat& mask) const
 {
   //detect fast with a resonable threshhold, and nonmax

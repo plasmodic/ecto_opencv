@@ -5,6 +5,7 @@
 #include <string>
 
 #include <opencv2/core/core.hpp>
+#include <Python.h>
 
 namespace bp = boost::python;
 
@@ -130,6 +131,25 @@ namespace
 }
 
 
+struct mat_pickle_suite : boost::python::pickle_suite
+{
+  static
+  boost::python::tuple
+  getinitargs(const cv::Mat& m)
+  {
+
+    std::string ar(m.datastart,m.dataend);
+    boost::python::tuple tuple = bp::make_tuple(m.rows,m.cols,m.type(),ar);
+    return tuple;
+  }
+  static cv::Mat* makeClass(int rows, int cols, int type, const std::string& ar)
+  {
+    std::cout << "str size: " << ar.size() << " rows: " << rows << " cols: " << cols << std::endl;
+    return new cv::Mat(cv::Mat(rows,cols,type, const_cast<char*>(ar.c_str())).clone());
+  }
+};
+
+
 namespace opencv_wrappers
 {
   void wrap_mat()
@@ -171,6 +191,8 @@ namespace opencv_wrappers
     Mat_.def("__sub__",mat_scalar_sub2);
     Mat_.def("__div__",mat_mat_div);
     Mat_.def("__div__",mat_scalar_div);
+    Mat_.def("__init__", bp::make_constructor(&mat_pickle_suite::makeClass));
+    Mat_.def_pickle(mat_pickle_suite());
 
 
 

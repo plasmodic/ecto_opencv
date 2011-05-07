@@ -97,7 +97,7 @@ namespace opencv_wrappers
 
     opencv.attr("CV_CAP_OPENNI") = int(CV_CAP_OPENNI);
 
-    opencv.attr("CV_CAP_ANDROID") = int(CV_CAP_ANDROID);
+   //opencv.attr("CV_CAP_ANDROID") = int(CV_CAP_ANDROID);
 
     opencv.attr("CV_CAP_PROP_DC1394_OFF") = int(CV_CAP_PROP_DC1394_OFF);
     opencv.attr("CV_CAP_PROP_DC1394_MODE_MANUAL") = int(CV_CAP_PROP_DC1394_MODE_MANUAL);
@@ -160,6 +160,6 @@ namespace opencv_wrappers
 
     opencv.attr("CV_CAP_ANDROID_COLOR_FRAME") = int(CV_CAP_ANDROID_COLOR_FRAME);
     opencv.attr("CV_CAP_ANDROID_GREY_FRAME") = int(CV_CAP_ANDROID_GREY_FRAME);
-    opencv.attr("CV_CAP_ANDROID_YUV_FRAME") = int(CV_CAP_ANDROID_YUV_FRAME);
+    //opencv.attr("CV_CAP_ANDROID_YUV_FRAME") = int(CV_CAP_ANDROID_YUV_FRAME);
   }
 }
