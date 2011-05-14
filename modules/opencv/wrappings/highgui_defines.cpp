@@ -160,6 +160,6 @@ namespace opencv_wrappers
 
     opencv.attr("CV_CAP_ANDROID_COLOR_FRAME") = int(CV_CAP_ANDROID_COLOR_FRAME);
     opencv.attr("CV_CAP_ANDROID_GREY_FRAME") = int(CV_CAP_ANDROID_GREY_FRAME);
-    opencv.attr("CV_CAP_ANDROID_YUV_FRAME") = int(CV_CAP_ANDROID_YUV_FRAME);
+    //opencv.attr("CV_CAP_ANDROID_YUV_FRAME") = int(CV_CAP_ANDROID_YUV_FRAME);
   }
 }

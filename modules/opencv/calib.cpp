@@ -77,7 +77,7 @@ struct PatternDetector : ecto::module
         break;
     }
   }
-  static void Params(tendrils& p)
+  static void Initialize(tendrils& p)
   {
     SHOW();
     p.declare<int> ("rows", "Number of dots in row direction", 4);
@@ -128,7 +128,7 @@ struct PatternDrawer : ecto::module
     in.copyTo(out);
     cv::drawChessboardCorners(out, grid_size_, points, found);
   }
-  static void Params(tendrils& p)
+  static void Initialize(tendrils& p)
   {
     SHOW();
     p.declare<int> ("rows", "Number of dots in row direction", 4);
@@ -200,7 +200,7 @@ struct CameraCalibrator : ecto::module
 
     outputs.get<float> ("norm") = norm;
   }
-  static void Params(tendrils& p)
+  static void Initialize(tendrils& p)
   {
     SHOW();
     p.declare<int> ("rows", "Number of dots in row direction", 4);
