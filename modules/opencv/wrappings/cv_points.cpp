@@ -61,8 +61,8 @@ namespace opencv_wrappers
     wrap_point<double> ("Point2d");
 
     wrap_rect<int> ("Rect");
-    wrap_rect<float> ("Rect_float");
-    wrap_rect<double> ("Rect_double");
+    wrap_rect<float> ("Rectf");
+    wrap_rect<double> ("Rectd");
 
   }
 }
