@@ -30,7 +30,7 @@ struct cvtColor : ecto::module
     SHOW();
     cv::cvtColor(inputs.get<cv::Mat> ("input"), outputs.get<cv::Mat> ("out"), flag_);
   }
-  static void Params(tendrils_t& p)
+  static void Initialize(ecto::tendrils& p)
   {
     SHOW();
     std::stringstream ss;
@@ -39,7 +39,7 @@ struct cvtColor : ecto::module
         << " RGB2BGR = " << CV_RGB2BGR  << "\n"
         << " RGB2LAB = " << CV_RGB2Lab << "\n"
         << " BGR2LAB = " << CV_BGR2Lab;
-    p["flag"].set<int> (ss.str(), CV_RGB2BGR);
+    p.declare<int>("flag",ss.str(), CV_RGB2BGR);
   }
   int flag_;
 };
@@ -74,7 +74,7 @@ struct ChannelSplitter : ecto::module
       outputs.get<cv::Mat>("out_1") = channels_[1];
       outputs.get<cv::Mat>("out_2") = channels_[2];
     }
-    static void Params(tendrils_t& p)
+    static void Initialize(ecto::tendrils& p)
     {
       SHOW();
     }
@@ -90,10 +90,10 @@ struct Sobel : ecto::module
     outputs.declare<cv::Mat> ("out", "sobel image");
   }
 
-  static void Params(tendrils_t& p)
+  static void Initialize(ecto::tendrils& p)
   {
-    p["x"].set<int> ("The derivative order in the x direction", 0);
-    p["y"].set<int> ("The derivative order in the y direction", 0);
+    p.declare<int>("x","The derivative order in the x direction", 0);
+    p.declare<int>("y","The derivative order in the y direction", 0);
   }
 
   void Config()
@@ -124,7 +124,7 @@ template<typename T>
       SHOW();
       outputs.get<T> ("out") = inputs.get<T> ("a") + inputs.get<T> ("b");
     }
-    static void Params(tendrils_t& p)
+    static void Initialize(ecto::tendrils& p)
     {
     }
   };
@@ -136,7 +136,7 @@ struct AbsNormalized : ecto::module
     inputs.declare<cv::Mat> ("input", "image.");
     outputs.declare<cv::Mat> ("out", "absolute and normalized");
   }
-  static void Params(tendrils_t& p)
+  static void Initialize(ecto::tendrils& p)
   {
   }
   void Process()

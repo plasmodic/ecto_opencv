@@ -40,7 +40,7 @@ struct VideoCapture : ecto::module
     outputs.declare<int> ("frame_number", "The number of frames captured.", 0);
   }
 
-  static void Params(tendrils_t& params)
+  static void Initialize(ecto::tendrils& params)
   {
     SHOW();
     params.declare<int> ("video_device", "The device ID to open.", 0);
@@ -61,7 +61,7 @@ struct VideoCapture : ecto::module
 
 struct imshow : ecto::module
 {
-  static void Params(tendrils_t& params)
+  static void Initialize(ecto::tendrils& params)
   {
     SHOW();
     params.declare<std::string> ("name", "The window name", "image");
