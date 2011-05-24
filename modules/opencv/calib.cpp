@@ -112,7 +112,7 @@ struct PatternDrawer: ecto::module_interface
 {
   void configure(const tendrils& params, tendrils& in, tendrils& out)
   {
-    SHOW();
+
     in.declare<cv::Mat> ("input", "The image to to find a vertical lazer line in.");
     in.declare<std::vector<cv::Point2f> > ("points", "Circle pattern points.");
     in.declare<bool> ("found", "Found the pattern");
@@ -121,7 +121,7 @@ struct PatternDrawer: ecto::module_interface
   }
   void process(const tendrils& params, const tendrils& in, tendrils& out)
   {
-    SHOW();
+
     const cv::Mat& image = in.get<cv::Mat> ("input");
     const std::vector<cv::Point2f>& points =
         in.get<std::vector<cv::Point2f> > ("points");
@@ -132,7 +132,7 @@ struct PatternDrawer: ecto::module_interface
   }
   void initialize(tendrils& params)
   {
-    SHOW();
+
     params.declare<int> ("rows", "Number of dots in row direction", 4);
     params.declare<int> ("cols", "Number of dots in col direction", 11);
   }
@@ -206,7 +206,6 @@ struct CameraCalibrator: ecto::module_interface
   }
   void initialize(tendrils& params)
   {
-    SHOW();
     params.declare<int> ("rows", "Number of dots in row direction", 4);
     params.declare<int> ("cols", "Number of dots in col direction", 11);
     params.declare<int> ("n_obs", "Number of observations", 50);

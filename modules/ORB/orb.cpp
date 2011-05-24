@@ -11,14 +11,14 @@ struct ORB: ecto::module_interface
   {
     p.declare<int> ("n_features", "The number of desired features", 1000);
     p.declare<int> ("n_levels", "The number of scales", 3);
-    p.declare<int> ("scale_factor", "The factor between scales", 1.2);
+    p.declare<float> ("scale_factor", "The factor between scales", 1.2);
   }
 
   void config(const tendrils& params, tendrils& inputs, tendrils& outputs)
   {
     orb_params.first_level_ = 0;
     orb_params.n_levels_ = params.get<int> ("n_levels");
-    orb_params.scale_factor_ = params.get<int> ("scale_factor");
+    orb_params.scale_factor_ = params.get<float> ("scale_factor");
     orb = cv::ORB(params.get<int> ("n_features"), orb_params);
     inputs.declare<cv::Mat> ("image", "An input image.");
     inputs.declare<cv::Mat> ("mask", "An mask, same size as image.");
@@ -93,10 +93,8 @@ struct DrawKeypoints: ecto::module_interface
 
 BOOST_PYTHON_MODULE(orb)
 {
-  namespace bp = boost::python;
-  ecto::wrap<ORB>(
-      "ORB",
-      "An ORB detector. Takes a image and a mask, and computes keypoints and descriptors(32 byte binary).");
+  ecto::wrap<ORB>("ORB", "An ORB detector. Takes a image and a mask, and\n"
+    "computes keypoints and descriptors(32 byte binary).");
   ecto::wrap<FAST>("FAST", "Computes fast keypoints given an image, and mask.");
   ecto::wrap<DrawKeypoints>("DrawKeypoints");
 }
