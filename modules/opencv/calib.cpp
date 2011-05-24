@@ -1,14 +1,6 @@
 #include <ecto/ecto.hpp>
 #include <opencv2/core/core.hpp>
 #include <opencv2/calib3d/calib3d.hpp>
-//disable show in here
-#define DISABLE_SHOW 1
-#if DISABLE_SHOW
-#ifdef SHOW
-#undef SHOW
-#define SHOW() do{}while(false)
-#endif
-#endif
 
 using ecto::tendrils;
 
@@ -54,7 +46,6 @@ struct PatternDetector: ecto::module_interface
 {
   void configure(const tendrils& params, tendrils& in, tendrils& out)
   {
-    SHOW();
     in.declare<cv::Mat> ("input",
         "The grayscale image to search for a calibration pattern in.");
     out.declare<std::vector<cv::Point2f> > ("out",
@@ -63,9 +54,9 @@ struct PatternDetector: ecto::module_interface
     grid_size_ = cv::Size(params.get<int> ("cols"), params.get<int> ("rows"));
     choosePattern(params.get<std::string> ("pattern_type"));
   }
+
   void process(const tendrils& params, const tendrils& in, tendrils& out)
   {
-    SHOW();
     const cv::Mat& inm = in.get<cv::Mat> ("input");
     std::vector<cv::Point2f>& outv = out.get<std::vector<cv::Point2f> > ("out");
     switch (pattern_)
@@ -84,15 +75,16 @@ struct PatternDetector: ecto::module_interface
       break;
     }
   }
+
   void initialize(tendrils& params)
   {
-    SHOW();
     params.declare<int> ("rows", "Number of dots in row direction", 4);
     params.declare<int> ("cols", "Number of dots in col direction", 11);
     params.declare<std::string> ("pattern_type",
         "The pattern type, possible values are: [chessboard|circles|acircles]",
         "acircles");
   }
+
   void choosePattern(const std::string& pattern)
   {
     if (pattern == "chessboard")
@@ -153,7 +145,6 @@ struct CameraCalibrator: ecto::module_interface
   typedef std::vector<cv::Point2f> observation_pts_t;
   void configure(const tendrils& params, tendrils& in, tendrils& out)
   {
-    SHOW();
     in.declare<observation_pts_t> ("points", "Circle pattern points.");
     in.declare<cv::Mat> ("image", "Image that is used for calibration");
     in.declare<bool> ("found", "Found the pattern");
@@ -181,7 +172,6 @@ struct CameraCalibrator: ecto::module_interface
   }
   void process(const tendrils& params, const tendrils& in, tendrils& out)
   {
-    SHOW();
     const observation_pts_t& points_in = in.get<observation_pts_t> ("points");
     bool found = in.get<bool> ("found");
     float norm = 0;

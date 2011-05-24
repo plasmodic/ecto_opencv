@@ -4,10 +4,8 @@ project(ecto_opencv)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-strict-aliasing -Wall -Werror -Wl,--no-undefined")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -DBOOST_DISABLE_ASSERTS")
 
-#set the default path for built executables to the "bin" directory
-set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin)
-#set the default path for built libraries to the "lib" directory
-set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib/ecto_opencv)
+#set the default path for built libraries to the "ecto_opencv" directory
+set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/ecto_opencv)
 
 configure_file(python/__init__.py.in 
   ${LIBRARY_OUTPUT_PATH}/__init__.py
