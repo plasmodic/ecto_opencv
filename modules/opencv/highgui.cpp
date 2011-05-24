@@ -14,9 +14,16 @@
 #endif
 #endif
 
-struct VideoCapture : ecto::module
+struct ImageListReader :  ecto::module_interface
 {
-  void Config()
+
+};
+
+using ecto::tendrils;
+
+struct VideoCapture :  ecto::module_interface
+{
+  void configure(const tendrils& params, tendrils& inputs, tendrils& outputs)
   {
     SHOW();
     int video_device = params.get<int> ("video_device");
@@ -40,14 +47,14 @@ struct VideoCapture : ecto::module
     outputs.declare<int> ("frame_number", "The number of frames captured.", 0);
   }
 
-  static void Initialize(ecto::tendrils& params)
+  void initialize(tendrils& params)
   {
     SHOW();
     params.declare<int> ("video_device", "The device ID to open.", 0);
     params.declare<std::string> ("video_file", "A video file to read, leave empty to open a video device.", "");
   }
 
-  void Process()
+  void process(const tendrils& params, const tendrils& inputs, tendrils& outputs)
   {
     SHOW();
     //outputs.get is a reference;
@@ -59,9 +66,9 @@ struct VideoCapture : ecto::module
 
 };
 
-struct imshow : ecto::module
+struct imshow :  ecto::module_interface
 {
-  static void Initialize(ecto::tendrils& params)
+  void initialize(tendrils& params)
   {
     SHOW();
     params.declare<std::string> ("name", "The window name", "image");
@@ -69,7 +76,7 @@ struct imshow : ecto::module
     params.declare<bool> ("autoSize", "Autosize the window.", true);
   }
 
-  void Config()
+  void configure(const tendrils& params, tendrils& inputs, tendrils& outputs)
   {
     SHOW();
     window_name_ = params.get<std::string> ("name");
@@ -79,7 +86,7 @@ struct imshow : ecto::module
     outputs.declare<int> ("out", "Character pressed.");
   }
 
-  void Process()
+  void process(const tendrils& params, const tendrils& inputs, tendrils& outputs)
   {
     SHOW();
     const cv::Mat& image = inputs.get<cv::Mat> ("input");

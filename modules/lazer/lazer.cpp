@@ -16,7 +16,9 @@
 #endif
 #endif
 
-struct ScanLineDrawer : ecto::module
+using ecto::tendrils;
+
+struct ScanLineDrawer : ecto::module_interface
 {
   static void drawScaneLine(const cv::Mat& image, cv::Mat& out, int line_n)
   {
@@ -31,7 +33,7 @@ struct ScanLineDrawer : ecto::module
       out.at<uchar> (out.rows - val, i) = 255;
     }
   }
-  void Config()
+  void config(const tendrils& params, tendrils& inputs, tendrils& outputs)
   {
     SHOW();
     inputs.declare<cv::Mat> ("in", "The image to draw a scan line from.");
@@ -39,7 +41,7 @@ struct ScanLineDrawer : ecto::module
     scan_idx_ = 0;//params.get<float> ("scan_idx");
     auto_scan_ = params.get<bool> ("auto_scan");
   }
-  void Process()
+  void process(const tendrils& params, const tendrils& inputs, tendrils& outputs)
   {
     SHOW();
     const cv::Mat& in = inputs.get<cv::Mat> ("in");
@@ -60,15 +62,15 @@ struct ScanLineDrawer : ecto::module
   bool auto_scan_;
 };
 
-struct mm : ecto::module
+struct mm : ecto::module_interface
 {
-  void Config()
+  void config(const tendrils& params, tendrils& inputs, tendrils& outputs)
   {
     SHOW();
     inputs.declare<cv::Mat> ("in", "The image to to find a vertical lazer line in.");
     outputs.declare<cv::Mat> ("out", "The lazer image (0 - no lazer, 255 - lazer).");
   }
-  void Process()
+  void process(const tendrils& params, const tendrils& inputs, tendrils& outputs)
   {
     SHOW();
     //const cv::Mat& in = inputs.get<cv::Mat> ("in");
@@ -80,15 +82,15 @@ struct mm : ecto::module
   }
 };
 
-struct LaserDetector : ecto::module
+struct LaserDetector : ecto::module_interface
 {
-  void Config()
+  void config(const tendrils& params, tendrils& inputs, tendrils& outputs)
   {
     SHOW();
     inputs.declare<cv::Mat> ("in", "The image to to find a vertical lazer line in.");
     outputs.declare<cv::Mat> ("out", "The lazer image (0 - no lazer, 255 - lazer).");
   }
-  void Process()
+  void process(const tendrils& params, const tendrils& inputs, tendrils& outputs)
   {
     SHOW();
     //const cv::Mat& in = inputs.get<cv::Mat> ("in");

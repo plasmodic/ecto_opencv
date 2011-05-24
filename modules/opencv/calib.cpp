@@ -22,72 +22,79 @@ struct Camera
   cv::Mat K, D;
   cv::Size image_size;
 };
-static std::vector<cv::Point3f> calcChessboardCorners(cv::Size boardSize, float squareSize,
-                                                      Pattern patternType = CHESSBOARD)
+static std::vector<cv::Point3f> calcChessboardCorners(cv::Size boardSize,
+    float squareSize, Pattern patternType = CHESSBOARD)
 {
   std::vector<cv::Point3f> corners;
   switch (patternType)
   {
-    case CHESSBOARD:
-    case CIRCLES_GRID:
-      for (int i = 0; i < boardSize.height; i++)
-        for (int j = 0; j < boardSize.width; j++)
-          corners.push_back(cv::Point3f(float(j * squareSize), float(i * squareSize), 0));
-      break;
+  case CHESSBOARD:
+  case CIRCLES_GRID:
+    for (int i = 0; i < boardSize.height; i++)
+      for (int j = 0; j < boardSize.width; j++)
+        corners.push_back(
+            cv::Point3f(float(j * squareSize), float(i * squareSize), 0));
+    break;
 
-    case ASYMMETRIC_CIRCLES_GRID:
-      for (int i = 0; i < boardSize.height; i++)
-        for (int j = 0; j < boardSize.width; j++)
-          corners.push_back(cv::Point3f(float((2 * j + i % 2) * squareSize), float(i * squareSize), 0));
-      break;
+  case ASYMMETRIC_CIRCLES_GRID:
+    for (int i = 0; i < boardSize.height; i++)
+      for (int j = 0; j < boardSize.width; j++)
+        corners.push_back(
+            cv::Point3f(float((2 * j + i % 2) * squareSize),
+                float(i * squareSize), 0));
+    break;
 
-    default:
-      std::logic_error("Unknown pattern type.");
+  default:
+    std::logic_error("Unknown pattern type.");
   }
   return corners;
 }
 
-struct PatternDetector : ecto::module
+struct PatternDetector: ecto::module_interface
 {
-  void Config()
+  void configure(const tendrils& params, tendrils& in, tendrils& out)
   {
     SHOW();
-    inputs.declare<cv::Mat> ("in", "The grayscale image to search for a calibration pattern in.");
-    outputs.declare<std::vector<cv::Point2f> > ("out", "The observed pattern points.");
-    outputs.declare<bool> ("found", "Whether or not a pattern was found...");
+    in.declare<cv::Mat> ("input",
+        "The grayscale image to search for a calibration pattern in.");
+    out.declare<std::vector<cv::Point2f> > ("out",
+        "The observed pattern points.");
+    out.declare<bool> ("found", "Whether or not a pattern was found...");
     grid_size_ = cv::Size(params.get<int> ("cols"), params.get<int> ("rows"));
-    choosePattern();
+    choosePattern(params.get<std::string> ("pattern_type"));
   }
-  void Process()
+  void process(const tendrils& params, const tendrils& in, tendrils& out)
   {
     SHOW();
-    const cv::Mat& in = inputs.get<cv::Mat> ("in");
-    std::vector<cv::Point2f>& out = outputs.get<std::vector<cv::Point2f> > ("out");
+    const cv::Mat& inm = in.get<cv::Mat> ("input");
+    std::vector<cv::Point2f>& outv = out.get<std::vector<cv::Point2f> > ("out");
     switch (pattern_)
     {
-      case ASYMMETRIC_CIRCLES_GRID:
-        outputs.get<bool> ("found") = cv::findCirclesGrid(in, grid_size_, out, cv::CALIB_CB_ASYMMETRIC_GRID);
-        break;
-      case CHESSBOARD:
-        outputs.get<bool> ("found") = cv::findChessboardCorners(in, grid_size_, out);
-
-        break;
-      case CIRCLES_GRID:
-        outputs.get<bool> ("found") = cv::findCirclesGrid(in, grid_size_, out, cv::CALIB_CB_SYMMETRIC_GRID);
-        break;
+    case ASYMMETRIC_CIRCLES_GRID:
+      out.get<bool> ("found") = cv::findCirclesGrid(inm, grid_size_, outv,
+          cv::CALIB_CB_ASYMMETRIC_GRID);
+      break;
+    case CHESSBOARD:
+      out.get<bool> ("found")
+          = cv::findChessboardCorners(inm, grid_size_, outv);
+      break;
+    case CIRCLES_GRID:
+      out.get<bool> ("found") = cv::findCirclesGrid(inm, grid_size_, outv,
+          cv::CALIB_CB_SYMMETRIC_GRID);
+      break;
     }
   }
-  static void Initialize(tendrils& p)
+  void initialize(tendrils& params)
   {
     SHOW();
-    p.declare<int> ("rows", "Number of dots in row direction", 4);
-    p.declare<int> ("cols", "Number of dots in col direction", 11);
-    p.declare<std::string> ("pattern_type", "The pattern type, possible values are: [chessboard|circles|acircles]",
-                        "acircles");
+    params.declare<int> ("rows", "Number of dots in row direction", 4);
+    params.declare<int> ("cols", "Number of dots in col direction", 11);
+    params.declare<std::string> ("pattern_type",
+        "The pattern type, possible values are: [chessboard|circles|acircles]",
+        "acircles");
   }
-  void choosePattern()
+  void choosePattern(const std::string& pattern)
   {
-    std::string pattern = params.get<std::string> ("pattern_type");
     if (pattern == "chessboard")
     {
       pattern_ = CHESSBOARD;
@@ -101,55 +108,60 @@ struct PatternDetector : ecto::module
       pattern_ = ASYMMETRIC_CIRCLES_GRID;
     }
     else
-      throw std::runtime_error("Unknown pattern type : " + pattern + " Please use: [chessboard|circles|acircles]");
+      throw std::runtime_error(
+          "Unknown pattern type : " + pattern
+              + " Please use: [chessboard|circles|acircles]");
   }
   cv::Size grid_size_;
   Pattern pattern_;
 };
 
-struct PatternDrawer : ecto::module
+struct PatternDrawer: ecto::module_interface
 {
-  void Config()
+  void configure(const tendrils& params, tendrils& in, tendrils& out)
   {
     SHOW();
-    inputs.declare<cv::Mat> ("in", "The image to to find a vertical lazer line in.");
-    inputs.declare<std::vector<cv::Point2f> > ("points", "Circle pattern points.");
-    inputs.declare<bool> ("found", "Found the pattern");
-    outputs.declare<cv::Mat> ("out", "Pattern Image");
+    in.declare<cv::Mat> ("input", "The image to to find a vertical lazer line in.");
+    in.declare<std::vector<cv::Point2f> > ("points", "Circle pattern points.");
+    in.declare<bool> ("found", "Found the pattern");
+    out.declare<cv::Mat> ("out", "Pattern Image");
     grid_size_ = cv::Size(params.get<int> ("cols"), params.get<int> ("rows"));
   }
-  void Process()
+  void process(const tendrils& params, const tendrils& in, tendrils& out)
   {
     SHOW();
-    const cv::Mat& in = inputs.get<cv::Mat> ("in");
-    const std::vector<cv::Point2f>& points = inputs.get<std::vector<cv::Point2f> > ("points");
-    bool found = inputs.get<bool> ("found");
-    cv::Mat& out = outputs.get<cv::Mat> ("out");
-    in.copyTo(out);
-    cv::drawChessboardCorners(out, grid_size_, points, found);
+    const cv::Mat& image = in.get<cv::Mat> ("input");
+    const std::vector<cv::Point2f>& points =
+        in.get<std::vector<cv::Point2f> > ("points");
+    bool found = in.get<bool> ("found");
+    cv::Mat& image_out = out.get<cv::Mat> ("out");
+    image.copyTo(image_out);
+    cv::drawChessboardCorners(image_out, grid_size_, points, found);
   }
-  static void Initialize(tendrils& p)
+  void initialize(tendrils& params)
   {
     SHOW();
-    p.declare<int> ("rows", "Number of dots in row direction", 4);
-    p.declare<int> ("cols", "Number of dots in col direction", 11);
+    params.declare<int> ("rows", "Number of dots in row direction", 4);
+    params.declare<int> ("cols", "Number of dots in col direction", 11);
   }
   cv::Size grid_size_;
 };
 
-struct CameraCalibrator : ecto::module
+struct CameraCalibrator: ecto::module_interface
 {
   typedef std::vector<cv::Point3f> object_pts_t;
   typedef std::vector<cv::Point2f> observation_pts_t;
-  void Config()
+  void configure(const tendrils& params, tendrils& in, tendrils& out)
   {
     SHOW();
-    inputs.declare<observation_pts_t> ("points", "Circle pattern points.");
-    inputs.declare<cv::Mat> ("image", "Image that is used for calibration");
-    inputs.declare<bool> ("found", "Found the pattern");
-    outputs.declare<float> ("norm", "Norm of the input points to all previous points observed.");
+    in.declare<observation_pts_t> ("points", "Circle pattern points.");
+    in.declare<cv::Mat> ("image", "Image that is used for calibration");
+    in.declare<bool> ("found", "Found the pattern");
+    out.declare<float> ("norm",
+        "Norm of the input points to all previous points observed.");
     grid_size_ = cv::Size(params.get<int> ("cols"), params.get<int> ("rows"));
-    board_pts_ = calcChessboardCorners(grid_size_, 1.0, ASYMMETRIC_CIRCLES_GRID);
+    board_pts_
+        = calcChessboardCorners(grid_size_, 1.0, ASYMMETRIC_CIRCLES_GRID);
     n_obs_ = params.get<int> ("n_obs");
     object_pts_.clear();
     norm_thresh_ = 150; //pixel values;
@@ -167,21 +179,22 @@ struct CameraCalibrator : ecto::module
     }
     return norm;
   }
-  void Process()
+  void process(const tendrils& params, const tendrils& in, tendrils& out)
   {
     SHOW();
-    const observation_pts_t& in = inputs.get<observation_pts_t> ("points");
-    bool found = inputs.get<bool> ("found");
+    const observation_pts_t& points_in = in.get<observation_pts_t> ("points");
+    bool found = in.get<bool> ("found");
     float norm = 0;
     if (found)
     {
-      norm = calcDistance(in);
+      norm = calcDistance(points_in);
 
       if (norm > norm_thresh_ || observation_pts_.empty())
       {
-        std::cout << "distance: " << norm << std::endl << "capturing ..." << std::endl;
+        std::cout << "distance: " << norm << std::endl << "capturing ..."
+            << std::endl;
         object_pts_.push_back(board_pts_);
-        observation_pts_.push_back(in);
+        observation_pts_.push_back(points_in);
       }
 
     }
@@ -189,8 +202,9 @@ struct CameraCalibrator : ecto::module
     {
       std::vector<cv::Mat> rvecs, tvecs;
       int flags = CV_CALIB_FIX_ASPECT_RATIO | CV_CALIB_FIX_PRINCIPAL_POINT;
-      double rms = cv::calibrateCamera(object_pts_, observation_pts_, inputs.get<cv::Mat> ("image").size(), camera_.K,
-                                       camera_.D, rvecs, tvecs, flags);
+      double rms = cv::calibrateCamera(object_pts_, observation_pts_,
+          in.get<cv::Mat> ("image").size(), camera_.K, camera_.D, rvecs, tvecs,
+          flags);
       std::cout << "K = " << camera_.K << std::endl;
       std::cout << "D = " << camera_.D << std::endl;
 
@@ -198,15 +212,15 @@ struct CameraCalibrator : ecto::module
       calibrated_ = true;
     }
 
-    outputs.get<float> ("norm") = norm;
+    out.get<float> ("norm") = norm;
   }
-  static void Initialize(tendrils& p)
+  void initialize(tendrils& params)
   {
     SHOW();
-    p.declare<int> ("rows", "Number of dots in row direction", 4);
-    p.declare<int> ("cols", "Number of dots in col direction", 11);
-    p.declare<int> ("n_obs", "Number of observations", 50);
-    p.declare<float> ("square_size", "Number of observations", 25);
+    params.declare<int> ("rows", "Number of dots in row direction", 4);
+    params.declare<int> ("cols", "Number of dots in col direction", 11);
+    params.declare<int> ("n_obs", "Number of observations", 50);
+    params.declare<float> ("square_size", "Number of observations", 25);
   }
   cv::Size grid_size_;
   int n_obs_;

@@ -1,9 +1,6 @@
 #use $(MAKE) to forward the make jobs
 all : build
 	cd build && $(MAKE)
-	
-#doc : build
-#	cd build && $(MAKE) doc
 
 build:
 	mkdir -p build

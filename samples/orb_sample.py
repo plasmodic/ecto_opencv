@@ -4,10 +4,10 @@ from ecto_opencv import imgproc, highgui,orb
 import time
 #import orb as imgproc
 
-debug = False
+debug = True
 score_zippers = []
 def hookUpORB(plasm, image, image_key, imshow):
-    FAST =orb.FAST( thresh=100, N_max=50000)
+    FAST =orb.FAST( thresh=10, N_max=100000)
     Harris = orb.Harris( N_max=50000 )
 
     plasm.connect(image, image_key, FAST, "image")

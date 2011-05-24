@@ -18,10 +18,12 @@
 #endif
 #endif
 
-struct Pyramid: ecto::module
+using ecto::tendrils;
+
+struct Pyramid: ecto::module_interface
 {
 
-  void Config()
+  void config(const tendrils& params, tendrils& inputs, tendrils& outputs)
   {
     SHOW();
     levels_ = params.get<int> ("levels");
@@ -35,7 +37,7 @@ struct Pyramid: ecto::module
     inputs.declare<cv::Mat> ("input");
   }
 
-  void Process()
+  void process(const tendrils& params, const tendrils& inputs, tendrils& outputs)
   {
     SHOW();
     const cv::Mat& in = inputs.get<cv::Mat> ("input");
@@ -50,7 +52,7 @@ struct Pyramid: ecto::module
     }
   }
 
-  static void Initialize(ecto::tendrils& p)
+  void initialize(tendrils& p)
   {
     SHOW();
     p.declare<int> ("levels", "Number of pyramid levels.", 3);
@@ -64,9 +66,9 @@ struct Pyramid: ecto::module
   float scale_factor_;
 };
 
-struct PyramidRescale: ecto::module
+struct PyramidRescale: ecto::module_interface
 {
-  void Config()
+  void config(const tendrils& params, tendrils& inputs, tendrils& outputs)
   {
     SHOW();
     levels_ = params.get<int> ("levels");
@@ -79,7 +81,7 @@ struct PyramidRescale: ecto::module
     }
     outputs.declare<std::vector<cv::KeyPoint> > ("out", "The rescaled kpts.");
   }
-  void Process()
+  void process(const tendrils& params, const tendrils& inputs, tendrils& outputs)
   {
     SHOW();
     std::vector<cv::KeyPoint>& kpts = outputs.get<std::vector<cv::KeyPoint> > (
@@ -101,16 +103,16 @@ struct PyramidRescale: ecto::module
     }
 
   }
-  static void Initialize(ecto::tendrils& p)
+  void initialize(tendrils& p)
   {
     SHOW();
     p.declare<int> ("levels", "Number of pyramid levels.", 3);
   }
   int levels_;
 };
-struct FAST: ecto::module
+struct FAST: ecto::module_interface
 {
-  void Config()
+  void config(const tendrils& params, tendrils& inputs, tendrils& outputs)
   {
     SHOW();
     thresh_ = params.get<int> ("thresh");
@@ -119,7 +121,7 @@ struct FAST: ecto::module
     inputs.declare<cv::Mat> ("image", "The image to detect FAST on.");
     inputs.declare<cv::Mat> ("mask", "optional mask");
   }
-  void Process()
+  void process(const tendrils& params, const tendrils& inputs, tendrils& outputs)
   {
     SHOW();
     const cv::Mat& in = inputs.get<cv::Mat> ("image");
@@ -135,7 +137,7 @@ struct FAST: ecto::module
       kpts.resize(N_max_);
     }
   }
-  static void Initialize(ecto::tendrils& p)
+  void initialize(tendrils& p)
   {
     SHOW();
     p.declare<int> ("thresh", "FAST threshhold.", 20);
@@ -144,9 +146,9 @@ struct FAST: ecto::module
   int thresh_, N_max_;
 };
 
-struct Harris: ecto::module
+struct Harris: ecto::module_interface
 {
-  void Config()
+  void config(const tendrils& params, tendrils& inputs, tendrils& outputs)
   {
     SHOW();
     N_max_ = params.get<int> ("N_max");
@@ -156,7 +158,7 @@ struct Harris: ecto::module
     inputs.declare<std::vector<cv::KeyPoint> > ("kpts",
         "The keypoints to fill with Harris response.");
   }
-  void Process()
+  void process(const tendrils& params, const tendrils& inputs, tendrils& outputs)
   {
     SHOW();
     const cv::Mat& image = inputs.get<cv::Mat> ("image");
@@ -174,7 +176,7 @@ struct Harris: ecto::module
       kpts.resize(N_max_);
     }
   }
-  static void Initialize(ecto::tendrils& p)
+  void initialize(tendrils& p)
   {
     SHOW();
     p.declare<int> ("N_max", "The maximum number of keypoints", 1000);
@@ -182,9 +184,9 @@ struct Harris: ecto::module
   int N_max_;
 };
 
-struct DrawKeypoints: ecto::module
+struct DrawKeypoints: ecto::module_interface
 {
-  void Config()
+  void config(const tendrils& params, tendrils& inputs, tendrils& outputs)
   {
     SHOW();
     inputs.declare<cv::Mat> ("image", "The input image, to draw over.");
@@ -192,7 +194,7 @@ struct DrawKeypoints: ecto::module
     inputs.declare<std::vector<cv::KeyPoint> > ("kpts",
         "The keypoints to draw.");
   }
-  void Process()
+  void process(const tendrils& params, const tendrils& inputs, tendrils& outputs)
   {
     SHOW();
     const cv::Mat& image = inputs.get<cv::Mat> ("image");
@@ -201,16 +203,16 @@ struct DrawKeypoints: ecto::module
     cv::Mat& out_image = outputs.get<cv::Mat> ("image");
     cv::drawKeypoints(image, kpts_in, out_image);
   }
-  static void Initialize(ecto::tendrils& p)
+  void initialize(tendrils& p)
   {
     SHOW();
   }
 };
 
-struct ScoreZipper: ecto::module
+struct ScoreZipper: ecto::module_interface
 {
   typedef std::vector<std::pair<float, float> > pairs_t;
-  void Config()
+  void config(const tendrils& params, tendrils& inputs, tendrils& outputs)
   {
     SHOW();
     inputs.declare<std::vector<cv::KeyPoint> > ("kpts_0",
@@ -219,7 +221,7 @@ struct ScoreZipper: ecto::module
         "The keypoints to draw.");
     outputs.declare<pairs_t> ("scores", "the scores of the keypoint");
   }
-  void Process()
+  void process(const tendrils& params, const tendrils& inputs, tendrils& outputs)
   {
     SHOW();
     const std::vector<cv::KeyPoint>& kpts_in = inputs.get<std::vector<
@@ -235,7 +237,7 @@ struct ScoreZipper: ecto::module
       //std::cout << out.back().first << " " << out.back().second << std::endl;
     }
   }
-  static void Initialize(ecto::tendrils& p)
+  void initialize(tendrils& p)
   {
     SHOW();
   }
