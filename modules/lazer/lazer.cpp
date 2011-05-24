@@ -7,18 +7,9 @@
 #include <boost/format.hpp>
 #include <cmath>
 
-//disable show in here
-#define DISABLE_SHOW 1
-#if DISABLE_SHOW
-#ifdef SHOW
-#undef SHOW
-#define SHOW() do{}while(false)
-#endif
-#endif
-
 using ecto::tendrils;
 
-struct ScanLineDrawer : ecto::module_interface
+struct ScanLineDrawer: ecto::module_interface
 {
   static void drawScaneLine(const cv::Mat& image, cv::Mat& out, int line_n)
   {
@@ -33,17 +24,19 @@ struct ScanLineDrawer : ecto::module_interface
       out.at<uchar> (out.rows - val, i) = 255;
     }
   }
+
   void config(const tendrils& params, tendrils& inputs, tendrils& outputs)
   {
-    SHOW();
+
     inputs.declare<cv::Mat> ("in", "The image to draw a scan line from.");
     outputs.declare<cv::Mat> ("out", "The scan line image.");
     scan_idx_ = 0;//params.get<float> ("scan_idx");
     auto_scan_ = params.get<bool> ("auto_scan");
   }
-  void process(const tendrils& params, const tendrils& inputs, tendrils& outputs)
+
+  void process(const tendrils& params, const tendrils& inputs,
+      tendrils& outputs)
   {
-    SHOW();
     const cv::Mat& in = inputs.get<cv::Mat> ("in");
     cv::Mat& out = outputs.get<cv::Mat> ("out");
     drawScaneLine(in, out, scan_idx_);
@@ -52,58 +45,22 @@ struct ScanLineDrawer : ecto::module_interface
     if (scan_idx_ >= in.rows)
       scan_idx_ = 0;
   }
-  static void Initialize(ecto::tendrils& params)
+
+  void initialize(ecto::tendrils& params)
   {
-    SHOW();
     params.declare<float> ("scan_idx", "The scan line index, [0,1]", 0.5f);
-    params.declare<bool> ("auto_scan", "After each process, increment the scanline", true);
+    params.declare<bool> ("auto_scan",
+        "After each process, increment the scanline", true);
   }
+
   int scan_idx_;
   bool auto_scan_;
 };
 
-struct mm : ecto::module_interface
-{
-  void config(const tendrils& params, tendrils& inputs, tendrils& outputs)
-  {
-    SHOW();
-    inputs.declare<cv::Mat> ("in", "The image to to find a vertical lazer line in.");
-    outputs.declare<cv::Mat> ("out", "The lazer image (0 - no lazer, 255 - lazer).");
-  }
-  void process(const tendrils& params, const tendrils& inputs, tendrils& outputs)
-  {
-    SHOW();
-    //const cv::Mat& in = inputs.get<cv::Mat> ("in");
-    //cv::Mat& out = outputs.get<cv::Mat> ("out");
-  }
-  static void Initialize(ecto::tendrils& params)
-  {
-    SHOW();
-  }
-};
-
-struct LaserDetector : ecto::module_interface
-{
-  void config(const tendrils& params, tendrils& inputs, tendrils& outputs)
-  {
-    SHOW();
-    inputs.declare<cv::Mat> ("in", "The image to to find a vertical lazer line in.");
-    outputs.declare<cv::Mat> ("out", "The lazer image (0 - no lazer, 255 - lazer).");
-  }
-  void process(const tendrils& params, const tendrils& inputs, tendrils& outputs)
-  {
-    SHOW();
-    //const cv::Mat& in = inputs.get<cv::Mat> ("in");
-    //cv::Mat& out = outputs.get<cv::Mat> ("out");
-  }
-  static void Initialize(ecto::tendrils& params)
-  {
-    SHOW();
-  }
-};
-
 BOOST_PYTHON_MODULE(lazer)
 {
-  ecto::wrap<ScanLineDrawer>("ScanLineDrawer");
-  ecto::wrap<LaserDetector>("LaserDetector");
+  ecto::wrap<ScanLineDrawer>(
+      "ScanLineDrawer",
+      "Draws a scanline in the image.\n"
+      "Uses the intensity on the y axis, x position on the x axis.");
 }

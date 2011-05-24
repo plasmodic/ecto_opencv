@@ -35,7 +35,7 @@ plasm.connect(adder, "out", sobelShower, "in")
 #print plasm.viz()
 ecto.view_plasm(plasm)
 
-while(imshow.o.out.get() != 27):
+while(imshow.outputs.out.get() != 27):
     plasm.mark_dirty(video)
     # TODO just call go on the whole plasm, to trigger all leaves being called. 
     plasm.go(sobelShower)
