@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8)
 project(ecto_opencv)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-strict-aliasing -Wall -Werror -Wl,--no-undefined")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-strict-aliasing -Wall -Wl,--no-undefined")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -DBOOST_DISABLE_ASSERTS")
 
 #set the default path for built libraries to the "ecto_opencv" directory
