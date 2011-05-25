@@ -1,6 +1,6 @@
 #!/bin/python
 import ecto
-
+import cv_bp as opencv
 from ecto_opencv import highgui,calib,imgproc
 
 debug = True
@@ -11,7 +11,7 @@ cols = 4
 square_size = 40 # in millis
 
 pattern_show = highgui.imshow(name="pattern", waitKey=10, autoSize=True)
-rgb2gray = imgproc.cvtColor(flag=7)
+rgb2gray = imgproc.cvtColor(flag=opencv.CV_)
 video = highgui.VideoCapture(video_device=0)
 circle_detector = calib.PatternDetector(rows=rows, cols=cols,pattern_type="acircles")
 circle_drawer = calib.PatternDrawer(rows=rows, cols=cols)

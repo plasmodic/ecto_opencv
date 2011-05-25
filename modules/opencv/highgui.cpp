@@ -8,19 +8,29 @@
 
 using ecto::tendrils;
 
-struct VideoCapture: ecto::module_interface
+struct VideoCapture
 {
-  void configure(const tendrils& params, tendrils& inputs, tendrils& outputs)
+  static void declare_params(tendrils& params)
   {
-    video_device = params.get<int> ("video_device");
-    video_file = params.get<std::string> ("video_file");
-    capture = cv::VideoCapture();
+    params.declare<int> ("video_device", "The device ID to open.", 0);
+    params.declare<std::string> ("video_file",
+        "A video file to read, leave empty to open a video device.", "");
+  }
 
+  static void declare_io(const tendrils& params, tendrils& inputs,
+      tendrils& outputs)
+  {
     //set outputs
     outputs.declare<cv::Mat> ("out", "A video frame.", cv::Mat());
     outputs.declare<int> ("frame_number", "The number of frames captured.", 0);
   }
 
+  void configure(tendrils& params)
+  {
+    video_device = params.get<int> ("video_device");
+    video_file = params.get<std::string> ("video_file");
+    capture = cv::VideoCapture();
+  }
   void open_video_device()
   {
     if (capture.isOpened())
@@ -42,15 +52,7 @@ struct VideoCapture: ecto::module_interface
     }
   }
 
-  void initialize(tendrils& params)
-  {
-    params.declare<int> ("video_device", "The device ID to open.", 0);
-    params.declare<std::string> ("video_file",
-        "A video file to read, leave empty to open a video device.", "");
-  }
-
-  void process(const tendrils& params, const tendrils& inputs,
-      tendrils& outputs)
+  int process(const tendrils& inputs, tendrils& outputs)
   {
     open_video_device();
 
@@ -59,6 +61,7 @@ struct VideoCapture: ecto::module_interface
 
     //increment our frame number.
     ++(outputs.get<int> ("frame_number"));
+    return 0;
   }
   cv::VideoCapture capture;
   int video_device;
@@ -66,9 +69,9 @@ struct VideoCapture: ecto::module_interface
 
 };
 
-struct imshow: ecto::module_interface
+struct imshow
 {
-  void initialize(tendrils& params)
+  static void declare_params(tendrils& params)
   {
     params.declare<std::string> ("name", "The window name", "image");
     params.declare<int> ("waitKey",
@@ -76,26 +79,29 @@ struct imshow: ecto::module_interface
     params.declare<bool> ("autoSize", "Autosize the window.", true);
   }
 
-  void configure(const tendrils& params, tendrils& inputs, tendrils& outputs)
+  static void declare_io(const tendrils& params, tendrils& inputs,
+      tendrils& outputs)
   {
-    window_name_ = params.get<std::string> ("name");
-    waitkey_ = params.get<int> ("waitKey");
-    auto_size_ = params.get<bool> ("autoSize");
+
     inputs.declare<cv::Mat> ("input", "The image to show");
     outputs.declare<int> ("out", "Character pressed.");
   }
 
-  void process(const tendrils& params, const tendrils& inputs,
-      tendrils& outputs)
+  void configure(const tendrils& params)
   {
-    const cv::Mat& image = inputs.get<cv::Mat> ("input");
+    window_name_ = params.get<std::string> ("name");
+    waitkey_ = params.get<int> ("waitKey");
+    auto_size_ = params.get<bool> ("autoSize");
+  }
+
+  int process(const tendrils& inputs, tendrils& outputs)
+  {
+    cv::Mat image = inputs.get<cv::Mat> ("input");
     if (image.empty())
     {
       outputs.get<int> ("out") = 0;
       throw std::logic_error("empty image!");
-      return;
     }
-
     if (auto_size_)
     {
       cv::namedWindow(window_name_, CV_WINDOW_KEEPRATIO);
@@ -109,6 +115,7 @@ struct imshow: ecto::module_interface
     {
       outputs.get<int> ("out") = 0;
     }
+    return 0;
   }
   std::string window_name_;
   int waitkey_;

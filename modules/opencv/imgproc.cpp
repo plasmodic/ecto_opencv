@@ -4,59 +4,46 @@
 
 #include <opencv2/imgproc/imgproc.hpp>
 
-//disable show in here
-#if 1
-#ifdef SHOW
-#undef SHOW
-#define SHOW() do{}while(false)
-#endif
-#endif
-
 using ecto::tendrils;
 
-struct cvtColor: ecto::module_interface
+struct cvtColor
 {
-  void configure(const tendrils& params, tendrils& inputs, tendrils& outputs)
+  static void declare_params(ecto::tendrils& p)
   {
-    SHOW();
-    flag_ = params.get<int> ("flag");
+    std::stringstream ss;
+    ss << "Convert an image's color using opencv, possible flags are:\n" << " RGB2GRAY = " << CV_RGB2GRAY << "\n"
+        << " RGB2BGR = " << CV_RGB2BGR << "\n" << " RGB2LAB = " << CV_RGB2Lab << "\n" << " BGR2LAB = " << CV_BGR2Lab;
+    p.declare<int> ("flag", ss.str(), CV_RGB2BGR);
+  }
+  static void declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
+  {
     inputs.declare<cv::Mat> ("input", "Color image.");
     outputs.declare<cv::Mat> ("out", "input as a Gray image.");
   }
-  void process(const tendrils& params, const tendrils& inputs,
-      tendrils& outputs)
+  void configure(tendrils& p)
   {
-    SHOW();
-    cv::cvtColor(inputs.get<cv::Mat> ("input"), outputs.get<cv::Mat> ("out"),
-        flag_);
+    flag_ = p.get<int> ("flag");
   }
-  void initialize(ecto::tendrils& p)
+  int process(const tendrils& inputs, tendrils& outputs)
   {
-    SHOW();
-    std::stringstream ss;
-    ss << "Convert an image's color using opencv, possible flags are:\n"
-        << " RGB2GRAY = " << CV_RGB2GRAY << "\n" << " RGB2BGR = " << CV_RGB2BGR
-        << "\n" << " RGB2LAB = " << CV_RGB2Lab << "\n" << " BGR2LAB = "
-        << CV_BGR2Lab;
-    p.declare<int> ("flag", ss.str(), CV_RGB2BGR);
+    cv::cvtColor(inputs.get<cv::Mat> ("input"), outputs.get<cv::Mat> ("out"), flag_);
+    return 0;
   }
+
   int flag_;
 };
 
-struct ChannelSplitter: ecto::module_interface
+struct ChannelSplitter
 {
-  void configure(const tendrils& params, tendrils& inputs, tendrils& outputs)
+  static void declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
   {
-    SHOW();
     inputs.declare<cv::Mat> ("input", "The 3 channel image to split.");
     outputs.declare<cv::Mat> ("out_0", "Channel 0.");
     outputs.declare<cv::Mat> ("out_1", "Channel 1.");
     outputs.declare<cv::Mat> ("out_2", "Channel 2.");
   }
-  void process(const tendrils& params, const tendrils& inputs,
-      tendrils& outputs)
+  int process(const tendrils& inputs, tendrils& outputs)
   {
-    SHOW();
     const cv::Mat& in = inputs.get<cv::Mat> ("input");
     if (in.channels() == 3)
       cv::split(in, channels_);
@@ -74,12 +61,12 @@ struct ChannelSplitter: ecto::module_interface
     outputs.get<cv::Mat> ("out_0") = channels_[0];
     outputs.get<cv::Mat> ("out_1") = channels_[1];
     outputs.get<cv::Mat> ("out_2") = channels_[2];
+    return 0;
   }
-
   cv::Mat channels_[3];
 };
 
-struct Sobel: ecto::module_interface
+struct Sobel
 {
   Sobel() :
     x_(1), y_(1)
@@ -87,69 +74,61 @@ struct Sobel: ecto::module_interface
 
   }
 
-  void initialize(tendrils& p)
+  static void declare_params(tendrils& p)
   {
     p.declare<int> ("x", "The derivative order in the x direction", 0);
     p.declare<int> ("y", "The derivative order in the y direction", 0);
   }
 
-  void configure(const tendrils& params, tendrils& inputs, tendrils& outputs)
+  static void declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
   {
-    SHOW();
     inputs.declare<cv::Mat> ("input", "image.");
     outputs.declare<cv::Mat> ("out", "sobel image");
+  }
+
+  void configure(tendrils& params)
+  {
     x_ = params.get<int> ("x");
     y_ = params.get<int> ("y");
   }
-  void process(const tendrils& params, const tendrils& inputs,
-      tendrils& outputs)
+  int process(const tendrils& inputs, tendrils& outputs)
   {
-    SHOW();
-    cv::Sobel(inputs.get<cv::Mat> ("input"), outputs.get<cv::Mat> ("out"),
-        CV_32F, x_, y_);
+    cv::Sobel(inputs.get<cv::Mat> ("input"), outputs.get<cv::Mat> ("out"), CV_32F, x_, y_);
+    return 0;
   }
   int x_, y_;
 };
 
 template<typename T>
-struct Adder: ecto::module_interface
+struct Adder
 {
-  Adder()
-  {
-
-  }
-  void configure(const tendrils& params, tendrils& inputs, tendrils& outputs)
+  static void declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
   {
     inputs.declare<T> ("a", "to add to b");
     inputs.declare<T> ("b", "to add to a");
     outputs.declare<T> ("out", "a + b");
   }
-  void process(const tendrils& params, const tendrils& inputs,
-      tendrils& outputs)
+  int process(const tendrils& inputs, tendrils& outputs)
   {
-    SHOW();
     outputs.get<T> ("out") = inputs.get<T> ("a") + inputs.get<T> ("b");
+    return 0;
   }
 };
 
-struct AbsNormalized: ecto::module_interface
+struct AbsNormalized
 {
-  AbsNormalized()
-  {
-
-  }
-  void configure(const tendrils& params, tendrils& inputs, tendrils& outputs)
+  static void declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
   {
     inputs.declare<cv::Mat> ("input", "image.");
     outputs.declare<cv::Mat> ("out", "absolute and normalized");
   }
-  void process(const tendrils& params, const tendrils& inputs,
-      tendrils& outputs)
+  int process(const tendrils& inputs, tendrils& outputs)
   {
-    SHOW();
-    const cv::Mat& m = inputs.get<cv::Mat> ("input");
+    cv::Mat m = inputs.get<cv::Mat> ("input");
+    //grab a reference
     cv::Mat & out = outputs.get<cv::Mat> ("out");
     out = cv::abs(m) / (cv::norm(m, cv::NORM_INF) * 0.5);
+    return 0;
   }
 };
 

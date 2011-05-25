@@ -9,8 +9,22 @@
 
 using ecto::tendrils;
 
-struct ScanLineDrawer: ecto::module_interface
+struct ScanLineDrawer
 {
+  static void declare_params(ecto::tendrils& params)
+  {
+    params.declare<float> ("scan_idx", "The scan line index, [0,1]", 0.5f);
+    params.declare<bool> ("auto_scan",
+        "After each process, increment the scanline", true);
+  }
+  static void declare_io(const tendrils& params, tendrils& inputs,
+      tendrils& outputs)
+  {
+    inputs.declare<cv::Mat> ("in", "The image to draw a scan line from.");
+    outputs.declare<cv::Mat> ("out", "The scan line image.");
+
+  }
+
   static void drawScaneLine(const cv::Mat& image, cv::Mat& out, int line_n)
   {
     out.create(260, image.cols, CV_8UC1);
@@ -25,16 +39,13 @@ struct ScanLineDrawer: ecto::module_interface
     }
   }
 
-  void config(const tendrils& params, tendrils& inputs, tendrils& outputs)
+  void configure(tendrils& params)
   {
-
-    inputs.declare<cv::Mat> ("in", "The image to draw a scan line from.");
-    outputs.declare<cv::Mat> ("out", "The scan line image.");
     scan_idx_ = 0;//params.get<float> ("scan_idx");
     auto_scan_ = params.get<bool> ("auto_scan");
   }
 
-  void process(const tendrils& params, const tendrils& inputs,
+  int process(const tendrils& inputs,
       tendrils& outputs)
   {
     const cv::Mat& in = inputs.get<cv::Mat> ("in");
@@ -44,13 +55,7 @@ struct ScanLineDrawer: ecto::module_interface
       scan_idx_++;
     if (scan_idx_ >= in.rows)
       scan_idx_ = 0;
-  }
-
-  void initialize(ecto::tendrils& params)
-  {
-    params.declare<float> ("scan_idx", "The scan line index, [0,1]", 0.5f);
-    params.declare<bool> ("auto_scan",
-        "After each process, increment the scanline", true);
+    return 0;
   }
 
   int scan_idx_;
@@ -59,8 +64,7 @@ struct ScanLineDrawer: ecto::module_interface
 
 BOOST_PYTHON_MODULE(lazer)
 {
-  ecto::wrap<ScanLineDrawer>(
-      "ScanLineDrawer",
+  ecto::wrap<ScanLineDrawer>("ScanLineDrawer",
       "Draws a scanline in the image.\n"
-      "Uses the intensity on the y axis, x position on the x axis.");
+        "Uses the intensity on the y axis, x position on the x axis.");
 }
