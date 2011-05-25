@@ -11,7 +11,7 @@ struct ORB
   {
     p.declare<int> ("n_features", "The number of desired features", 1000);
     p.declare<int> ("n_levels", "The number of scales", 3);
-    p.declare<int> ("scale_factor", "The factor between scales", 1.2);
+    p.declare<float> ("scale_factor", "The factor between scales", 1.2);
   }
 
   static void declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)

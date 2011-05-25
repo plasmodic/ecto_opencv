@@ -145,7 +145,6 @@ struct PatternDrawer
     cv::drawChessboardCorners(image_out, grid_size_, points, found);
     return 0;
   }
-
   cv::Size grid_size_;
 };
 
@@ -230,7 +229,6 @@ struct CameraCalibrator
     out.get<float> ("norm") = norm;
     return 0;
   }
-
   cv::Size grid_size_;
   int n_obs_;
   float norm_thresh_;
