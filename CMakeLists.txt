@@ -20,5 +20,5 @@ find_package(ecto REQUIRED)
 add_subdirectory(modules)
 
 #opencv boost::python bindings
-add_subdirectory(cv_bp)
+add_subdirectory(modules/cv_bp)
 

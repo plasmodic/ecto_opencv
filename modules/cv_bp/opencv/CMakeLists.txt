@@ -35,7 +35,7 @@ include_directories(
   ${Boost_INCLUDE_DIRS}
   )
 
-set(bp_opencv_target opencv_python_boost)
+set(bp_opencv_target opencv_boost_python)
 
 add_library(${bp_opencv_target} SHARED
   opencv.cpp

@@ -37,7 +37,6 @@ namespace
   {
     if(callback == bp::object())
     {
-        std::cout << "Clearing callback" << std::endl;
         PyMCallBackData::callbacks_[windowName] = NULL;
         cv::setMouseCallback(windowName,NULL,NULL);
         return;
@@ -82,6 +81,11 @@ namespace opencv_wrappers
     VideoWriter_.def("write", &cv::VideoWriter::write);
   }
 
+  int waitKey(int millis)
+  {
+    return 255 & cv::waitKey(millis);
+  }
+
   void wrap_highgui()
   {
     wrap_highgui_defines();
@@ -91,7 +95,7 @@ namespace opencv_wrappers
 
     //image windows
     bp::def("imshow", cv::imshow);
-    bp::def("waitKey", cv::waitKey);
+    bp::def("waitKey", waitKey);
     bp::def("namedWindow", cv::namedWindow);
 //CV_EXPORTS void setMouseCallback( const string& windowName, MouseCallback onMouse, void* param=0);
     bp::def("setMouseCallback", setMouseCallback_);

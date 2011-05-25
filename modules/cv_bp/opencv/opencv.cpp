@@ -4,7 +4,7 @@
 
 namespace bp = boost::python;
 
-BOOST_PYTHON_MODULE(opencv)
+BOOST_PYTHON_MODULE(cv_bp)
 {
   //wrap all modules
   opencv_wrappers::wrap_cv_core();

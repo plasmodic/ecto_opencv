@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import cv_bp as opencv
+import ecto_opencv.cv_bp as opencv
 
 class SubwindowDemo:
 
@@ -61,4 +61,3 @@ class SubwindowDemo:
 if __name__=="__main__":
     demo = SubwindowDemo()
     demo.run()
-    opencv.setMouseCallback( "Video", None,None)
