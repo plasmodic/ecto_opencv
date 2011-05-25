@@ -113,7 +113,8 @@ struct PatternDrawer: ecto::module_interface
   void configure(const tendrils& params, tendrils& in, tendrils& out)
   {
     SHOW();
-    in.declare<cv::Mat> ("input", "The image to to find a vertical lazer line in.");
+    in.declare<cv::Mat> ("input",
+        "The image to to find a vertical lazer line in.");
     in.declare<std::vector<cv::Point2f> > ("points", "Circle pattern points.");
     in.declare<bool> ("found", "Found the pattern");
     out.declare<cv::Mat> ("out", "Pattern Image");
