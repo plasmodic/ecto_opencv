@@ -27,3 +27,5 @@ dependencies
  - boost
  - ecto https://github.com/ethanrublee/ecto
  - opencv trunk https://code.ros.org/svn/opencv/trunk/opencv
+
+Prototyping ecto...
