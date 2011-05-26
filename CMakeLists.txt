@@ -16,6 +16,7 @@ configure_file(python/__init__.py.in
 #  and cmake that baby
 find_package(OpenCV REQUIRED)
 find_package(ecto REQUIRED)
+find_package(Boost COMPONENTS system filesystem REQUIRED)
 
 add_subdirectory(modules)
 
