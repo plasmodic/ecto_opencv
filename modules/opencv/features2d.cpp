@@ -5,6 +5,26 @@
 
 using ecto::tendrils;
 
+struct feature_detector_interface
+{
+  static void declare_io(tendrils& inputs, tendrils& outputs)
+  {
+    inputs.declare<cv::Mat> ("image", "An input image.");
+    inputs.declare<cv::Mat> ("mask", "An mask, same size as image.");
+
+    outputs.declare<std::vector<cv::KeyPoint> > ("kpts", "The keypoints.");
+  }
+};
+
+struct feature_extractor_interface
+{
+  static void declare_io(tendrils& inputs, tendrils& outputs)
+  {
+    feature_detector_interface::declare_io(inputs,outputs);
+    outputs.declare<cv::Mat> ("descriptors", "The descriptors per keypoints");
+  }
+};
+
 struct ORB
 {
   static void declare_params(tendrils& p)
@@ -14,14 +34,9 @@ struct ORB
     p.declare<float> ("scale_factor", "The factor between scales", 1.2);
   }
 
-  static void declare_io(const tendrils& params, tendrils& inputs,
-      tendrils& outputs)
+  static void declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
   {
-    inputs.declare<cv::Mat> ("image", "An input image.");
-    inputs.declare<cv::Mat> ("mask", "An mask, same size as image.");
-
-    outputs.declare<std::vector<cv::KeyPoint> > ("kpts", "The keypoints.");
-    outputs.declare<cv::Mat> ("descriptors", "The descriptors per keypoints");
+    feature_extractor_interface::declare_io(inputs,outputs);
   }
 
   void configure(tendrils& params)
@@ -36,8 +51,7 @@ struct ORB
   {
     cv::Mat image = inputs.get<cv::Mat> ("image");
     cv::Mat mask = inputs.get<cv::Mat> ("mask");
-    std::vector<cv::KeyPoint>& kpts = outputs.get<std::vector<cv::KeyPoint> > (
-        "kpts");
+    std::vector<cv::KeyPoint>& kpts = outputs.get<std::vector<cv::KeyPoint> > ("kpts");
     cv::Mat& descriptors = outputs.get<cv::Mat> ("descriptors");
     orb(image, mask, kpts, descriptors);
     return 0;
@@ -55,12 +69,10 @@ struct FAST
     p.declare<int> ("thresh", "The FAST threshhold. 20 is a decent value.", 20);
   }
 
-  static void declare_io(const tendrils& params, tendrils& inputs,
-      tendrils& outputs)
+  static void declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
   {
-    outputs.declare<std::vector<cv::KeyPoint> > ("out", "Detected keypoints");
-    inputs.declare<cv::Mat> ("image", "The image to detect FAST on.");
-    inputs.declare<cv::Mat> ("mask", "optional mask");
+    //use the predefined feature detector inputs, these do not depend on parameters.
+    feature_detector_interface::declare_io(inputs,outputs);
   }
 
   void configure(tendrils& params)
@@ -72,8 +84,7 @@ struct FAST
   {
     cv::Mat in = inputs.get<cv::Mat> ("image");
     cv::Mat mask = inputs.get<cv::Mat> ("mask");
-    std::vector<cv::KeyPoint>& kpts = outputs.get<std::vector<cv::KeyPoint> > (
-        "out");
+    std::vector<cv::KeyPoint>& kpts = outputs.get<std::vector<cv::KeyPoint> > ("out");
     cv::FastFeatureDetector fd(thresh_, true);
     fd.detect(in, kpts, mask);
     return 0;
@@ -84,20 +95,18 @@ struct FAST
 
 struct DrawKeypoints
 {
-  static void declare_io(const tendrils& params, tendrils& inputs,
-      tendrils& outputs)
+  static void declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
   {
-    inputs.declare<cv::Mat> ("image", "The input image, to draw over.");
-    outputs.declare<cv::Mat> ("image", "The output image.");
-    inputs.declare<std::vector<cv::KeyPoint> > ("kpts",
-        "The keypoints to draw.");
+    inputs.declare<cv::Mat> ("input", "The input image, to draw over.");
+    inputs.declare<std::vector<cv::KeyPoint> > ("kpts", "The keypoints to draw.");
+
+    outputs.declare<cv::Mat> ("output", "The output image.");
   }
   int process(const tendrils& inputs, tendrils& outputs)
   {
-    cv::Mat image = inputs.get<cv::Mat> ("image");
-    const std::vector<cv::KeyPoint>& kpts_in = inputs.get<std::vector<
-        cv::KeyPoint> > ("kpts");
-    cv::Mat& out_image = outputs.get<cv::Mat> ("image");
+    cv::Mat image = inputs.get<cv::Mat> ("input");
+    const std::vector<cv::KeyPoint>& kpts_in = inputs.get<std::vector<cv::KeyPoint> > ("kpts");
+    cv::Mat& out_image = outputs.get<cv::Mat> ("output");
     cv::drawKeypoints(image, kpts_in, out_image);
     return 0;
   }
@@ -106,8 +115,7 @@ struct DrawKeypoints
 BOOST_PYTHON_MODULE(features2d)
 {
   namespace bp = boost::python;
-  ecto::wrap<ORB>(
-      "ORB",
+  ecto::wrap<ORB>("ORB",
       "An ORB detector. Takes a image and a mask, and computes keypoints and descriptors(32 byte binary).");
   ecto::wrap<FAST>("FAST", "Computes fast keypoints given an image, and mask.");
   ecto::wrap<DrawKeypoints>("DrawKeypoints");

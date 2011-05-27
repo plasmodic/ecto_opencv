@@ -20,6 +20,5 @@ find_package(Boost COMPONENTS system filesystem REQUIRED)
 
 add_subdirectory(modules)
 
-#opencv boost::python bindings
-add_subdirectory(modules/cv_bp)
+
 
