@@ -1,6 +1,6 @@
 #!/bin/python
 import ecto
-from ecto_opencv import imgproc, highgui,orb
+from ecto_opencv import imgproc, highgui, features2d
 import time
 #import orb as imgproc
 
@@ -9,8 +9,8 @@ debug = True
 plasm = ecto.Plasm()
 
 video = highgui.VideoCapture(video_device=0)
-orb_m = orb.ORB()
-draw_kpts = orb.DrawKeypoints()
+orb_m = features2d.ORB()
+draw_kpts = features2d.DrawKeypoints()
 imshow = highgui.imshow( name="ORB", waitKey=2, autoSize=True)
 rgb2gray = imgproc.cvtColor (flag=7)
 
