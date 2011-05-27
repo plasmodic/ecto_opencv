@@ -8,7 +8,7 @@ debug = True
 plasm = ecto.Plasm()
 
 imshow = highgui.imshow(name="image", waitKey=500, autoSize=True)
-images = highgui.ImageReader(path="/u/erublee/Desktop")
+images = highgui.ImageReader(path="/home/erublee/Desktop")
 
 
 plasm.connect(images, "out", imshow, "input")
