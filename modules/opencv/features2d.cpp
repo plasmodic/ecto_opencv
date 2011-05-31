@@ -7,12 +7,15 @@ using ecto::tendrils;
 
 struct feature_detector_interface
 {
+  static void declare_outputs(tendrils& outputs)
+  {
+    outputs.declare<std::vector<cv::KeyPoint> > ("kpts", "The keypoints.");
+  }
   static void declare_io(tendrils& inputs, tendrils& outputs)
   {
     inputs.declare<cv::Mat> ("image", "An input image.");
     inputs.declare<cv::Mat> ("mask", "An mask, same size as image.");
-
-    outputs.declare<std::vector<cv::KeyPoint> > ("kpts", "The keypoints.");
+    declare_outputs(outputs);
   }
 };
 
@@ -99,9 +102,9 @@ struct DrawKeypoints
   {
     inputs.declare<cv::Mat> ("input", "The input image, to draw over.");
     inputs.declare<std::vector<cv::KeyPoint> > ("kpts", "The keypoints to draw.");
-
     outputs.declare<cv::Mat> ("output", "The output image.");
   }
+
   int process(const tendrils& inputs, tendrils& outputs)
   {
     cv::Mat image = inputs.get<cv::Mat> ("input");

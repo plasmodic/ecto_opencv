@@ -4,8 +4,9 @@ from ecto_opencv import imgproc, highgui, features2d
 import time
 #import orb as imgproc
 
-debug = True
-  
+debug = False
+#debug = True
+
 plasm = ecto.Plasm()
 
 video = highgui.VideoCapture(video_device=0)
@@ -20,8 +21,9 @@ plasm.connect(orb_m,"kpts",draw_kpts,"kpts")
 plasm.connect(video, "out",draw_kpts,"input")
 plasm.connect(draw_kpts, "output", imshow,"input")
 
-print plasm.viz()
-ecto.view_plasm(plasm)
+if debug:
+    print plasm.viz()
+    ecto.view_plasm(plasm)
 
 prev = time.time()
 count = 0

@@ -50,9 +50,9 @@ struct ImageReader
                 std::cout << x.string() << "\n";
                 images.push_back(x.string());
               }
-          } catch (const std::exception & ex)
+          } catch (const std::exception &)
           {
-            std::cout << dir_itr->filename() << " " << ex.what() << std::endl;
+            //std::cout << dir_itr->filename() << " " << ex.what() << std::endl;
           }
       }
   }

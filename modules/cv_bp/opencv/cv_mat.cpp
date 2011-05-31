@@ -166,6 +166,7 @@ namespace opencv_wrappers
       "the given python iterable length, then the matrix will be allocated "
       "as a single channel, Nx1 vector where N = len(list)");
     Mat_.def("size", mat_size);
+    Mat_.def("empty",&cv::Mat::empty);
     Mat_.def("type", mat_type);
     Mat_.def("convertTo",&cv::Mat::convertTo);
     Mat_.def("clone", &cv::Mat::clone);

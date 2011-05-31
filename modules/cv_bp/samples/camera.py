@@ -19,6 +19,7 @@ print "press q or ESC to exit."
 
 while True:
     capture.read(img)
+    if img.empty(): continue
     opencv.imshow("camera",img)
     if opencv.waitKey(10) in ( ord('q'), 27 ):
         break
