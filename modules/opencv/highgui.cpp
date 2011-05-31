@@ -146,7 +146,17 @@ struct imshow
     inputs.declare<cv::Mat> ("input", "The image to show");
     outputs.declare<int> ("out", "Character pressed.");
   }
-
+  static cv::Vec3b ct(const cv::Vec3b& in)
+  {
+    cv::Vec3b out;
+    float n = cv::norm(in);
+    out[0] = 255 * (in[0]/n);
+    out[1] = 255 * (in[1]/n);
+    out[2] = 255 * (in[2]/n);
+//    out *= 1/128.0f;
+//    out *=128.0f;
+    return out;
+  }
   void configure(const tendrils& params)
   {
     window_name_ = params.get<std::string> ("name");
@@ -166,6 +176,10 @@ struct imshow
       {
         cv::namedWindow(window_name_, CV_WINDOW_KEEPRATIO);
       }
+
+    //cv::Mat fimage(image.size(), image.type());
+    //std::transform(image.begin<cv::Vec3b>(),image.end<cv::Vec3b>(),fimage.begin<cv::Vec3b>(), imshow::ct);
+
     cv::imshow(window_name_, image);
     if (waitkey_ >= 0)
       {
