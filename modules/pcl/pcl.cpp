@@ -82,8 +82,8 @@ struct VoxelGrid
   }
   static void declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
   {
-    inputs.declare<cloud_t::ConstPtr> ("in", "The cloud to filter");
-    outputs.declare<cloud_t::ConstPtr> ("out", "Filtered cloud.");
+    inputs.declare<cloud_t::ConstPtr> ("input", "The cloud to filter");
+    outputs.declare<cloud_t::ConstPtr> ("output", "Filtered cloud.");
 
   }
   VoxelGrid() :
@@ -101,12 +101,12 @@ struct VoxelGrid
   int process(const tendrils& inputs, tendrils& outputs)
   {
     //grab the input cloud
-    cloud_t::ConstPtr cloud = inputs.get<cloud_t::ConstPtr> ("in");
+    cloud_t::ConstPtr cloud = inputs.get<cloud_t::ConstPtr> ("input");
     //voxel grid filter it.
     voxel_grid_.setInputCloud(cloud);
     voxel_grid_.filter(*cloud_out_);
     //set the output to the voxelized cloud.
-    outputs.get<cloud_t::ConstPtr> ("out") = cloud_out_;
+    outputs.get<cloud_t::ConstPtr> ("output") = cloud_out_;
     return 0;
   }
   pcl::VoxelGrid<cloud_t::PointType> voxel_grid_;

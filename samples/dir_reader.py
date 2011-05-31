@@ -7,8 +7,8 @@ debug = True
 
 plasm = ecto.Plasm()
 
-imshow = highgui.imshow(name="image", waitKey=500, autoSize=True)
-images = highgui.ImageReader(path="/home/erublee/Desktop")
+imshow = highgui.imshow(name="image", waitKey=20, autoSize=True)
+images = highgui.VideoCapture(video_device=1)
 
 
 plasm.connect(images, "out", imshow, "input")
