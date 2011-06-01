@@ -23,7 +23,7 @@ Dependencies
  - ecto https://github.com/plasmodic/ecto
       
       If you prefer not to build things, a rolling daily build of
-      trunk is available via apt-get:
+      trunk is available via apt-get::
       
         sudo apt-add-repository ppa:ethan-rublee/ppa
         sudo apt-get update
@@ -33,7 +33,7 @@ Dependencies
       
       If you prefer not to build things, a rolling daily build of
       trunk is available via apt-get. You can grab it from the same
-      place (ppa:ethan-rublee/ppa):
+      place (ppa:ethan-rublee/ppa)::
       
         sudo apt-get install libopencv-dev
         
@@ -41,7 +41,7 @@ Dependencies
       
       http://www.pointclouds.org/downloads/linux.html
       
-      Quoted here for convenience:
+      Quoted here for convenience::
         
         sudo add-apt-repository ppa:v-launchpad-jochen-sprickerhof-de/pcl
         sudo apt-get update
