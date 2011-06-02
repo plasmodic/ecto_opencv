@@ -5,6 +5,8 @@ import time
 #import orb as imgproc
 
 debug = True
+
+ecto.list_ecto_module(pcl)
   
 plasm = ecto.Plasm()
 
@@ -12,7 +14,6 @@ grabber = pcl.KinectGrabber()
 voxel = pcl.VoxelGrid(leaf_size=0.01)
 viewer = pcl.CloudViewer()
 
-#ecto.list_ecto_module(pcl)
 
 plasm.connect(grabber, "output", voxel , "input")
 plasm.connect(voxel, "output", viewer , "input")

@@ -193,7 +193,6 @@ struct imshow
 
   static void declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
   {
-
     inputs.declare<cv::Mat> ("input", "The image to show");
     outputs.declare<int> ("out", "Character pressed.");
   }

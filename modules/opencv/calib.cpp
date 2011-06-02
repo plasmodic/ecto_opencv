@@ -281,12 +281,21 @@ struct CameraIntrinsics
   }
   static void declare_io(const tendrils& params, tendrils& in, tendrils& out)
   {
-    Camera camera;
-    readOpenCVCalibration(camera, params.get<std::string> ("camera_file"));
-    out.declare<cv::Size> ("image_size", "The image size.", camera.image_size);
-    out.declare<cv::Mat> ("K", "3x3 camera intrinsic matrix.", camera.K);
+    out.declare<cv::Size> ("image_size", "The image size.");
+    out.declare<cv::Mat> ("K", "3x3 camera intrinsic matrix.");
     out.declare<std::string> ("camera_model", "The camera model. e.g pinhole,...", "pinhole");
   }
+  void configure(tendrils& params)
+  {
+    readOpenCVCalibration(camera, params.get<std::string> ("camera_file"));
+  }
+  int process(const tendrils& in, tendrils& out)
+  {
+    out.get<cv::Mat>("K") = camera.K;
+    out.get<cv::Size>("image_size") = camera.image_size;
+    return 0;
+  }
+  Camera camera;
 };
 
 struct FiducialPoseFinder

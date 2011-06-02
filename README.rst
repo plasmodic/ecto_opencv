@@ -55,3 +55,4 @@ Style
 If you are using eclipse, you may use the style file available here:
   
   https://github.com/plasmodic/ecto/raw/master/misc/ecto.style.xml
+
