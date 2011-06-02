@@ -1,9 +1,13 @@
 project(tod)
 
-find_package(Eigen REQUIRED)
+find_package(Eigen)
 
-message(STATUS "Eigen3 includes :\n    ${EIGEN_INCLUDE_DIRS}")
+if(Eigen_NOT_FOUND)
+return()
+endif()
+
 include_directories(${EIGEN_INCLUDE_DIRS})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-ectomodule(tod Camera.cpp PoseRT.cpp)
+
+ectomodule(tod tod.cpp)
 link_ecto(tod ${OpenCV_LIBS})
