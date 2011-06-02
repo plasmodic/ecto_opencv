@@ -33,6 +33,28 @@ struct cvtColor
   int flag_;
 };
 
+struct Scale
+{
+  static void declare_params(ecto::tendrils& p)
+  {
+    p.declare<float> ("factor","Scale the given image by the constant given", 1.0f);
+  }
+  static void declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
+  {
+    inputs.declare<cv::Mat> ("input", "An image");
+    outputs.declare<cv::Mat> ("output", "The scaled result.");
+  }
+  void configure(tendrils& p)
+  {
+    factor = p.get<float> ("factor");
+  }
+  int process(const tendrils& inputs, tendrils& outputs)
+  {
+    outputs.get<cv::Mat> ("output") = inputs.get<cv::Mat> ("input");//, , flag_);
+    return 0;
+  }
+  float factor;
+};
 struct ChannelSplitter
 {
   static void declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)

@@ -31,6 +31,9 @@ Dependencies
       
  - opencv trunk https://code.ros.org/svn/opencv/trunk/opencv
       
+      WARNING : this currently does not build against OpenNI, so the kinect demos that
+      use opencv will be unavailable.
+      
       If you prefer not to build things, a rolling daily build of
       trunk is available via apt-get. You can grab it from the same
       place (ppa:ethan-rublee/ppa)::
@@ -47,3 +50,8 @@ Dependencies
         sudo apt-get update
         sudo apt-get install libpcl-dev
 
+Style
+-----------------------------------------------
+If you are using eclipse, you may use the style file available here:
+  
+  https://github.com/plasmodic/ecto/raw/master/misc/ecto.style.xml

@@ -11,6 +11,8 @@
 #include <pcl/io/openni_grabber.h>
 #include <pcl/visualization/cloud_viewer.h>
 
+#include <opencv2/opencv.hpp>
+
 #include <iostream>
 
 using ecto::tendrils;
@@ -30,12 +32,17 @@ public:
 
   void operator ()()
   {
-    boost::scoped_ptr<pcl::Grabber> interface(new pcl::OpenNIGrabber());
+    boost::scoped_ptr<pcl::OpenNIGrabber> interface(new pcl::OpenNIGrabber());
 
-    boost::function<void(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr&)> f = boost::bind(
-        &SimpleKinectGrabber::cloud_cb_, this, _1);
+    boost::function<void(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr&)> point_cloud_cb =
+        boost::bind(&SimpleKinectGrabber::cloud_cb_, this, _1);
 
-    boost::signals2::connection c = interface->registerCallback(f);
+    boost::function<void(const boost::shared_ptr<openni_wrapper::Image>&,
+                         const boost::shared_ptr<openni_wrapper::DepthImage>&, float constant)> image_depth_cb =
+        boost::bind(&SimpleKinectGrabber::image_depth_cb_, this, _1, _2, _3);
+
+    //interface->
+    boost::signals2::connection c = interface->registerCallback(point_cloud_cb);
 
     interface->start();
 
@@ -60,7 +67,12 @@ public:
     cloud_.reset();
     return p;
   }
+  //depth callback.
+  void image_depth_cb_(const boost::shared_ptr<openni_wrapper::Image>&,
+                       const boost::shared_ptr<openni_wrapper::DepthImage>&, float constant)
+  {
 
+  }
   void cloud_cb_(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud)
   {
     boost::mutex::scoped_lock lock(mutex_);

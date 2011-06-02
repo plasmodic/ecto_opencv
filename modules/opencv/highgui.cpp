@@ -18,7 +18,6 @@ struct ImageReader
   {
     params.declare<std::string> ("path", "The path to read images from.", "/tmp/ecto/rules");
     params.declare<std::string> ("ext", "The image extension to look for.", ".png|.jpg|.bmp");
-
   }
 
   static void declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
@@ -32,7 +31,6 @@ struct ImageReader
   {
     path = params.get<std::string> ("path");
     ext = params.get<std::string> ("ext");
-    std::cout << int(unsigned(255)) << std::endl;
     fs::path x(path);
     if (!fs::is_directory(x))
       throw std::runtime_error(path + " is not a directory");
@@ -47,7 +45,7 @@ struct ImageReader
                 fs::path x(*dir_itr);
                 if (x.extension().size() == 0 || ext.find(x.extension()) == std::string::npos)
                   continue;
-                std::cout << x.string() << "\n";
+                //std::cout << x.string() << "\n";
                 images.push_back(x.string());
               }
           } catch (const std::exception &)
@@ -59,7 +57,7 @@ struct ImageReader
 
   int process(const tendrils& inputs, tendrils& outputs)
   {
-    if(images.empty())
+    if (images.empty())
       return 1;
     //outputs.get is a reference;
     outputs.get<cv::Mat> ("out") = cv::imread(images.back());
@@ -72,6 +70,59 @@ struct ImageReader
   std::string ext;
   std::vector<std::string> images;
 
+};
+
+struct OpenNICapture
+{
+  static void declare_params(tendrils& params)
+  {
+    params.declare<int> ("video_mode", "Video size mode", CV_CAP_OPENNI_VGA_30HZ);
+
+  }
+
+  static void declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
+  {
+    //set outputs
+    outputs.declare<cv::Mat> ("depth", "The output depth map", cv::Mat());
+    outputs.declare<cv::Mat> ("image", "The output BGR image", cv::Mat());
+    outputs.declare<int> ("frame_number", "The number of frames captured.", 0);
+  }
+
+  void configure(tendrils& params)
+  {
+    int mode = params.get<int> ("video_mode");
+    capture = cv::VideoCapture(CV_CAP_OPENNI);
+    capture.set(CV_CAP_OPENNI_IMAGE_GENERATOR_OUTPUT_MODE, mode);
+    // Print some avalible Kinect settings.
+    std::cout << "\nDepth generator output mode:" << std::endl << "FRAME_WIDTH    "
+        << capture.get(CV_CAP_PROP_FRAME_WIDTH) << std::endl << "FRAME_HEIGHT   "
+        << capture.get(CV_CAP_PROP_FRAME_HEIGHT) << std::endl << "FRAME_MAX_DEPTH    "
+        << capture.get(CV_CAP_PROP_OPENNI_FRAME_MAX_DEPTH) << " mm" << std::endl << "FPS    "
+        << capture.get(CV_CAP_PROP_FPS) << std::endl;
+
+    std::cout << "\nImage generator output mode:" << std::endl << "FRAME_WIDTH    "
+        << capture.get(CV_CAP_OPENNI_IMAGE_GENERATOR + CV_CAP_PROP_FRAME_WIDTH) << std::endl << "FRAME_HEIGHT   "
+        << capture.get(CV_CAP_OPENNI_IMAGE_GENERATOR + CV_CAP_PROP_FRAME_HEIGHT) << std::endl << "FPS    "
+        << capture.get(CV_CAP_OPENNI_IMAGE_GENERATOR + CV_CAP_PROP_FPS) << std::endl;
+  }
+
+  int process(const tendrils& inputs, tendrils& outputs)
+  {
+    if( !capture.grab() )
+    {
+        std::cout << "Can not grab images." << std::endl;
+        return 1;
+    }
+    //outputs.get is a reference;
+    capture.retrieve(outputs.get<cv::Mat>("depth"), CV_CAP_OPENNI_DEPTH_MAP);
+    capture.retrieve(outputs.get<cv::Mat>("image"), CV_CAP_OPENNI_BGR_IMAGE);
+
+    //increment our frame number.
+    ++(outputs.get<int> ("frame_number"));
+    return 0;
+  }
+
+  cv::VideoCapture capture;
 };
 
 struct VideoCapture
@@ -146,17 +197,7 @@ struct imshow
     inputs.declare<cv::Mat> ("input", "The image to show");
     outputs.declare<int> ("out", "Character pressed.");
   }
-  static cv::Vec3b ct(const cv::Vec3b& in)
-  {
-    cv::Vec3b out;
-    float n = cv::norm(in);
-    out[0] = 255 * (in[0]/n);
-    out[1] = 255 * (in[1]/n);
-    out[2] = 255 * (in[2]/n);
-//    out *= 1/128.0f;
-//    out *=128.0f;
-    return out;
-  }
+
   void configure(const tendrils& params)
   {
     window_name_ = params.get<std::string> ("name");
@@ -177,8 +218,13 @@ struct imshow
         cv::namedWindow(window_name_, CV_WINDOW_KEEPRATIO);
       }
 
-    //cv::Mat fimage(image.size(), image.type());
-    //std::transform(image.begin<cv::Vec3b>(),image.end<cv::Vec3b>(),fimage.begin<cv::Vec3b>(), imshow::ct);
+    if (image.type() == CV_16UC1)
+      {
+        const float scaleFactor = 0.038910f;
+        cv::Mat show;
+        image.convertTo(show, CV_8UC1, scaleFactor);
+        image = show;
+      }
 
     cv::imshow(window_name_, image);
     if (waitkey_ >= 0)
@@ -201,4 +247,6 @@ BOOST_PYTHON_MODULE(highgui)
   ecto::wrap<VideoCapture>("VideoCapture", "Use to capture video from a camera or video file.");
   ecto::wrap<imshow>("imshow", "Shows an image in a named window.");
   ecto::wrap<ImageReader>("ImageReader", "Read images from a directory.");
+  ecto::wrap<OpenNICapture>("OpenNICapture", "OpenNI capture device.");
+
 }

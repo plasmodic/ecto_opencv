@@ -12,12 +12,14 @@ grabber = pcl.KinectGrabber()
 voxel = pcl.VoxelGrid(leaf_size=0.01)
 viewer = pcl.CloudViewer()
 
+#ecto.list_ecto_module(pcl)
+
 plasm.connect(grabber, "output", voxel , "input")
 plasm.connect(voxel, "output", viewer , "input")
 
-
-print plasm.viz()
-ecto.view_plasm(plasm)
+if debug:
+  print plasm.viz()
+  ecto.view_plasm(plasm)
 
 prev = time.time()
 count = 0
