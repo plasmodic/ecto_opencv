@@ -71,6 +71,12 @@ struct ImageReader
   std::vector<std::string> images;
 
 };
+void declare_video_device_outputs(tendrils& outputs)
+{
+  //set outputs
+  outputs.declare<cv::Mat> ("image", "A video frame.", cv::Mat());
+  outputs.declare<int> ("frame_number", "The number of frames captured.", 0);
+}
 
 struct OpenNICapture
 {
@@ -84,8 +90,7 @@ struct OpenNICapture
   {
     //set outputs
     outputs.declare<cv::Mat> ("depth", "The output depth map", cv::Mat());
-    outputs.declare<cv::Mat> ("image", "The output BGR image", cv::Mat());
-    outputs.declare<int> ("frame_number", "The number of frames captured.", 0);
+    declare_video_device_outputs(outputs);
   }
 
   void configure(tendrils& params)
@@ -136,8 +141,7 @@ struct VideoCapture
   static void declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
   {
     //set outputs
-    outputs.declare<cv::Mat> ("out", "A video frame.", cv::Mat());
-    outputs.declare<int> ("frame_number", "The number of frames captured.", 0);
+    declare_video_device_outputs(outputs);
   }
 
   void configure(tendrils& params)
@@ -170,7 +174,7 @@ struct VideoCapture
     open_video_device();
 
     //outputs.get is a reference;
-    capture >> outputs.get<cv::Mat> ("out");
+    capture >> outputs.get<cv::Mat> ("image");
 
     //increment our frame number.
     ++(outputs.get<int> ("frame_number"));
@@ -217,9 +221,16 @@ struct imshow
         cv::namedWindow(window_name_, CV_WINDOW_KEEPRATIO);
       }
 
+    if (image.depth() == CV_32F || image.depth() == CV_64F)
+          {
+            cv::Mat show;
+            cv::normalize(image,show);
+            image = show * 255.0f;
+          }
+
     if (image.type() == CV_16UC1)
       {
-        const float scaleFactor = 0.038910f;
+        const float scaleFactor = 0.05f;
         cv::Mat show;
         image.convertTo(show, CV_8UC1, scaleFactor);
         image = show;

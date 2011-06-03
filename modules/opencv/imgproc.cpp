@@ -87,6 +87,35 @@ struct ChannelSplitter
   }
   cv::Mat channels_[3];
 };
+struct GaussianBlur
+{
+  static void declare_params(tendrils& p)
+  {
+    p.declare<int> ("kernel", "kernel size, if zero computed from sigma", 0);
+    p.declare<double> ("sigma", "The first sigma in the guassian.", 1.0);
+
+  }
+
+  static void declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
+  {
+    inputs.declare<cv::Mat> ("input", "image.");
+    outputs.declare<cv::Mat> ("out", "blurred image");
+  }
+
+  void configure(tendrils& params)
+  {
+    kernel_ = params.get<int> ("kernel");
+    sigma_ = params.get<double>("sigma");
+  }
+  int process(const tendrils& inputs, tendrils& outputs)
+  {
+    cv::GaussianBlur(inputs.get<cv::Mat> ("input"), outputs.get<cv::Mat> ("out"), cv::Size(kernel_,kernel_),sigma_);
+    return 0;
+  }
+  int kernel_;
+  double sigma_;
+};
+
 
 struct Sobel
 {
@@ -121,6 +150,26 @@ struct Sobel
   int x_, y_;
 };
 
+struct CartToPolar
+{
+
+  static void declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
+  {
+    inputs.declare<cv::Mat>("x","x derivative image.");
+    inputs.declare<cv::Mat>("y","y derivative image.");
+    outputs.declare<cv::Mat>("angle","The angle image.");
+    outputs.declare<cv::Mat>("magnitude","The magnitude image.");
+  }
+
+  int process(const tendrils& inputs, tendrils& outputs)
+  {
+    cv::Mat x = inputs.get<cv::Mat> ("x"),y = inputs.get<cv::Mat>("y");
+    cv::Mat& angle = outputs.get<cv::Mat> ("angle");
+    cv::Mat& magnitude = outputs.get<cv::Mat>("magnitude");
+    cv::cartToPolar(x,y,magnitude,angle,true);
+    return 0;
+  }
+};
 template<typename T>
 struct Adder
 {
@@ -161,4 +210,6 @@ BOOST_PYTHON_MODULE(imgproc)
   ecto::wrap<cvtColor>("cvtColor");
   ecto::wrap<Adder<cv::Mat> >("ImageAdder");
   ecto::wrap<ChannelSplitter>("ChannelSplitter");
+  ecto::wrap<CartToPolar>("CartToPolar", "Takes x and y derivatives and does a polar coordinate tranform.");
+  ecto::wrap<GaussianBlur>("GaussianBlur","Given an image, blurs it.");
 }

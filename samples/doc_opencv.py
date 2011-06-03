@@ -1,7 +1,7 @@
 #!/bin/python
 import ecto
 #import ecto_opencv.cv_bp as opencv
-from ecto_opencv import highgui,calib,imgproc, features2d
+from ecto_opencv import highgui, calib, imgproc, features2d
 
 ecto.list_ecto_module(features2d)
 ecto.list_ecto_module(highgui)

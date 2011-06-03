@@ -1,7 +1,7 @@
 #!/bin/python
 import ecto
 #import ecto_opencv.cv_bp as opencv
-from ecto_opencv import highgui,calib,imgproc
+from ecto_opencv import highgui, calib, imgproc
 
 import os
 
@@ -20,7 +20,7 @@ plasm.connect(images, "out", imshow, "input")
 if debug:
     ecto.view_plasm(plasm)
 
-while(imshow.outputs.out not in (27,ord('q'))):
+while(imshow.outputs.out not in (27, ord('q'))):
     x = plasm.execute()
     if x :
         break;

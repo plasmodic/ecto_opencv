@@ -93,6 +93,34 @@ outputs
     The image size.
 
 
+CartToPolar (ecto::module)
+=================================
+
+Takes x and y derivatives and does a polar coordinate tranform.
+
+inputs
+---------------------------------
+
+ - x [cv::Mat] default = None
+
+    x derivative image.
+
+ - y [cv::Mat] default = None
+
+    y derivative image.
+
+outputs
+---------------------------------
+
+ - angle [cv::Mat] default = None
+
+    The angle image.
+
+ - magnitude [cv::Mat] default = None
+
+    The magnitude image.
+
+
 ChannelSplitter (ecto::module)
 =================================
 
@@ -239,6 +267,37 @@ outputs
     3x1 Translation vector.
 
 
+GaussianBlur (ecto::module)
+=================================
+
+Given an image, blurs it.
+
+params
+---------------------------------
+
+ - kernel [int] default = 0
+
+    kernel size, if zero computed from sigma
+
+ - sigma [double] default = 1.0
+
+    The first sigma in the guassian.
+
+inputs
+---------------------------------
+
+ - input [cv::Mat] default = None
+
+    image.
+
+outputs
+---------------------------------
+
+ - out [cv::Mat] default = None
+
+    blurred image
+
+
 ImageAdder (ecto::module)
 =================================
 
@@ -372,7 +431,7 @@ outputs
 
  - image [cv::Mat] default = None
 
-    The output BGR image
+    A video frame.
 
 
 PatternDetector (ecto::module)
@@ -622,7 +681,7 @@ outputs
 
     The number of frames captured.
 
- - out [cv::Mat] default = None
+ - image [cv::Mat] default = None
 
     A video frame.
 
