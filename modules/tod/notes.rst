@@ -114,6 +114,3 @@ View Accumulator
 		- model id
 		- storage type
 	
-	
-
-	

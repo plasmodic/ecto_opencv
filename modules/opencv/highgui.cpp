@@ -214,7 +214,8 @@ struct imshow
     if (image.empty())
       {
         outputs.get<int> ("out") = 0;
-        throw std::logic_error("empty image!");
+        return 0;
+        //throw std::logic_error("empty image!");
       }
     if (auto_size_)
       {
