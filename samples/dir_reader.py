@@ -5,7 +5,7 @@ from ecto_opencv import highgui, calib, imgproc
 
 import os
 
-debug = False
+debug = True
 
 plasm = ecto.Plasm()
 

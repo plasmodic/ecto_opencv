@@ -8,7 +8,7 @@ debug = True
 plasm = ecto.Plasm()  #Constructor for Plasm
 video = highgui.VideoCapture(video_device=1)
 bin_color = line_mod.ColorMod(thresh_bw=20)
-db_color = line_mod.ColorDebug();
+db_color = line_mod.ColorMod();
 coded_color = highgui.imshow(name="coded_color", waitKey=10, autoSize=True)
 raw_image = highgui.imshow(name="raw image", waitKey= -1, autoSize=True)
 highgui_db_color = highgui.imshow(name="db_color", waitKey= -1, autoSize=True)
