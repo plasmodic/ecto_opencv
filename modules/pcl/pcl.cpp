@@ -1,5 +1,7 @@
 #include <ecto/ecto.hpp>
 
+#undef  BOOST_PARAMETER_MAX_ARITY
+#define BOOST_PARAMETER_MAX_ARITY 7
 #include <boost/format.hpp>
 #include <boost/foreach.hpp>
 #include <boost/shared_ptr.hpp>
@@ -32,7 +34,8 @@ public:
 
   void operator ()()
   {
-    boost::scoped_ptr<pcl::OpenNIGrabber> interface(new pcl::OpenNIGrabber());
+
+    boost::scoped_ptr<pcl::Grabber> interface(new pcl::OpenNIGrabber());
 
     boost::function<void(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr&)> point_cloud_cb =
         boost::bind(&SimpleKinectGrabber::cloud_cb_, this, _1);

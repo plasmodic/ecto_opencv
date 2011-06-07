@@ -112,6 +112,7 @@ struct PlanarSegmentation
                 std::cout << "u = " << u << " v = " << v << std::endl;
                 std::cout << "zed = " << X.at<cv::Vec3d> (0)[2] * 1000 << "\n";
                 std::cout << "depth = " << depth.at<uint16_t> (v, u) << "\n";
+                std::cout << "ratio = " << X.at<cv::Vec3d> (0)[2] * 1000.0 / depth.at<uint16_t> (v, u) << std::endl;
               }
             *it = uint16_t(X.at<cv::Vec3d> (0)[2] * 1000);
           }
