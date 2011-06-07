@@ -107,12 +107,13 @@ struct PlanarSegmentation
             cv::Mat A = A_x * xy1;
             cv::Mat k = numerator / ((A).t() * N);
             cv::Mat X = k.at<double> (0) * (A);
-            //if (u == int(projected[0].x) && v == int(projected[0].y))
-            //{
-            //  std::cout << "u = " << u << " v = " << v << std::endl;
-            //  std::cout << "zed = " << X.at<cv::Vec3d> (0)[2] * 1000 << "\n";
-            //  std::cout << "depth = " << depth.at<uint16_t> (v, u) << "\n";
-            //}
+            if (u == int(projected[0].x) && v == int(projected[0].y))
+              {
+                std::cout << "u = " << u << " v = " << v << std::endl;
+                std::cout << "zed = " << X.at<cv::Vec3d> (0)[2] * 1000 << "\n";
+                std::cout << "depth = " << depth.at<uint16_t> (v, u) << "\n";
+                std::cout << "ratio = " << X.at<cv::Vec3d> (0)[2] * 1000.0 / depth.at<uint16_t> (v, u) << std::endl;
+              }
             *it = uint16_t(X.at<cv::Vec3d> (0)[2] * 1000);
           }
       }
@@ -149,8 +150,8 @@ struct PlanarSegmentation
 }
 
 BOOST_PYTHON_MODULE(tod)
-  {
-    ecto::wrap<tod::PlanarSegmentation>("PlanarSegmentation", "Given a pose, "
-        "assuming it describes the center of the object coordinate system and "
-        "lies on a plane, segment the object from the plane");
-  }
+{
+  ecto::wrap<tod::PlanarSegmentation>("PlanarSegmentation", "Given a pose, "
+    "assuming it describes the center of the object coordinate system and "
+    "lies on a plane, segment the object from the plane");
+}
