@@ -15,16 +15,16 @@ sobel_view = highgui.imshow(name="Sobeled Depth", waitKey=10, autoSize=True);
 sobelX = imgproc.Scharr(x=1, y=0)
 sobelY = imgproc.Scharr(x=0, y=1)
 gaussian = imgproc.GaussianBlur(sigma=2.0)
-cart2polar = imgproc.CartToPolar()
+kmeans = imgproc.CartToPolar()
 
 plasm.connect(capture,"depth",gaussian,"input")
 plasm.connect(capture, "image", image_view , "input")
 plasm.connect(gaussian, "out", depth_view , "input")
 plasm.connect(gaussian, "out", sobelY , "input")
 plasm.connect(gaussian, "out", sobelX, "input")
-plasm.connect(sobelX, "out", cart2polar, "x")
-plasm.connect(sobelY, "out", cart2polar, "y")
-plasm.connect(cart2polar, "angle", sobel_view, "input")
+plasm.connect(sobelX, "out", kmeans, "x")
+plasm.connect(sobelY, "out", kmeans, "y")
+plasm.connect(kmeans, "angle", sobel_view, "input")
 
 
 if debug:

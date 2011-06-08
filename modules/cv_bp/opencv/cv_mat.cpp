@@ -142,10 +142,10 @@ namespace opencv_wrappers
     bp::class_<std::vector<uchar> > ("buffer")
         .def(bp::vector_indexing_suite<std::vector<uchar>, false>() );
 
-    bp::class_<cv::InputArray>("InputArray");
-    bp::class_<cv::OutputArray>("OuputArray");
-    bp::implicitly_convertible<cv::Mat,cv::InputArray>();
-    bp::implicitly_convertible<cv::Mat,cv::OutputArray>();
+    bp::class_<cv::_InputArray>("InputArray");
+    bp::class_<cv::_OutputArray>("OuputArray");
+    bp::implicitly_convertible<cv::Mat,cv::_InputArray>();
+    bp::implicitly_convertible<cv::Mat,cv::_OutputArray>();
 
     //mat definition
     bp::class_<cv::Mat> Mat_("Mat");
