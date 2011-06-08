@@ -44,7 +44,7 @@ capture = highgui.OpenNICapture(video_mode=opencv.CV_CAP_OPENNI_VGA_30HZ)
 image_view = highgui.imshow(name="RGB", waitKey=10, autoSize=True)
 mask_view = highgui.imshow(name="mask", waitKey=-1, autoSize=True)
 
-masker = tod.PlanarSegmentation()
+masker = tod.PlanarSegmentation(z_min=0.02)
 if debug:
     depth_view = highgui.imshow(name="Depth", waitKey=-1, autoSize=True);
     plasm.connect(capture, "image", image_view , "input")
@@ -56,7 +56,12 @@ plasm.connect(pose_est.poser, "R",masker,"R")
 plasm.connect(pose_est.poser, "T",masker,"T")
 plasm.connect(pose_est.camera_intrinsics, "K",masker,"K")
 plasm.connect(capture, "depth", masker , "depth")
-plasm.connect(masker,"mask", mask_view,"input")
+bitwise_and = imgproc.BitwiseAnd()
+
+plasm.connect(masker,"mask",bitwise_and,"a")
+plasm.connect(capture,"valid",bitwise_and,"b")
+plasm.connect(bitwise_and,"out", mask_view,"input")
+
 
 
 if debug:

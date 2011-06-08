@@ -1,8 +1,9 @@
 #include <ecto/ecto.hpp>
 
+#include <opencv2/imgproc/imgproc.hpp>
+
 #include <iostream>
 
-#include <opencv2/imgproc/imgproc.hpp>
 
 using ecto::tendrils;
 
@@ -150,6 +151,39 @@ struct Sobel
   int x_, y_;
 };
 
+struct Scharr
+{
+  Scharr() :
+    x_(1), y_(1)
+  {
+
+  }
+
+  static void declare_params(tendrils& p)
+  {
+    p.declare<int> ("x", "The derivative order in the x direction", 0);
+    p.declare<int> ("y", "The derivative order in the y direction", 0);
+  }
+
+  static void declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
+  {
+    inputs.declare<cv::Mat> ("input", "image.");
+    outputs.declare<cv::Mat> ("out", "scharr image");
+  }
+
+  void configure(tendrils& params)
+  {
+    x_ = params.get<int> ("x");
+    y_ = params.get<int> ("y");
+  }
+  int process(const tendrils& inputs, tendrils& outputs)
+  {
+    cv::Scharr(inputs.get<cv::Mat> ("input"), outputs.get<cv::Mat> ("out"), CV_32F, x_, y_);
+    return 0;
+  }
+  int x_, y_;
+};
+
 struct CartToPolar
 {
 
@@ -186,6 +220,21 @@ struct Adder
   }
 };
 
+struct BitwiseAnd
+{
+  static void declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
+  {
+    inputs.declare<cv::Mat> ("a", "to and to b");
+    inputs.declare<cv::Mat> ("b", "to and to a");
+    outputs.declare<cv::Mat> ("out", "a + b");
+  }
+  int process(const tendrils& inputs, tendrils& outputs)
+  {
+    cv::bitwise_and(inputs.get<cv::Mat>("a"),inputs.get<cv::Mat>("b"),outputs.get<cv::Mat>("out"));
+    return 0;
+  }
+};
+
 struct AbsNormalized
 {
   static void declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
@@ -207,6 +256,8 @@ BOOST_PYTHON_MODULE(imgproc)
 {
   ecto::wrap<AbsNormalized>("AbsNormalized");
   ecto::wrap<Sobel>("Sobel");
+  ecto::wrap<BitwiseAnd>("BitwiseAnd","Bitwise and two matrices");
+  ecto::wrap<Scharr>("Scharr", "The scharr operator.");
   ecto::wrap<cvtColor>("cvtColor");
   ecto::wrap<Adder<cv::Mat> >("ImageAdder");
   ecto::wrap<ChannelSplitter>("ChannelSplitter");

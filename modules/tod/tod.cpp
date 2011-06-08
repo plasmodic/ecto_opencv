@@ -32,6 +32,9 @@ struct PlanarSegmentation
     params.declare<float> ("z_crop",
                            "The amount to keep in the z direction (meters) relative to\n"
                              "the coordinate frame defined by the pose.", 0.25);
+    params.declare<float> ("z_min",
+                           "The amount to crop above the plane, in meters.",
+                           0.02);
   }
 
   static void declare_io(const tendrils& params, tendrils& in, tendrils& out)
@@ -52,19 +55,23 @@ struct PlanarSegmentation
     z_crop = p.get<float> ("z_crop");
     x_crop = p.get<float> ("x_crop");
     y_crop = p.get<float> ("y_crop");
+    z_min = p.get<float> ("z_min");
 
   }
 
-  void computeNormal(const cv::Mat& R, const cv::Mat& T, cv::Mat& N, cv::Mat& O)
+  void computeNormal(const cv::Mat& R, const cv::Mat& T,
+                     cv::Matx<double, 3, 1>& N, cv::Matx<double, 3, 1>& O)
   {
 
     cv::Vec3d z(0, 0, 1);
-    O = T;
-    std::cout << "O = " << O << std::endl;
     //std::cout << cv::Mat(O) << std::endl;
-    N = R * cv::Mat(z);
-    std::cout << "N = " << N << std::endl;
-    //std::cout << cv::Mat(N) << std::endl;
+    cv::Mat N_ = R * cv::Mat(z);
+    cv::Mat O_ = T + N_ * z_min;
+    O = O_;
+    N = N_;
+    //compute the offset from vector from the normal.
+    //std::cout << "N = " << N << std::endl;
+    //std::cout << "O = " << O << std::endl;
 
   }
 
@@ -80,48 +87,8 @@ struct PlanarSegmentation
       return 0;
     cv::Mat& mask = out.get<cv::Mat> ("mask");
 
-#if 1
-    cv::Mat A_x;
-    mask.create(depth.size(), CV_16UC1);
-    mask = cv::Scalar(0);
-    A_x = K.inv();
-    cv::Mat N, O;
-    computeNormal(R, T, N, O);
-
-    cv::Mat numerator = (O).t() * N;
-
-    int width = mask.size().width;
-    int height = mask.size().height;
-    cv::Mat_<uint16_t>::iterator it = mask.begin<uint16_t> ();
-    std::vector<cv::Point3f> origin(1);
-    origin[0] = cv::Point3f(0, 0, 0);
-    std::vector<cv::Point2f> projected;
-    cv::projectPoints(origin, R, T, K, cv::Mat(4, 1, CV_64FC1, cv::Scalar(0)),
-                      projected);
-    std::cout << cv::Mat(projected) << std::endl;
-    for (int v = 0; v < height; v++)
-      {
-        for (int u = 0; u < width; u++, ++it)
-          {
-            cv::Mat xy1(cv::Vec3d(u, v, 1));
-            cv::Mat A = A_x * xy1;
-            cv::Mat k = numerator / ((A).t() * N);
-            cv::Mat X = k.at<double> (0) * (A);
-            if (u == int(projected[0].x) && v == int(projected[0].y))
-              {
-                std::cout << "u = " << u << " v = " << v << std::endl;
-                std::cout << "zed = " << X.at<cv::Vec3d> (0)[2] * 1000 << "\n";
-                std::cout << "depth = " << depth.at<uint16_t> (v, u) << "\n";
-                std::cout << "ratio = " << X.at<cv::Vec3d> (0)[2] * 1000.0 / depth.at<uint16_t> (v, u) << std::endl;
-              }
-            *it = uint16_t(X.at<cv::Vec3d> (0)[2] * 1000);
-          }
-      }
-    mask = depth < (mask);
-
-#else
-    mask.create(depth.size(), CV_8UC1);
-    mask = cv::Scalar(0);
+    box_mask.create(depth.size());
+    box_mask.setTo(cv::Scalar(0));
 
     std::vector<cv::Point3f> box(8);
     box[0] = cv::Point3f(x_crop, y_crop, 0);
@@ -135,16 +102,48 @@ struct PlanarSegmentation
 
     std::vector<cv::Point2f> projected, hull;
     cv::projectPoints(box, R, T, K, cv::Mat(4, 1, CV_64FC1, cv::Scalar(0)),
-        projected);
+                      projected);
 
     cv::convexHull(projected, hull, true);
     std::vector<cv::Point> points(hull.size());
     std::copy(hull.begin(), hull.end(), points.begin());
-    cv::fillConvexPoly(mask, points.data(), points.size(), cv::Scalar::all(255));
-#endif
+    cv::fillConvexPoly(box_mask, points.data(), points.size(),
+                       cv::Scalar::all(255));
+    cv::Matx<double, 3, 3> A_x;
+    mask.create(depth.size(), CV_8UC1);
+    A_x = K;
+    A_x = A_x.inv();
+    cv::Matx<double, 3, 1> N, O;
+    computeNormal(R, T, N, O);
+    cv::Matx<double, 1, 3> N_t = N.t();
+    cv::Matx<double, 1, 3> N_t_A_x = N_t * A_x;
+    cv::Matx<double, 1, 1> numerator_ = (O).t() * N;
+    double numerator = numerator_(0);
+    int width = mask.size().width;
+    int height = mask.size().height;
+    cv::Mat_<uint16_t>::iterator dit = depth.begin<uint16_t>();
+    cv::Mat_<uint8_t>::iterator it = mask.begin<uint8_t>();
+    cv::Mat_<uint8_t>::iterator mit = box_mask.begin();
+    cv::Vec3d uv(0, 0, 1);
+    for (int v = 0; v < height; v++)
+      {
+        uv[1] = v;
+        for (int u = 0; u < width; u++, ++it, ++mit,++dit)
+          {
+            if (*mit == 0)
+              continue;
+            uv[0] = u;
+            cv::Matx<double, 1, 1> AtN = N_t_A_x * uv;
+            double k = numerator / AtN(0);
+            cv::Matx<double, 1, 1> X = k * (A_x.row(2) * uv);
+            *it = 255 * uint8_t(*dit < uint16_t(X(0) * 1000));
+          }
+      }
     return 0;
   }
-  float x_crop, y_crop, z_crop;
+  float x_crop, y_crop, z_crop, z_min;
+  cv::Mat_<uint8_t> box_mask;
+
 };
 
 }
