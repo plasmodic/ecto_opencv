@@ -111,6 +111,7 @@ struct PlanarSegmentation
                        cv::Scalar::all(255));
     cv::Matx<double, 3, 3> A_x;
     mask.create(depth.size(), CV_8UC1);
+    mask = cv::Scalar(0);
     A_x = K;
     A_x = A_x.inv();
     cv::Matx<double, 3, 1> N, O;

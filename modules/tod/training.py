@@ -44,7 +44,7 @@ capture = highgui.OpenNICapture(video_mode=opencv.CV_CAP_OPENNI_VGA_30HZ)
 image_view = highgui.imshow(name="RGB", waitKey=10, autoSize=True)
 mask_view = highgui.imshow(name="mask", waitKey=-1, autoSize=True)
 
-masker = tod.PlanarSegmentation(z_min=0.02)
+masker = tod.PlanarSegmentation(z_min=0.06)
 if debug:
     depth_view = highgui.imshow(name="Depth", waitKey=-1, autoSize=True);
     plasm.connect(capture, "image", image_view , "input")
