@@ -204,6 +204,35 @@ struct CartToPolar
     return 0;
   }
 };
+
+struct KMeansGradient
+{
+
+  static void declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
+  {
+    inputs.declare<cv::Mat>("x","x derivative image.");
+    inputs.declare<cv::Mat>("y","y derivative image.");
+    outputs.declare<cv::Mat>("angle","The angle image.");
+    outputs.declare<cv::Mat>("magnitude","The magnitude image.");
+  }
+
+  int process(const tendrils& inputs, tendrils& outputs)
+  {
+    cv::Mat x = inputs.get<cv::Mat> ("x"),y = inputs.get<cv::Mat>("y");
+    cv::Mat gradient_[] = {x,y};
+    cv::Mat gradient;
+    cv::merge(gradient_,2,gradient);
+    cv::Mat labels,centers;
+    cv::kmeans(gradient.reshape(2,x.size().area()),20,labels,cv::TermCriteria( CV_TERMCRIT_EPS+CV_TERMCRIT_ITER, 100, 1.0),3, cv::KMEANS_RANDOM_CENTERS,centers);
+    labels = labels.reshape(1,x.rows);
+    std::cout << labels.size().width << " "<< labels.size().height << std::endl;
+    std::cout << centers << std::endl;
+    labels.convertTo(outputs.get<cv::Mat>("angle"),CV_8UC1);
+    outputs.get<cv::Mat>("angle") *= 255/20.0;
+    return 0;
+  }
+};
+
 template<typename T>
 struct Adder
 {
@@ -262,5 +291,6 @@ BOOST_PYTHON_MODULE(imgproc)
   ecto::wrap<Adder<cv::Mat> >("ImageAdder");
   ecto::wrap<ChannelSplitter>("ChannelSplitter");
   ecto::wrap<CartToPolar>("CartToPolar", "Takes x and y derivatives and does a polar coordinate tranform.");
+  ecto::wrap<KMeansGradient>("KMeansGradient", "Takes x and y derivatives and runs kmeans in 2d vectorspace.");
   ecto::wrap<GaussianBlur>("GaussianBlur","Given an image, blurs it.");
 }
