@@ -20,4 +20,4 @@ endif()
 
 
 ectomodule(objcog_db objcog_db.cpp)
-link_ecto(objcog_db ${OpenCV_LIBS} ${objcog_db_LIBS})
+link_ecto(objcog_db ${OpenCV_LIBS} ${objcog_db_LIBRARIES})

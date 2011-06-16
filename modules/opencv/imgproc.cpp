@@ -259,7 +259,12 @@ struct BitwiseAnd
   }
   int process(const tendrils& inputs, tendrils& outputs)
   {
-    cv::bitwise_and(inputs.get<cv::Mat>("a"),inputs.get<cv::Mat>("b"),outputs.get<cv::Mat>("out"));
+    cv::Mat a =inputs.get<cv::Mat>("a"),b = inputs.get<cv::Mat>("b");
+
+    if(a.empty()) throw std::runtime_error("a is empty");
+    if(b.empty()) throw std::runtime_error("b is empty");
+    if(a.size() != b.size()) throw std::runtime_error("a.size != b.size");
+    cv::bitwise_and(a,b,outputs.get<cv::Mat>("out"));
     return 0;
   }
 };

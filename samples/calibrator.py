@@ -29,7 +29,7 @@ def calibration(rows,cols,square_size,pattern_type,n_obs,video):
     ecto.view_plasm(plasm)
     
     while(pattern_show.outputs.out != 27 and camera_calibrator.outputs.calibrated == False):
-        plasm.execute()
+        plasm.execute(1)
 
 if __name__ == "__main__":
     use_kinect = True
@@ -38,6 +38,6 @@ if __name__ == "__main__":
     if not use_kinect :
         video = highgui.VideoCapture(video_device=0)
     else:
-        video = highgui.OpenNICapture(video_mode=opencv.CV_CAP_OPENNI_SXGA_15HZ)
+        video = highgui.OpenNICapture(video_mode=opencv.CV_CAP_OPENNI_VGA_30HZ)
         
     calibration(rows=7,cols=3,square_size=0.03,pattern_type="acircles",n_obs=50,video=video)

@@ -10,7 +10,7 @@ debug = False
 plasm = ecto.Plasm()
 
 video = highgui.VideoCapture(video_device=0)
-orb_m = features2d.ORB()
+orb_m = features2d.ORB(n_features=2500)
 draw_kpts = features2d.DrawKeypoints()
 imshow = highgui.imshow(name="ORB", waitKey=2, autoSize=True)
 rgb2gray = imgproc.cvtColor (flag=7)
@@ -29,10 +29,10 @@ prev = time.time()
 count = 0
 
 while(imshow.outputs.out != 27):
-    plasm.execute()
+    plasm.execute(30)
     now = time.time()
     if(count == 200):
-        print "%f fps" % (1 / ((now - prev) / count))
+        print "%f fps" % (30 / ((now - prev) / count))
         prev = now
         count = 0
     count += 1
