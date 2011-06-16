@@ -19,6 +19,16 @@ using namespace std;
  */
 namespace line_mod
 {
+/////////////////////////////////////////////////////////////////////////
+/**
+ * Compute the color order image: computeColorOrder which maps color ratios into 2 bits where
+ * 0 => ratio is lower than 0.75, 1=> ratio is (0.75, 1], 2=> ratio is (1, 1.25], 3=> ratio is > 1.25 for:
+ * B/G (bits 0,1),
+ * R/B (bits 2,3)
+ * G/R (bits 4,5)
+ * Black (R,G,B all <25% of max), Whte (R,G,B all > 75% of max values) bits 6,7
+ * 0 if black, 2 if white, 1 otherwise.
+ */
 struct ColorMod
 {
   void computeColorOrder(const cv::Mat &Iina, cv::Mat &Icolorord)
@@ -152,6 +162,9 @@ struct ColorMod
 };
 
 /////////////////////////////////////////////////////////////
+/**
+ * Color Template which computes a response to an image
+ */
 static int response_table[4][4] =
 { {3,2,1,0},
   {2,3,2,1},
@@ -171,16 +184,15 @@ struct ColorTempl
    */
   double response(const Mat image, const Point offset)
   {
-    if(image.type != CV_8UC1)
+    if(image.type() != CV_8UC1)
     {
-      cout << "ERROR: Image is not of type CV_8UC1 in ColorTempl" << endl;
-      return;
+      throw std::runtime_error("ERROR: Image is not of type CV_8UC1 in ColorTempl");
     }
     if(image.channels() != 1)
     {
-      cout << "ERROR, image in ColorTempl is not one channel" << endl;
+      throw std::runtime_error("ERROR, image in ColorTempl is not one channel");
     }
-    int len = (int)offset.size();
+    int len = (int)offsets.size();
     int step = image.step;
     const uchar *base = image.ptr<uchar> (offset.y);
     base += offset.x;
@@ -190,20 +202,20 @@ struct ColorTempl
     {
       uchar test = *(base + (step*offsets[i].y) + offsets[i].x);
       //B/G
-      t = (int)(text & 0x3);
+      t = (int)(test & 0x3);
       m = (int)(coded_color[i] & 0x3);
       score += response_table[t][m];
       //R/B
-      t = (int)((text>>2)& 0x3);
-      m = (int)((coded_color[i]>>2) & Ox3);
+      t = (int)((test>>2)& 0x3);
+      m = (int)((coded_color[i]>>2) & 0x3);
       score += response_table[t][m];
       //G/R
-      t = (int)((text>>4)& 0x3);
-      m = (int)((coded_color[i]>>4) & Ox3);
+      t = (int)((test>>4)& 0x3);
+      m = (int)((coded_color[i]>>4) & 0x3);
       score += response_table[t][m];
       //Black and white
-      t = (int)((text>>6)& 0x3);
-      m = (int)((coded_color[i]>>6) & Ox3);
+      t = (int)((test>>6)& 0x3);
+      m = (int)((coded_color[i]>>6) & 0x3);
       score += response_table[t][m] - 1; // minus one because black and white can differ only by 2 not 3
     }
     return (double)score/(double)(len*11);
@@ -218,6 +230,7 @@ struct ColorTempl
 
 };
 
+/////////////////////////////////////////////////////////////////////////////
 /**
  * Calculate a color template
  * Note that the template starts from the upper left corner of the bounding box of the mask
@@ -229,17 +242,18 @@ struct ColorTemplCalc
     ct.clear();
     if(Icolorord.size() != Mask.size())
     {
-      cout << "ERROR Icolorord and Mask were not the same size in ColorTemplCalc" << endl;
+      throw std::runtime_error("ERROR Icolorord and Mask were not the same size in ColorTemplCalc");
       return;
     }
-    if((Icolorord.channels() ! = Mask.channels())&&(Mask.channels() != 1))
+
+    if(( Icolorord.channels() != Mask.channels() ) && (Mask.channels() != 1))
     {
-      cout << "ERROR: channels missmatch or != 1 in ColorTemplCalc" << endl;
+      throw std::runtime_error("ERROR: channels missmatch or != 1 in ColorTemplCalc");
       return;
     }
-    if((Icolorord.type != CV_8UC1) || (Mask.type != CV_8UC1))
+    if((Icolorord.type() != CV_8UC1) || (Mask.type() != CV_8UC1))
     {
-      cout << "ERROR: Icolorord and/or Mask is not of type CV_8UC1 in ColorTemplCalc" << endl;
+      throw std::runtime_error("ERROR: Icolorord and/or Mask is not of type CV_8UC1 in ColorTemplCalc");
       return;
     }
     //Find upperleft corner of mask
@@ -275,7 +289,7 @@ struct ColorTemplCalc
         if(*m)
         {
           ct.coded_color.push_back(*o);
-          ct.offsets.push_back(Point(x-minX,y-cY));
+          ct.offsets.push_back(Point(x-minx,y-cY));
           if(Maxx < x)
             Maxx = x;
           if(Maxy < y)
@@ -283,7 +297,7 @@ struct ColorTemplCalc
         }
       }
     }
-    ct.Size = Size(Maxx - minx, Maxy - cY); //bounding box of the actual touched points in the mask
+    ct.template_size = Size(Maxx - minx, Maxy - cY); //bounding box of the actual touched points in the mask
   }
 
   //Virtual functs
@@ -309,10 +323,10 @@ struct ColorTemplCalc
 
   int process(const tendrils& inputs, tendrils& outputs)
   {
-    cv::Mat &image = inputs.get<cv::Mat> ("image");
-    cv::Mat &mask = inputs.get<cv::Mat> ("mask");
+    const Mat &image = inputs.get<cv::Mat> ("image");
+    const Mat &mask = inputs.get<cv::Mat> ("mask");
     ColorTempl &output = outputs.get<ColorTempl> ("ColorTempl");
-    learn_a_template(image, mask, ColorTempl);
+    learn_a_template(image, mask, output);
     return 0;
   }
   //settable
@@ -322,7 +336,10 @@ struct ColorTemplCalc
 
 };
 
-
+///////////////////////////////////////////////////////////////////////////////////
+/**
+ * Just output debug psuedo colored images
+ */
 
 struct ColorDebug
 {
