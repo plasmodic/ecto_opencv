@@ -16,9 +16,9 @@ configure_file(python/__init__.py.in
 #  and cmake that baby
 find_package(OpenCV REQUIRED)
 find_package(ecto REQUIRED)
+find_package(Boost COMPONENTS system filesystem REQUIRED)
+
+set_ecto_install_package_name(ecto_opencv)
 
 add_subdirectory(modules)
-
-#opencv boost::python bindings
-add_subdirectory(modules/cv_bp)
 

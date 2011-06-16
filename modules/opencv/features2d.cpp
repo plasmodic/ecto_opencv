@@ -1,9 +1,33 @@
 #include <ecto/ecto.hpp>
+
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/features2d/features2d.hpp>
 
 using ecto::tendrils;
+
+struct feature_detector_interface
+{
+  static void declare_outputs(tendrils& outputs)
+  {
+    outputs.declare<std::vector<cv::KeyPoint> > ("kpts", "The keypoints.");
+  }
+  static void declare_io(tendrils& inputs, tendrils& outputs)
+  {
+    inputs.declare<cv::Mat> ("image", "An input image.");
+    inputs.declare<cv::Mat> ("mask", "An mask, same size as image.");
+    declare_outputs(outputs);
+  }
+};
+
+struct feature_extractor_interface
+{
+  static void declare_io(tendrils& inputs, tendrils& outputs)
+  {
+    feature_detector_interface::declare_io(inputs,outputs);
+    outputs.declare<cv::Mat> ("descriptors", "The descriptors per keypoints");
+  }
+};
 
 struct ORB
 {
@@ -16,18 +40,14 @@ struct ORB
 
   static void declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
   {
-    inputs.declare<cv::Mat> ("image", "An input image.");
-    inputs.declare<cv::Mat> ("mask", "An mask, same size as image.");
-
-    outputs.declare<std::vector<cv::KeyPoint> > ("kpts", "The keypoints.");
-    outputs.declare<cv::Mat> ("descriptors", "The descriptors per keypoints");
+    feature_extractor_interface::declare_io(inputs,outputs);
   }
 
-  void config(tendrils& params)
+  void configure(tendrils& params)
   {
     orb_params.first_level_ = 0;
     orb_params.n_levels_ = params.get<int> ("n_levels");
-    orb_params.scale_factor_ = params.get<int> ("scale_factor");
+    orb_params.scale_factor_ = params.get<float> ("scale_factor");
     orb = cv::ORB(params.get<int> ("n_features"), orb_params);
   }
 
@@ -55,12 +75,11 @@ struct FAST
 
   static void declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
   {
-    outputs.declare<std::vector<cv::KeyPoint> > ("out", "Detected keypoints");
-    inputs.declare<cv::Mat> ("image", "The image to detect FAST on.");
-    inputs.declare<cv::Mat> ("mask", "optional mask");
+    //use the predefined feature detector inputs, these do not depend on parameters.
+    feature_detector_interface::declare_io(inputs,outputs);
   }
 
-  void config(tendrils& params)
+  void configure(tendrils& params)
   {
     thresh_ = params.get<int> ("thresh");
   }
@@ -82,21 +101,22 @@ struct DrawKeypoints
 {
   static void declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
   {
-    inputs.declare<cv::Mat> ("image", "The input image, to draw over.");
-    outputs.declare<cv::Mat> ("image", "The output image.");
+    inputs.declare<cv::Mat> ("input", "The input image, to draw over.");
     inputs.declare<std::vector<cv::KeyPoint> > ("kpts", "The keypoints to draw.");
+    outputs.declare<cv::Mat> ("output", "The output image.");
   }
+
   int process(const tendrils& inputs, tendrils& outputs)
   {
-    cv::Mat image = inputs.get<cv::Mat> ("image");
+    cv::Mat image = inputs.get<cv::Mat> ("input");
     const std::vector<cv::KeyPoint>& kpts_in = inputs.get<std::vector<cv::KeyPoint> > ("kpts");
-    cv::Mat& out_image = outputs.get<cv::Mat> ("image");
+    cv::Mat& out_image = outputs.get<cv::Mat> ("output");
     cv::drawKeypoints(image, kpts_in, out_image);
     return 0;
   }
 };
 
-BOOST_PYTHON_MODULE(orb)
+BOOST_PYTHON_MODULE(features2d)
 {
   namespace bp = boost::python;
   ecto::wrap<ORB>("ORB",

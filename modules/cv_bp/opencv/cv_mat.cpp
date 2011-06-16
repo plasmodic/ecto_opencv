@@ -142,10 +142,10 @@ namespace opencv_wrappers
     bp::class_<std::vector<uchar> > ("buffer")
         .def(bp::vector_indexing_suite<std::vector<uchar>, false>() );
 
-    bp::class_<cv::InputArray>("InputArray");
-    bp::class_<cv::OutputArray>("OuputArray");
-    bp::implicitly_convertible<cv::Mat,cv::InputArray>();
-    bp::implicitly_convertible<cv::Mat,cv::OutputArray>();
+    bp::class_<cv::_InputArray>("InputArray");
+    bp::class_<cv::_OutputArray>("OuputArray");
+    bp::implicitly_convertible<cv::Mat,cv::_InputArray>();
+    bp::implicitly_convertible<cv::Mat,cv::_OutputArray>();
 
     //mat definition
     bp::class_<cv::Mat> Mat_("Mat");
@@ -166,6 +166,7 @@ namespace opencv_wrappers
       "the given python iterable length, then the matrix will be allocated "
       "as a single channel, Nx1 vector where N = len(list)");
     Mat_.def("size", mat_size);
+    Mat_.def("empty",&cv::Mat::empty);
     Mat_.def("type", mat_type);
     Mat_.def("convertTo",&cv::Mat::convertTo);
     Mat_.def("clone", &cv::Mat::clone);
