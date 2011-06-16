@@ -11,7 +11,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 ectomodule(tod tod.cpp)
 link_ecto(tod ${OpenCV_LIBS})
-
+install_ecto_module(tod)
 
 find_package(objcog_db)
 if(NOT objcog_db_FOUND)
@@ -21,3 +21,4 @@ endif()
 
 ectomodule(objcog_db objcog_db.cpp)
 link_ecto(objcog_db ${OpenCV_LIBS} ${objcog_db_LIBRARIES})
+install_ecto_module(objcog_db)

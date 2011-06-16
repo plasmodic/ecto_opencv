@@ -18,7 +18,7 @@ find_package(OpenCV REQUIRED)
 find_package(ecto REQUIRED)
 find_package(Boost COMPONENTS system filesystem REQUIRED)
 
+set_ecto_install_package_name(ecto_opencv)
+
 add_subdirectory(modules)
-
-
 

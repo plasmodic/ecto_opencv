@@ -17,3 +17,4 @@ include_directories(${PCL_INCLUDE_DIRS})
 
 ectomodule(pcl pcl.cpp)
 link_ecto(pcl ${PCL_LIBRARIES})
+install_ecto_module(pcl)

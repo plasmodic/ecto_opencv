@@ -59,4 +59,4 @@ target_link_libraries(${bp_opencv_target}
   )
   
 install(TARGETS ${bp_opencv_target}
-          LIBRARY DESTINATION ${PYTHON_PACKAGES_PATH} COMPONENT main)
+          LIBRARY DESTINATION ${PYTHON_PACKAGES_PATH}/ecto_opencv COMPONENT main)
