@@ -9,7 +9,7 @@ endif()
 include_directories(${EIGEN_INCLUDE_DIRS})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
-ectomodule(tod tod.cpp)
+ectomodule(tod tod.cpp twoDToThreeD.cpp cameraToWorld.cpp)
 link_ecto(tod ${OpenCV_LIBS})
 install_ecto_module(tod)
 
