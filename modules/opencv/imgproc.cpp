@@ -21,7 +21,7 @@ struct cvtColor
     inputs.declare<cv::Mat> ("input", "Color image.");
     outputs.declare<cv::Mat> ("out", "input as a Gray image.");
   }
-  void configure(tendrils& p)
+  void configure(tendrils& p, tendrils& inputs, tendrils& outputs)
   {
     flag_ = p.get<int> ("flag");
   }
@@ -45,7 +45,7 @@ struct Scale
     inputs.declare<cv::Mat> ("input", "An image");
     outputs.declare<cv::Mat> ("output", "The scaled result.");
   }
-  void configure(tendrils& p)
+  void configure(tendrils& p, tendrils& inputs, tendrils& outputs)
   {
     factor = p.get<float> ("factor");
   }
@@ -103,7 +103,7 @@ struct GaussianBlur
     outputs.declare<cv::Mat> ("out", "blurred image");
   }
 
-  void configure(tendrils& params)
+  void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
   {
     kernel_ = params.get<int> ("kernel");
     sigma_ = params.get<double>("sigma");
@@ -138,7 +138,7 @@ struct Sobel
     outputs.declare<cv::Mat> ("out", "sobel image");
   }
 
-  void configure(tendrils& params)
+  void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
   {
     x_ = params.get<int> ("x");
     y_ = params.get<int> ("y");
@@ -171,7 +171,7 @@ struct Scharr
     outputs.declare<cv::Mat> ("out", "scharr image");
   }
 
-  void configure(tendrils& params)
+  void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
   {
     x_ = params.get<int> ("x");
     y_ = params.get<int> ("y");

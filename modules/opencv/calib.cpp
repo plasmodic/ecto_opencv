@@ -96,7 +96,7 @@ struct PatternDetector
     out.declare<bool> ("found", "Whether or not a pattern was found...");
   }
 
-  void configure(tendrils& params)
+  void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
   {
     grid_size_ = cv::Size(params.get<int> ("cols"), params.get<int> ("rows"));
     choosePattern(params.get<std::string> ("pattern_type"));
@@ -165,7 +165,7 @@ struct PatternDrawer
     out.declare<cv::Mat> ("out", "Pattern Image");
   }
 
-  void configure(const tendrils& params)
+  void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
   {
     grid_size_ = cv::Size(params.get<int> ("cols"), params.get<int> ("rows"));
   }
@@ -204,7 +204,7 @@ struct CameraCalibrator
     out.declare<bool> ("calibrated", "Done calibration", false);
   }
 
-  void configure(const tendrils& params)
+  void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
   {
     n_obs_ = params.get<int> ("n_obs");
     camera_output_file_ = params.get<std::string> ("output_file_name");
@@ -289,7 +289,7 @@ struct CameraIntrinsics
     out.declare<cv::Mat> ("K", "3x3 camera intrinsic matrix.");
     out.declare<std::string> ("camera_model", "The camera model. e.g pinhole,...", "pinhole");
   }
-  void configure(tendrils& params)
+  void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
   {
     readOpenCVCalibration(camera, params.get<std::string> ("camera_file"));
   }

@@ -11,7 +11,7 @@ using namespace cv;
  {
  static void declare_params(tendrils& params);
  static void declare_io(const tendrils& params, tendrils& in, tendrils& out);
- void configure(tendrils& params);
+ void configure(tendrils& params, tendrils& inputs, tendrils& outputs);
  int process(const tendrils& in, tendrils& out);
  };
  */
@@ -177,7 +177,7 @@ struct ColorMod
     outputs.declare<cv::Mat> ("output", "A binarized color image.");
   }
 
-  void configure(tendrils& params)
+  void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
   {
     thresh_gt = params.get<int> ("thresh_gt");
     thresh_bw = params.get<int> ("thresh_bw");
