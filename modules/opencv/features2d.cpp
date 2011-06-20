@@ -43,7 +43,7 @@ struct ORB
     feature_extractor_interface::declare_io(inputs,outputs);
   }
 
-  void configure(tendrils& params)
+  void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
   {
     orb_params.first_level_ = 0;
     orb_params.n_levels_ = params.get<int> ("n_levels");
@@ -79,7 +79,7 @@ struct FAST
     feature_detector_interface::declare_io(inputs,outputs);
   }
 
-  void configure(tendrils& params)
+  void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
   {
     thresh_ = params.get<int> ("thresh");
   }

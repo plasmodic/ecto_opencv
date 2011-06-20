@@ -20,8 +20,7 @@ namespace boost
       ar & m.cols;
       ar & type;
       const uchar * data = m.data, *end = m.dataend;
-      ar & boost::serialization::make_binary_object(const_cast<uchar*> (data),
-                                                    size_t(end - data));
+      ar & boost::serialization::make_binary_object(const_cast<uchar*> (data), size_t(end - data));
     }
 
     template<class Archive>
@@ -56,9 +55,7 @@ void png_attach(cv::Mat image, couch::Document& doc, const std::string& name)
   doc.attach(name, ss, "image/png");
 }
 
-void get_png_attachment(cv::Mat& image,
-                        couch::Document& doc,
-                        const std::string& name)
+void get_png_attachment(cv::Mat& image, couch::Document& doc, const std::string& name)
 {
   std::stringstream ss;
   doc.get_attachment_stream(name, ss);
@@ -121,14 +118,10 @@ namespace db
   {
     static void declare_params(tendrils& params)
     {
-      params.declare<std::string> (
-                                   "object_id",
-                                   "The object id, to associate this frame with.",
-                                   "object_01");
+      params.declare<std::string> ("object_id", "The object id, to associate this frame with.", "object_01");
     }
 
-    static void declare_io(const tendrils& params, tendrils& inputs,
-                           tendrils& outputs)
+    static void declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
     {
       inputs.declare<cv::Mat> ("image", "An rgb full frame image.");
       inputs.declare<cv::Mat> ("depth", "The 16bit depth image.");
@@ -150,12 +143,11 @@ namespace db
       object_id = id;
       std::cout << "object_id = " << id << std::endl;
     }
-    void configure(tendrils& params)
+    void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
     {
-      params.at("object_id").set_callback<std::string> (
-                                                        boost::bind(
-                                                                    &ObservationInserter::on_object_id_change,
-                                                                    this, _1));
+
+      ecto::spore<std::string> object_id = params.at("object_id");
+      object_id.set_callback(boost::bind(&ObservationInserter::on_object_id_change, this, _1));
       db.create();
       on_object_id_change(params.get<std::string> ("object_id"));
 
@@ -197,14 +189,10 @@ namespace db
   {
     static void declare_params(tendrils& params)
     {
-      params.declare<std::string> (
-                                   "object_id",
-                                   "The object id, to associate this frame with.",
-                                   "object_01");
+      params.declare<std::string> ("object_id", "The object id, to associate this frame with.", "object_01");
     }
 
-    static void declare_io(const tendrils& params, const tendrils& inputs,
-                           tendrils& outputs)
+    static void declare_io(const tendrils& params, const tendrils& inputs, tendrils& outputs)
     {
       outputs.declare<cv::Mat> ("image", "An rgb full frame image.");
       outputs.declare<cv::Mat> ("depth", "The 16bit depth image.");
@@ -227,17 +215,15 @@ namespace db
 
     }
     ObservationReader() :
-       db(std::string(DEFAULT_COUCHDB_URL) + "/frames"), current_frame(0)
-     {
-      db.create();
-     }
-    void configure(tendrils& params)
+      db(std::string(DEFAULT_COUCHDB_URL) + "/frames"), current_frame(0)
     {
-      params.at("object_id").set_callback<std::string> (
-                                                        boost::bind(
-                                                                    &ObservationReader::on_object_id_change,
-                                                                    this, _1));
-      std::string id = const_cast<const tendrils&>(params).get<std::string>("object_id");
+      db.create();
+    }
+    void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
+    {
+      ecto::spore<std::string> object_id = params.at("object_id");
+      object_id.set_callback(boost::bind(&ObservationReader::on_object_id_change, this, _1));
+      std::string id = const_cast<const tendrils&> (params).get<std::string> ("object_id");
       on_object_id_change(id);
     }
     int process(const tendrils& inputs, tendrils& outputs)
@@ -247,7 +233,8 @@ namespace db
       obs << doc; //read the observation from the doc.
       obs >> outputs; //push the observation to the outputs.
       current_frame++;
-      if(current_frame >= int( docs.size())) return ecto::QUIT;
+      if (current_frame >= int(docs.size()))
+        return ecto::QUIT;
       return 0;
     }
     std::vector<couch::Document> docs;

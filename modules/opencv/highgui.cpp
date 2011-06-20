@@ -29,7 +29,7 @@ struct ImageReader
     outputs.declare<int> ("frame_number", "The number of frames captured.", 0);
   }
 
-  void configure(tendrils& params)
+  void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
   {
     path = params.get<std::string> ("path");
     ext = params.get<std::string> ("ext");
@@ -98,7 +98,7 @@ struct OpenNICapture
     outputs.declare<cv::Mat>("K","The camera intrinsic matrix.");
   }
 
-  void configure(tendrils& params)
+  void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
   {
     int mode = params.get<int> ("video_mode");
     capture = cv::VideoCapture(CV_CAP_OPENNI);
@@ -163,7 +163,7 @@ struct VideoCapture
     declare_video_device_outputs(outputs);
   }
 
-  void configure(tendrils& params)
+  void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
   {
     video_device = params.get<int> ("video_device");
     video_file = params.get<std::string> ("video_file");
@@ -220,7 +220,7 @@ struct imshow
     outputs.declare<int> ("out", "Character pressed.");
   }
 
-  void configure(const tendrils& params)
+  void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
   {
     window_name_ = params.get<std::string> ("name");
     waitkey_ = params.get<int> ("waitKey");
