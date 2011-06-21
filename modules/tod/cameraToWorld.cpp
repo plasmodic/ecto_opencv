@@ -26,13 +26,13 @@ struct cameraToWorld
 
   static void declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
   {
-    inputs.declare<std::vector<cv::KeyPoint> >("pts", "The keypoints");
+    inputs.declare<std::vector<cv::Point3f> >("pts", "The keypoints");
     inputs.declare<cv::Mat>("R", "The rotation matrix");
     inputs.declare<cv::Mat>("T", "The translation vector");
-    outputs.declare<std::vector<cv::KeyPoint> >("pts", "The keypoints");
+    outputs.declare<std::vector<cv::Point3f> >("pts", "The keypoints");
   }
 
-  void configure(tendrils& params)
+  void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
   {
   }
 

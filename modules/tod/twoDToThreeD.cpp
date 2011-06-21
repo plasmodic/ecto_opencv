@@ -32,7 +32,7 @@ struct twoDToThreeD
     outputs.declare<std::vector<cv::Point3f> >("pts", "The output 3d points");
   }
 
-  void configure(tendrils& params)
+  void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
   {
   }
 

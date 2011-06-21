@@ -156,6 +156,75 @@ namespace tod
 
   };
 
+
+  /*
+    struct TodModelInserter
+    {
+      static void declare_params(tendrils& params)
+      {
+        params.declare<std::string> (
+                                     "object_id",
+                                     "The object id, to associate this frame with.",
+                                     "object_01");
+      }
+
+      static void declare_io(const tendrils& params, tendrils& inputs,
+                             tendrils& outputs)
+      {
+        inputs.declare<cv::Mat> ("image", "An rgb full frame image.");
+        inputs.declare<cv::Mat> ("depth", "The 16bit depth image.");
+        inputs.declare<cv::Mat> ("mask", "The mask.");
+        inputs.declare<cv::Mat> ("R", "The orientation.");
+        inputs.declare<cv::Mat> ("T", "The translation.");
+        inputs.declare<cv::Mat> ("K", "The camera intrinsic matrix");
+        inputs.declare<int> ("trigger", "Capture trigger, 'c' for capture.");
+      }
+
+      TodModelInserter() :
+        db(std::string(DEFAULT_COUCHDB_URL) + "/frames"), frame_number(0)
+      {
+      }
+
+      void on_object_id_change(const std::string& id)
+      {
+        SHOW();
+        object_id = id;
+        std::cout << "object_id = " << id << std::endl;
+      }
+      void configure(tendrils& params)
+      {
+        params.at("object_id").set_callback<std::string> (
+                                                          boost::bind(
+                                                                      &ObservationInserter::on_object_id_change,
+                                                                      this, _1));
+        db.create();
+        on_object_id_change(params.get<std::string> ("object_id"));
+
+      }
+      int process(const tendrils& inputs, tendrils& outputs)
+      {
+        if (inputs.get<int> ("trigger") != 'c')
+          return 0;
+        std::cout << "Inserting" << std::endl;
+        Observation obj;
+        obj.image = inputs.get<cv::Mat> ("image");
+        obj.depth = inputs.get<cv::Mat> ("depth");
+        obj.mask = inputs.get<cv::Mat> ("mask");
+        obj.R = inputs.get<cv::Mat> ("R");
+        obj.T = inputs.get<cv::Mat> ("T");
+        obj.K = inputs.get<cv::Mat> ("K");
+        obj.frame_number = frame_number;
+        obj.object_id = object_id;
+        couch::Document doc(db);
+        doc.create();
+        obj >> doc;
+        frame_number++;
+        return 0;
+      }
+      couch::Db db;
+      int frame_number;
+      std::string object_id;
+    };*/
 }
 
 void wrap_cameraToWorld();
