@@ -1,10 +1,10 @@
-#!/bin/python
+#!/usr/bin/env python
 import ecto
 from ecto_opencv import imgproc, highgui, features2d, calib
 import time
 #import orb as imgproc
 
-debug = False
+debug = True
 #debug = True
 
 plasm = ecto.Plasm()
@@ -30,13 +30,6 @@ if debug:
 prev = time.time()
 count = 0
 
-while(show_circles.outputs.out not in (ord('q'), 27)):
-    plasm.execute(1)
-    now = time.time()
-    if(count == 200):
-        print "%f fps" % (1 / ((now - prev) / count))
-        prev = now
-        count = 0
-    count += 1
-    
+sched = ecto.schedulers.Threadpool(plasm)
+sched.execute(nthreads=8)
 
