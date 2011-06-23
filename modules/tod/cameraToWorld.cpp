@@ -15,6 +15,8 @@
 
 using ecto::tendrils;
 
+/** Ecto module that transforms 3d points from camera coordinates to world coordinates
+ */
 struct CameraToWorld
 {
   static void declare_params(tendrils& p)
@@ -43,12 +45,16 @@ struct CameraToWorld
     const std::vector<cv::Point3f> in_points = inputs.get<std::vector<cv::Point3f> >("points");
     cv::Mat_<float> points(3, in_points.size());
     unsigned int i = 0;
+
+    // Create the centered points
     BOOST_FOREACH(const cv::Point3f & point, in_points)
         {
           points(0, i) = point.x - T.at<float>(0);
           points(1, i) = point.y - T.at<float>(1);
           points(2, i) = point.z - T.at<float>(2);
         }
+
+    // Apply the inverse rotation
     outputs.get<cv::Mat>("points") = R.t() * points;
 
     return 0;

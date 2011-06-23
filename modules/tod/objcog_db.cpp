@@ -249,29 +249,6 @@ namespace db
   {
     cv::Mat points, descriptors;
     std::string object_id;
-    void operator>>(couch::Document& doc)
-    {
-      doc.update();
-      doc.attach("points", points);
-      doc.attach("descriptors", descriptors);
-      doc.update();
-      doc.set_value("object_id", object_id);
-      doc.commit();
-    }
-
-    void operator>>(ecto::tendrils& o)
-    {
-      o.get<cv::Mat > ("points") = points;
-      o.get<cv::Mat> ("descriptors") = descriptors;
-    }
-    void operator<<(couch::Document& doc)
-    {
-      doc.update();
-      object_id = doc.get_value<std::string> ("object_id");
-
-      doc.get_attachment("points", points);
-      doc.get_attachment("descriptors", descriptors);
-    }
   };
 
   /** Class reading the TOD models in the db
@@ -298,8 +275,13 @@ namespace db
     void on_object_id_change(const std::string& id)
     {
       SHOW();
-      object_id = id;
       std::cout << "object_id = " << id << std::endl;
+
+      couch::View v;
+      v.add_map("map", boost::str(boost::format(where_doc_id) % id));
+      db.run_view(v, -1, 0, total_rows, offset, docs);
+      db.print();
+      current_frame = 0;
     }
     void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
     {
@@ -313,16 +295,19 @@ namespace db
     {
       //if (inputs.get<int> ("trigger") != 'c')
       //  return 0;
-      TodModel model;
-      couch::Document doc(object_id);
+      couch::Document doc = docs[current_frame];
       doc.update();
-      model << doc; //read the observation from the doc.
-      model >> outputs; //push the observation to the outputs.
+
+      doc.get_attachment<cv::Mat>("points", outputs.get<cv::Mat > ("points"));
+      doc.get_attachment<cv::Mat>("descriptors", outputs.get<cv::Mat > ("descriptors"));
 
       return 0;
     }
-    couch::Db db;
+    std::vector<couch::Document> docs;
     std::string object_id;
+    int total_rows, offset;
+    couch::Db db;
+    int current_frame;
   };
 
   /** Class inserting the TOD models in the db
@@ -364,15 +349,17 @@ namespace db
     {
       //if (inputs.get<int> ("trigger") != 'c')
       //  return 0;
-      std::cout << "Reading" << std::endl;
-      TodModel model;
-      model.descriptors = inputs.get<cv::Mat> ("descriptors");
-      model.points = inputs.get<cv::Mat> ("points");
-      model.object_id = object_id;
+      std::cout << "Inserting" << std::endl;
 
       couch::Document doc(db);
       doc.create();
-      model >> doc;
+
+      doc.attach("descriptors", inputs.get<cv::Mat> ("descriptors"));
+      doc.attach("points", inputs.get<cv::Mat> ("points"));
+      doc.set_value("object_id", object_id);
+
+      doc.commit();
+
       return 0;
     }
     couch::Db db;

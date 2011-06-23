@@ -15,6 +15,9 @@
 
 using ecto::tendrils;
 
+/** Ecto implementation of a module that takes
+ *
+ */
 struct TwoDToThreeD
 {
   static void declare_params(tendrils& p)
@@ -36,9 +39,13 @@ struct TwoDToThreeD
   {
   }
 
+  /** Get the 2d keypoints and figure out their 3D position from the depth map
+   * @param inputs
+   * @param outputs
+   * @return
+   */
   int process(const tendrils& inputs, tendrils& outputs)
   {
-    // Get the 2d keypoints and figure out their 3D position from the depth map
     // We have lam (x,y,1) = K (X,Y,Z), hence lam=Z
     const std::vector<cv::KeyPoint> &keypoints = inputs.get<std::vector<cv::KeyPoint> >("keypoints");
     const cv::Mat & depth_image = inputs.get<cv::Mat>("depth");
@@ -47,6 +54,7 @@ struct TwoDToThreeD
     unsigned int n_points = keypoints.size();
     cv::Mat_<float> scaled_points(3, n_points);
 
+    // Create the scaled keypoints
     unsigned int i = 0;
     BOOST_FOREACH(const cv::KeyPoint & keypoint, keypoints)
         {
@@ -56,6 +64,8 @@ struct TwoDToThreeD
           scaled_points(2, i) = depth;
           ++i;
         }
+
+    // Figure out the original points
     cv::Mat_<float> points;
     cv::solve(K, scaled_points, points);
 
