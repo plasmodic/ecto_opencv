@@ -4,7 +4,5 @@ from highgui import *
 from imgproc import *
 from lazer import *
 from features2d import *
-from pcl import *
 from tod import *
 from objcog_db import *
-

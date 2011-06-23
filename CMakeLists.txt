@@ -19,6 +19,9 @@ find_package(ecto REQUIRED)
 find_package(Boost COMPONENTS system filesystem REQUIRED)
 
 set_ecto_install_package_name(ecto_opencv)
-
+install(FILES ${LIBRARY_OUTPUT_PATH}/__init__.py
+  DESTINATION ${ecto_module_PYTHON_INSTALL} COMPONENT main
+  )
+  
 add_subdirectory(modules)
 
