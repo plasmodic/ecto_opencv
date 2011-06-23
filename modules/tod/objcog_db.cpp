@@ -244,12 +244,147 @@ namespace db
     int current_frame;
   };
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  struct TodModel
+  {
+    cv::Mat points, descriptors;
+    std::string object_id;
+    void operator>>(couch::Document& doc)
+    {
+      doc.update();
+      doc.attach("points", points);
+      doc.attach("descriptors", descriptors);
+      doc.update();
+      doc.set_value("object_id", object_id);
+      doc.commit();
+    }
+
+    void operator>>(ecto::tendrils& o)
+    {
+      o.get<cv::Mat > ("points") = points;
+      o.get<cv::Mat> ("descriptors") = descriptors;
+    }
+    void operator<<(couch::Document& doc)
+    {
+      doc.update();
+      object_id = doc.get_value<std::string> ("object_id");
+
+      doc.get_attachment("points", points);
+      doc.get_attachment("descriptors", descriptors);
+    }
+  };
+
+  /** Class reading the TOD models in the db
+   */
+  struct TodModelReader
+  {
+    static void declare_params(tendrils& params)
+    {
+      params.declare<std::string> ("object_id", "The object id, to associate this frame with.", "object_01");
+    }
+
+    static void declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
+    {
+      inputs.declare<cv::Mat > ("points", "The 3d position of the points.");
+      inputs.declare<cv::Mat> ("descriptors", "The descriptors.");
+      inputs.declare<int> ("trigger", "Capture trigger, 'c' for capture.");
+    }
+
+    TodModelReader() :
+      db(std::string(DEFAULT_COUCHDB_URL) + "/model")
+    {
+      db.create();
+    }
+    void on_object_id_change(const std::string& id)
+    {
+      SHOW();
+      object_id = id;
+      std::cout << "object_id = " << id << std::endl;
+    }
+    void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
+    {
+      ecto::spore<std::string> object_id = params.at("object_id");
+      object_id.set_callback(boost::bind(&TodModelReader::on_object_id_change, this, _1));
+      db.create();
+      on_object_id_change(params.get<std::string> ("object_id"));
+    }
+
+    int process(const tendrils& inputs, tendrils& outputs)
+    {
+      //if (inputs.get<int> ("trigger") != 'c')
+      //  return 0;
+      TodModel model;
+      couch::Document doc(object_id);
+      doc.update();
+      model << doc; //read the observation from the doc.
+      model >> outputs; //push the observation to the outputs.
+
+      return 0;
+    }
+    couch::Db db;
+    std::string object_id;
+  };
+
+  /** Class inserting the TOD models in the db
+   */
+  struct TodModelInserter
+  {
+    static void declare_params(tendrils& params)
+    {
+      params.declare<std::string> ("object_id", "The object id, to associate this frame with.", "object_01");
+    }
+
+    static void declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
+    {
+      inputs.declare<cv::Mat > ("points", "The 3d position of the points.");
+      inputs.declare<cv::Mat> ("descriptors", "The descriptors.");
+      inputs.declare<int> ("trigger", "Capture trigger, 'c' for capture.");
+    }
+
+    TodModelInserter() :
+      db(std::string(DEFAULT_COUCHDB_URL) + "/model")
+    {
+      db.create();
+    }
+    void on_object_id_change(const std::string& id)
+    {
+      SHOW();
+      object_id = id;
+      std::cout << "object_id = " << id << std::endl;
+    }
+    void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
+    {
+      ecto::spore<std::string> object_id = params.at("object_id");
+      object_id.set_callback(boost::bind(&TodModelInserter::on_object_id_change, this, _1));
+      db.create();
+      on_object_id_change(params.get<std::string> ("object_id"));
+    }
+
+    int process(const tendrils& inputs, tendrils& outputs)
+    {
+      //if (inputs.get<int> ("trigger") != 'c')
+      //  return 0;
+      std::cout << "Reading" << std::endl;
+      TodModel model;
+      model.descriptors = inputs.get<cv::Mat> ("descriptors");
+      model.points = inputs.get<cv::Mat> ("points");
+      model.object_id = object_id;
+
+      couch::Document doc(db);
+      doc.create();
+      model >> doc;
+      return 0;
+    }
+    couch::Db db;
+    std::string object_id;
+  };
 }
 
 BOOST_PYTHON_MODULE(objcog_db)
 {
   ecto::wrap<db::ObservationInserter>("ObservationInserter");
   ecto::wrap<db::ObservationReader>("ObservationReader");
-
+  ecto::wrap<db::TodModelInserter>("TodModelInserter");
+  ecto::wrap<db::TodModelReader>("TodModelReader");
 }
 ;
