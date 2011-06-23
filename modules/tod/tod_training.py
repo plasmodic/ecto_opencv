@@ -2,156 +2,60 @@
 import ecto
 from ecto_opencv import highgui, cv_bp as opencv, calib, imgproc, tod, objcog_db, features2d
 import time
-debug = True 
+debug = True
 plasm = ecto.Plasm()
 
+class TodModelComputation(ecto.BlackBox):
+    def __init__(self, plasm, orb_params = None):
+        ecto.BlackBox.__init__(self, plasm)
+        self._orb_params = orb_params
+        self.orb = features2d.ORB()
+        self.twoDToThreeD = tod.TwoDToThreeD()
+        self.cameraToWorld = tod.CameraToWorld()
 
+    def expose_inputs(self):
+        return {'image':self.orb['image'],
+                'mask':self.orb['mask'],
+                'depth':self.twoDToThreeD['depth'],
+                'K':self.twoDToThreeD['K'],
+                'R':self.cameraToWorld['R'],
+                'T':self.cameraToWorld['T']}
+
+    def expose_outputs(self):
+        return {'points': self.cameraToWorld['points'],
+                'descriptors': self.orb['descriptors']}
+
+    def expose_parameters(self):
+        return {'descriptor_param': self._orb_params}
+
+    def connections(self):
+        return (self.orb['kpts'] >> self.twoDToThreeD['keypoints'],
+                self.twoDToThreeD['points'] >> self.cameraToWorld['points'])
+
+# define the input
+db_reader = objcog_db.ObservationReader("db_reader", object_id="object_01")
+
+# connect the visualization
 image_view = highgui.imshow(name="RGB", waitKey=1000, autoSize=True)
 mask_view = highgui.imshow(name="mask", waitKey= -1, autoSize=True)
 depth_view = highgui.imshow(name="Depth", waitKey= -1, autoSize=True);
-db_reader = objcog_db.ObservationReader("db_reader", object_id="object_01")
-orb = features2d.ORB()
-
-plasm.connect(db_reader['image'] >> (image_view['input'],orb['image']),
-              db_reader['mask'] >> (mask_view['input'],orb['mask']),
+plasm.connect(db_reader['image'] >> image_view['input'],
+              db_reader['mask'] >> mask_view['input'],
               db_reader['depth'] >> depth_view['input'])
 
-twoDToThreeD = tod.twoDToThreeD()
-plasm.connect(orb, "kpts", twoDToThreeD, "pts")
-plasm.connect(db_reader, "K", twoDToThreeD, "K")
-plasm.connect(db_reader, "depth", twoDToThreeD, "depth")
+# connect to the model computation
+tod_model = TodModelComputation(plasm)
+plasm.connect(db_reader['image', 'mask', 'depth', 'K', 'R', 'T'] >> tod_model['image', 'mask', 'depth', 'K', 'R', 'T'])
 
-
-#a=[db_reader["K","depth"] >> twoDToThreeD["K","depth"]]
-#
-#plasm.connect(db_reader["K","depth"] >> twoDToThreeD["K","depth"],
-#              )
-#
-#plasm.disconnect(db_reader["depth"] >> twoDToThreeD["depth"],
-#              )
-
-
-cameraToWorld = tod.cameraToWorld()
-plasm.connect(twoDToThreeD, "pts", cameraToWorld, "pts")
-plasm.connect(db_reader, "R", cameraToWorld, "R")
-plasm.connect(db_reader, "T", cameraToWorld, "T")
-
-#db_writer = objcog_db.ObservationWriter("db_writer", object_id="object_01")
-
+# persist to the DB
+db_writer = objcog_db.TodModelInserter("db_writer", object_id="object_01")
+orb_params = None
+#db_writer.add_misc(orb_params)
+plasm.connect(tod_model['points', 'descriptors'] >> db_writer['points', 'descriptors'])
 
 if debug:
   print plasm.viz()
   ecto.view_plasm(plasm)
 
-    
 while(image_view.outputs.out not in (27, ord('q'))):
     if(plasm.execute(1) != 0): break
-
-
-
-#
-#debug = True
-#
-#class PoseEstimator(ecto.BlackBox):
-#    PARAMTERS = { "file": calib.CameraIntrinsics.parameter.file }
-#    INPUTS =  { "image": imgproc.cvtColor.inputs.input}
-#    OUTPUTS = { "K_awesome": calib.CameraIntrinsics.outputs.K }
-#    def __init__(self):
-#        super.__init__(self)
-#        self.draw_debug = debug
-#        self.circle_drawer = calib.PatternDrawer(rows=7, cols=3)
-#        self.pattern_show = highgui.imshow(name="pattern", waitKey=-1, autoSize=True)
-#        self.pose_drawer = calib.PoseDrawer()            
-#        self.rgb2gray = imgproc.cvtColor(flag=7)
-#        self.circle_detector = calib.PatternDetector(rows=7, cols=3, pattern_type="acircles", square_size=0.03)
-#        self.poser = calib.FiducialPoseFinder()
-#        self.camera_intrinsics = calib.CameraIntrinsics(camera_file="camera.kinect.vga.yml")
-#        self._attach()
-#
-#    def _attach():
-#        attach("K_awesome",self.camera_intrinsics)
-#
-#    def declare_graph(self):
-#        self.plasm_.connect(self.rgb2gray, "out", self.circle_detector, "input")
-#        plasm.connect(self.camera_intrinsics, "K", self.poser, "K")
-#        plasm.connect(self.circle_detector, "out", self.poser, "points")
-#        plasm.connect(self.circle_detector, "ideal", self.poser, "ideal")
-#        plasm.connect(self.circle_detector, "found", self.poser, "found")
-#        if self.draw_debug:
-#            plasm.connect(image_source, "image", self.circle_drawer, "input")
-#            plasm.connect(self.circle_detector, "out", self.circle_drawer, "points")
-#            plasm.connect(self.circle_detector, "found", self.circle_drawer, "found")
-#        plasm.connect(self.poser, "R", self.pose_drawer, "R")
-#        plasm.connect(self.poser, "T", self.pose_drawer, "T")
-#        plasm.connect(self.circle_drawer, "out", self.pose_drawer, "image")
-#        plasm.connect(self.camera_intrinsics, "K", self.pose_drawer, "K")
-#        plasm.connect(self.pose_drawer, "output", self.pattern_show, "input")
-#
-#    def __get__(self, module_name):
-#        return __dict__[module_name]
-#    
-#pe = PoseEstimator()
-#plasm.connect(pe,"K_awesome",kprinter,"K")
-#
-#class Masker:
-#    def __init__(self):
-#        pass
-#    def declare_graph(self, plasm, image_source):
-#        pass
-#
-#class Detector:
-#    def __init__(self):
-#        pass
-#    def declare_graph(self, plasm, image_source):
-#        pass
-#
-#class F3dCreator:
-#    def __init__(self):
-#        pass
-#    def declare_graph(self, plasm, image_source):
-#        pass
-#
-#if __name__=='__main__':
-#    plasm = ecto.Plasm()
-#    
-#    pose_est = PoseEstimator()
-#    
-#    capture = highgui.OpenNICapture(video_mode=opencv.CV_CAP_OPENNI_VGA_30HZ)
-#    image_view = highgui.imshow(name="RGB", waitKey=10, autoSize=True)
-#    mask_view = highgui.imshow(name="mask", waitKey=-1, autoSize=True)
-#    
-#    masker = tod.PlanarSegmentation(z_min=0.06)
-#    if debug:
-#        depth_view = highgui.imshow(name="Depth", waitKey=-1, autoSize=True);
-#        plasm.connect(capture, "image", image_view , "input")
-#        plasm.connect(capture, "depth", depth_view , "input")
-#        
-#    pose_est.declare_graph(plasm, capture)
-#    
-#    plasm.connect(pose_est.poser, "R",masker,"R")
-#    plasm.connect(pose_est.poser, "T",masker,"T")
-#    plasm.connect(pose_est.camera_intrinsics, "K",masker,"K")
-#    plasm.connect(capture, "depth", masker , "depth")
-#    bitwise_and = imgproc.BitwiseAnd()
-#    
-#    plasm.connect(masker,"mask",bitwise_and,"a")
-#    plasm.connect(capture,"valid",bitwise_and,"b")
-#    plasm.connect(bitwise_and,"out", mask_view,"input")
-#    
-#    
-#    
-#    if debug:
-#      print plasm.viz()
-#      ecto.view_plasm(plasm)
-#    
-#    prev = time.time()
-#    count = 0
-#    
-#    while(image_view.outputs.out not in (27, ord('q'))):
-#        plasm.execute()
-#        now = time.time()
-#        if(count == 200):
-#            print "%f fps" % (1 / ((now - prev) / count))
-#            prev = now
-#            count = 0
-#        count += 1
