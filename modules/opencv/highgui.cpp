@@ -284,15 +284,21 @@ struct imshow
     }
 
     cv::imshow(window_name_, image);
-    if (waitkey_ >= 0)
+
+    int r = 0;
+    if (waitkey_ >= 0) 
+      r = 0xff & cv::waitKey(waitkey_);
+
+    if (r == 27 || r == 'q' || r == 'Q') 
     {
-      outputs.get<int> ("out") = int(0xff & cv::waitKey(waitkey_));
+      std::cout << "QUIT!\n";
+      return 1;
     }
     else
     {
-      outputs.get<int> ("out") = 0;
+      outputs.get<int> ("out") = r;
+      return 0;
     }
-    return 0;
   }
   std::string window_name_;
   int waitkey_;
