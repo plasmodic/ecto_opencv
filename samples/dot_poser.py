@@ -39,6 +39,8 @@ plasm.connect(pose_drawer, "output", pattern_show, "input")
 if debug:
     ecto.view_plasm(plasm)
 
+sched = ecto.schedulers.Threadpool(nthreads=8)
+
 while(pattern_show.outputs.out != 27):
     plasm.execute()
     

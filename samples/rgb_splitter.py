@@ -24,23 +24,28 @@ plasm.connect(video["image"] >> (rgb2gray["input"], splitter["input"]),
               splitter["out_0"] >> (circle_detector["input"], circle_drawer["input"])
                                     )
                                     
-plasm.connect(circle_detector, "out", circle_drawer, "points")
-plasm.connect(circle_detector, "found", circle_drawer, "found")
-plasm.connect(camera_intrinsics, "K", poser, "K")
-plasm.connect(circle_detector, "out", poser, "points")
-plasm.connect(circle_detector, "ideal", poser, "ideal")
-plasm.connect(circle_detector, "found", poser, "found")
-plasm.connect(poser, "R", pose_drawer, "R")
-plasm.connect(poser, "T", pose_drawer, "T")
-plasm.connect(circle_drawer, "out", pose_drawer, "image")
-plasm.connect(camera_intrinsics, "K", pose_drawer, "K")
-plasm.connect(pose_drawer, "output", pattern_show, "input")
+plasm.connect(circle_detector['out'] >> circle_drawer['points'],
+              circle_detector['found'] >> circle_drawer['found'],
+              camera_intrinsics['K'] >> poser['K'],
+              circle_detector['out'] >> poser['points'],
+              circle_detector['ideal'] >> poser['ideal'],
+              circle_detector['found'] >> poser['found'],
+              poser['R'] >> pose_drawer['R'],
+              poser['T'] >> pose_drawer['T'],
+              circle_drawer['out'] >> pose_drawer['image'],
+              camera_intrinsics['K'] >> pose_drawer['K'],
+              pose_drawer['output'] >> pattern_show['input'],
+              )
 
 
 if debug:
     ecto.view_plasm(plasm)
 
-while(pattern_show.outputs.out != 27):
-    plasm.execute()
+sched = ecto.schedulers.Threadpool(plasm)
+
+sched.execute(nthreads=8)
+
+#while(pattern_show.outputs.out != 27):
+#    plasm.execute()
     
 

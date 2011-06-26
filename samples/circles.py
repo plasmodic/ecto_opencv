@@ -1,10 +1,12 @@
-#!/bin/python
+#!/usr/bin/env python
 import ecto
 from ecto_opencv import imgproc, highgui, features2d, calib
-import time
+import time, signal
 #import orb as imgproc
+signal.signal(signal.SIGINT, signal.SIG_DFL)
 
-debug = False
+
+debug = True
 #debug = True
 
 plasm = ecto.Plasm()
@@ -13,11 +15,16 @@ video = highgui.VideoCapture(video_device=0)
 rgb2gray = imgproc.cvtColor (flag=7)
 gaussian = imgproc.GaussianBlur(sigma=2.0)
 circle_drawer = calib.CircleDrawer()
-pong = calib.PingPongDetector(dp=2,maxRadius=100, minRadius=10,param1=180,param2=90,minDist=20)
+circle_drawer2 = calib.CircleDrawer()
+pong = calib.PingPongDetector(dp=2, maxRadius=500, minRadius=1, param1=200, param2=100, minDist=20)
+#pong2 = calib.PingPongDetector(dp=2, maxRadius=500, minRadius=1, param1=200, param2=10, minDist=20)
+#pong3 = calib.PingPongDetector(dp=2, maxRadius=500, minRadius=1, param1=200, param2=10, minDist=20)
+#pong4 = calib.PingPongDetector(dp=2, maxRadius=500, minRadius=1, param1=200, param2=10, minDist=20)
 print pong.__doc__
 show_circles = highgui.imshow("show circles", name="Circles", waitKey=10)
-plasm.connect(
-              video["image"] >> (rgb2gray["input"], circle_drawer["image"]),
+# show_circles2 = highgui.imshow("show circles2", name="Circles", waitKey=-1)
+
+plasm.connect(video["image"] >> (rgb2gray["input"], circle_drawer["image"]),
               rgb2gray["out"] >> gaussian["input"],
               gaussian["out"] >> pong["image"],
               pong["circles"] >> circle_drawer["circles"],
@@ -30,13 +37,6 @@ if debug:
 prev = time.time()
 count = 0
 
-while(show_circles.outputs.out not in (ord('q'), 27)):
-    plasm.execute(1)
-    now = time.time()
-    if(count == 200):
-        print "%f fps" % (1 / ((now - prev) / count))
-        prev = now
-        count = 0
-    count += 1
-    
+sched = ecto.schedulers.Threadpool(plasm)
+sched.execute(nthreads=50)
 
