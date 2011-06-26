@@ -8,9 +8,10 @@
 #include <boost/filesystem.hpp>
 
 #include <string>
-
+#include <boost/date_time/posix_time/posix_time.hpp>
 using ecto::tendrils;
 
+namespace pt = boost::posix_time;
 namespace fs = boost::filesystem;
 
 struct ImageReader
@@ -305,6 +306,53 @@ struct imshow
   bool auto_size_;
 };
 
+struct FPSDrawer
+{
+  static void draw(cv::Mat& drawImage, float freq)
+  {
+    using namespace cv;
+    std::string scaleText = boost::str(boost::format("%.2f Hz")%freq);
+    int baseline = 0;
+    Size sz = getTextSize(scaleText, CV_FONT_HERSHEY_SIMPLEX, 1, 1, &baseline);
+    rectangle(drawImage, Point(10, 30 + 5),
+              Point(10, 30) + Point(sz.width, -sz.height - 5), Scalar::all(0),
+              -1);
+    putText(drawImage, scaleText, Point(10, 30), CV_FONT_HERSHEY_SIMPLEX, 1.0,
+            Scalar::all(255), 1, CV_AA, false);
+  }
+  static void declare_io(const tendrils& params, tendrils& in, tendrils& out)
+  {
+    in.declare<cv::Mat> ("image", "The original image to draw the pose onto.");
+    out.declare<cv::Mat> ("image",
+                          "The image with fps drawn on it.");
+  }
+  FPSDrawer() :count(),freq(){}
+  int process(const tendrils& in, tendrils& out)
+  {
+    pt::ptime now = pt::microsec_clock::universal_time();
+
+    if(count == 0 )
+    {
+      prev = now;
+    }else if(count == 30)
+    {
+      pt::time_duration elapsed = now - prev;
+      freq = double(count)/(elapsed.total_microseconds() * 1e-6);
+      prev = now;
+      count = 0;
+    }
+    count++;
+    cv::Mat image = in.get<cv::Mat> ("image");
+    cv::Mat& output = out.get<cv::Mat> ("image");
+    image.copyTo(output);
+    draw(output, freq);
+    return 0;
+  }
+  pt::ptime prev;
+  size_t count;
+  double freq;
+};
+
 BOOST_PYTHON_MODULE(highgui)
 {
   ecto::wrap<VideoCapture>("VideoCapture",
@@ -312,5 +360,7 @@ BOOST_PYTHON_MODULE(highgui)
   ecto::wrap<imshow>("imshow", "Shows an image in a named window.");
   ecto::wrap<ImageReader>("ImageReader", "Read images from a directory.");
   ecto::wrap<OpenNICapture>("OpenNICapture", "OpenNI capture device.");
+  ecto::wrap<FPSDrawer>("FPSDrawer", "Draw the Hz on an image.");
+
 
 }
