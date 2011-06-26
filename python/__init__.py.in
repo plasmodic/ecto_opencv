@@ -1,8 +1,8 @@
-import ecto
-from calib import *
-from highgui import *
-from imgproc import *
-from lazer import *
-from features2d import *
-from tod import *
-from objcog_db import *
+#import ecto
+#from calib import *
+#from highgui import *
+#from imgproc import *
+#from lazer import *
+#from features2d import *
+#from tod import *
+#from objcog_db import *
