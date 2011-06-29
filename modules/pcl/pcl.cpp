@@ -106,7 +106,7 @@ struct VoxelGrid
   {
   }
 
-  void configure(tendrils& params)
+  void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
   {
     //set the voxel grid size
     float leaf_size = params.get<float> ("leaf_size");
@@ -163,7 +163,7 @@ struct CloudViewer
     inputs.declare<cloud_t::ConstPtr> ("input", "The cloud to view");
     outputs.declare<bool> ("stop", "True if stop requested", false);
   }
-  void configure(tendrils& params)
+  void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
   {
     viewer_.reset(new pcl::visualization::CloudViewer(params.get<std::string> ("window_name")));
   }

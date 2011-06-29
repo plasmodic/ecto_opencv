@@ -34,7 +34,6 @@ class PoseEstimator:
         plasm.connect(self.circle_drawer, "out", self.pose_drawer, "image")
         plasm.connect(self.camera_intrinsics, "K", self.pose_drawer, "K")
         plasm.connect(self.pose_drawer, "output", self.pattern_show, "input")
-            
         
 plasm = ecto.Plasm()
 
@@ -45,7 +44,7 @@ image_view = highgui.imshow(name="RGB", waitKey=10, autoSize=True)
 mask_view = highgui.imshow(name="mask", waitKey= -1, autoSize=True)
 object_view = highgui.imshow("object_view", name="object_view", waitKey= -1, autoSize=True)
 
-masker = tod.PlanarSegmentation(z_min=0.005)
+masker = tod.PlanarSegmentation(z_min=0)
 if debug:
     depth_view = highgui.imshow(name="Depth", waitKey= -1, autoSize=True);
     plasm.connect(capture, "image", image_view , "input")
@@ -84,6 +83,7 @@ if debug:
   ecto.view_plasm(plasm)
 
     
-while(image_view.outputs.out not in (27, ord('q'))):
-    plasm.execute(1)
+while(0 == plasm.execute(1)):
+    pass
+    
     

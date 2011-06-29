@@ -1,7 +1,7 @@
 project(pcl)
 
 #http://www.pointclouds.org/downloads/linux.html
-
+return()
 find_package(PCL)
 
 if(NOT PCL_FOUND)

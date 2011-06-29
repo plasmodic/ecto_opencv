@@ -9,7 +9,7 @@ using ecto::tendrils;
  {
  static void declare_params(tendrils& params);
  static void declare_io(const tendrils& params, tendrils& in, tendrils& out);
- void configure(tendrils& params);
+ void configure(tendrils& params, tendrils& inputs, tendrils& outputs);
  int process(const tendrils& in, tendrils& out);
  void destroy();
  };
@@ -50,7 +50,7 @@ namespace tod
                               "255 is the value for objects satisfying the constraints.\n"
                               "0 otherwise.");
     }
-    void configure(tendrils& p)
+    void configure(tendrils& p, tendrils& inputs, tendrils& outputs)
     {
       z_crop = p.get<float> ("z_crop");
       x_crop = p.get<float> ("x_crop");
@@ -155,12 +155,16 @@ namespace tod
     cv::Mat_<uint8_t> box_mask;
 
   };
-
 }
+
+void wrap_CameraToWorld();
+void wrap_TwoDToThreeD();
 
 BOOST_PYTHON_MODULE(tod)
 {
   ecto::wrap<tod::PlanarSegmentation>("PlanarSegmentation", "Given a pose, "
     "assuming it describes the center of the object coordinate system and "
     "lies on a plane, segment the object from the plane");
+  wrap_CameraToWorld();
+  wrap_TwoDToThreeD();
 }

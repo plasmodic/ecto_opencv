@@ -39,7 +39,7 @@ struct ScanLineDrawer
     }
   }
 
-  void configure(tendrils& params)
+  void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
   {
     scan_idx_ = 0;//params.get<float> ("scan_idx");
     auto_scan_ = params.get<bool> ("auto_scan");
