@@ -83,6 +83,7 @@ if debug:
   ecto.view_plasm(plasm)
 
     
-while(image_view.outputs.out not in (27, ord('q'))):
-    plasm.execute(1)
+while(0 == plasm.execute(1)):
+    pass
+    
     
