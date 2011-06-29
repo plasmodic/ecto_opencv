@@ -17,12 +17,9 @@ gaussian = imgproc.GaussianBlur(sigma=2.0)
 circle_drawer = calib.CircleDrawer()
 circle_drawer2 = calib.CircleDrawer()
 pong = calib.PingPongDetector(dp=2, maxRadius=500, minRadius=1, param1=200, param2=100, minDist=20)
-#pong2 = calib.PingPongDetector(dp=2, maxRadius=500, minRadius=1, param1=200, param2=10, minDist=20)
-#pong3 = calib.PingPongDetector(dp=2, maxRadius=500, minRadius=1, param1=200, param2=10, minDist=20)
-#pong4 = calib.PingPongDetector(dp=2, maxRadius=500, minRadius=1, param1=200, param2=10, minDist=20)
+
 print pong.__doc__
 show_circles = highgui.imshow("show circles", name="Circles", waitKey=10)
-# show_circles2 = highgui.imshow("show circles2", name="Circles", waitKey=-1)
 
 plasm.connect(video["image"] >> (rgb2gray["input"], circle_drawer["image"]),
               rgb2gray["out"] >> gaussian["input"],
@@ -34,9 +31,6 @@ if debug:
     print plasm.viz()
     ecto.view_plasm(plasm)
 
-prev = time.time()
-count = 0
-
 sched = ecto.schedulers.Threadpool(plasm)
-sched.execute(nthreads=50)
+sched.execute(nthreads=8)
 

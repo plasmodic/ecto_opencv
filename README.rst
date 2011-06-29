@@ -21,25 +21,7 @@ Dependencies
  - python
  - boost
  - ecto https://github.com/plasmodic/ecto
-      
-      If you prefer not to build things, a rolling daily build of
-      trunk is available via apt-get::
-      
-        sudo apt-add-repository ppa:ethan-rublee/ppa
-        sudo apt-get update
-        sudo apt-get install libecto-dev
-      
- - opencv trunk https://code.ros.org/svn/opencv/trunk/opencv
-      
-      WARNING : this currently does not build against OpenNI, so the kinect demos that
-      use opencv will be unavailable.
-      
-      If you prefer not to build things, a rolling daily build of
-      trunk is available via apt-get. You can grab it from the same
-      place (ppa:ethan-rublee/ppa)::
-      
-        sudo apt-get install libopencv-dev
-        
+ - opencv2.3 https://code.ros.org/svn/opencv/branches/2.3/opencv       
  - pcl 1.0 (non ros version, standalone)
       
       http://www.pointclouds.org/downloads/linux.html
