@@ -1,50 +1,47 @@
 #!/bin/python
 import ecto
 #import ecto_opencv.cv_bp as opencv
-from ecto_opencv import highgui,calib,imgproc, line_mod
+from ecto_opencv import highgui, calib, imgproc, line_mod, objcog_db, tod
 
 debug = True
 
 plasm = ecto.Plasm()  #Constructor for Plasm
-video = highgui.VideoCapture(video_device=1)
-bin_color = line_mod.ColorMod(gsize = 5)
-gsig = 2.0
-bin_color.params.gsig = gsig
+
+bin_color = line_mod.ColorMod(gsize=5,gsig = 2.0)
 db_color = line_mod.ColorDebug();
-coded_color = highgui.imshow(name="coded_color", waitKey=10, autoSize=True)
-raw_image = highgui.imshow(name="raw image", waitKey=-1, autoSize=True)
-highgui_db_color = highgui.imshow(name="db_color", waitKey=-1, autoSize=True)
+coded_color = highgui.imshow(name="coded_color", waitKey=-1, autoSize=True)
+raw_image = highgui.imshow(name="raw image", waitKey= -1, autoSize=True)
+highgui_db_color = highgui.imshow(name="db_color", waitKey= -1, autoSize=True)
 
+image_view = highgui.imshow(name="RGB", waitKey=0, autoSize=True)
+mask_view = highgui.imshow(name="mask", waitKey= -1, autoSize=True)
+depth_view = highgui.imshow(name="Depth", waitKey= -1, autoSize=True);
+db_reader = objcog_db.ObservationReader("db_reader", object_id="object_01")
+templ_calc = line_mod.ColorTemplCalc()
+print templ_calc.__doc__
 
-if debug:
-    ecto.print_module_doc(video)
-    ecto.print_module_doc(coded_color)
+plasm.connect(db_reader, "image", image_view, "input")
+plasm.connect(db_reader, "mask", mask_view, "input")
+plasm.connect(db_reader, "depth", depth_view, "input")
 
-plasm.connect(video, "out", bin_color, "image")
-plasm.connect(video, "out", raw_image, "input")
-plasm.connect(bin_color,"output",coded_color,"input")
-plasm.connect(bin_color,"output",db_color,"input")
-plasm.connect(db_color,"output",highgui_db_color,"input")
+plasm.connect(db_reader, "image", bin_color, "image")
+plasm.connect(db_reader, "image", raw_image, "input")
+plasm.connect(bin_color, "output", coded_color, "input")
+plasm.connect(bin_color, "output", db_color, "input")
+
+plasm.connect(bin_color, "output", templ_calc, "image")
+plasm.connect(db_reader, "mask", templ_calc, "mask")
+
+plasm.connect(db_color, "output", highgui_db_color, "input")
 
 if debug:
     ecto.view_plasm(plasm)
 
-
-bin_color.configure()
-counter  = 0;
-while(coded_color.outputs.out != 27):
+while(image_view.outputs.out != 27):
     try:
-#        counter += 1
-#        if counter % 10 == 0:
-#            #every 10 frames increment the threshhold
-#            thresh_gt += 1
-#            if thresh_gt > 250:
-#                thresh_gt = 0;
-#            bin_color.params.thresh_gt = thresh_gt;
-#            bin_color.configure()
-#            print "Trying threshold gt",thresh_gt
-
-        plasm.execute()
+        #plasm will return non zero on exit conditions...
+        if(plasm.execute(1)):
+            break
     except Exception, e:
         print e
     

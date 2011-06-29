@@ -29,10 +29,10 @@ prev = time.time()
 count = 0
 
 while(imshow.outputs.out != 27):
-    plasm.execute(30)
+    plasm.execute(1)
     now = time.time()
     if(count == 200):
-        print "%f fps" % (30 / ((now - prev) / count))
+        print "%f fps" % (1 / ((now - prev) / count))
         prev = now
         count = 0
     count += 1
