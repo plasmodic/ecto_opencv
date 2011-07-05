@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8)
-set(CMAKE_BUILD_TYPE "RelWithDebInfo" CACHE STRING "The build type.")
+set(CMAKE_BUILD_TYPE "Release" CACHE STRING "The build type.")
 project(ecto_opencv)
 
 add_definitions("-fno-strict-aliasing -Wall -Wl,--no-undefined")
