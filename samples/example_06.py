@@ -23,18 +23,26 @@ circle_drawer = calib.PatternDrawer('Circle Draw',
 checker_drawer = calib.PatternDrawer('Checker Draw',
                                      rows=5, cols=4)
 circle_display = highgui.imshow('Pattern show',
-                                name='Pattern', waitKey= 10, autoSize=True,
+                                name='Pattern', waitKey=10, autoSize=True,
                                 strand=display_strand)
 
-plasm.connect(video_cap['image'] >> circle_drawer['input'],
+pose_calc = calib.FiducialPoseFinder('Pose Calc')
+pose_draw = calib.PoseDrawer('Pose Draw')
+camera_info = calib.CameraIntrinsics('Camera Info', camera_file="camera.yml")
+
+plasm.connect( video_cap['image'] >> circle_drawer['input'],
                circle_drawer['out'] >> checker_drawer['input'],
-               checker_drawer['out'] >> fps['image'],
+               checker_drawer['out'] >> pose_draw['image'],
+               pose_draw['out'] >> fps['image'],
                fps['image'] >> circle_display['input'],
                video_cap['image'] >> rgb2gray['input'],
                rgb2gray['out'] >> (circle_detector['input'], checker_detector['input']),
                circle_detector['out', 'found'] >> circle_drawer['points', 'found'],
                checker_detector['out', 'found'] >> checker_drawer['points', 'found'],
-            )
+               camera_info['K'] >> (pose_calc['K'], pose_draw['K']),
+               circle_detector['out', 'ideal', 'found'] >> pose_calc['points', 'ideal', 'found'],
+               pose_calc['R', 'T'] >> pose_draw['R', 'T']
+              )
 
 ecto.view_plasm(plasm)
 sched.execute()
