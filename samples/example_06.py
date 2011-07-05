@@ -33,7 +33,7 @@ camera_info = calib.CameraIntrinsics('Camera Info', camera_file="camera.yml")
 plasm.connect( video_cap['image'] >> circle_drawer['input'],
                circle_drawer['out'] >> checker_drawer['input'],
                checker_drawer['out'] >> pose_draw['image'],
-               pose_draw['out'] >> fps['image'],
+               pose_draw['output'] >> fps['image'],
                fps['image'] >> circle_display['input'],
                video_cap['image'] >> rgb2gray['input'],
                rgb2gray['out'] >> (circle_detector['input'], checker_detector['input']),
