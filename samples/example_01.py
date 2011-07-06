@@ -11,7 +11,7 @@ video_cap = highgui.VideoCapture(video_device=0)
 fps = highgui.FPSDrawer()
 
 video_display = highgui.imshow('imshow',
-                               name='video_cap', waitKey=10, autoSize=True)
+                               name='video_cap', waitKey=2, maximize=True)
 
 plasm.connect(video_cap['image'] >> fps['image'],
               fps['image'] >> video_display['input'],

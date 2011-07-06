@@ -1,6 +1,10 @@
 #!/usr/bin/env python
+# black box it.
 import ecto
 from ecto_opencv import highgui, calib, imgproc
+
+plasm = ecto.Plasm()
+sched = ecto.schedulers.Singlethreaded(plasm)
 
 class PoseFromFiducial(ecto.BlackBox):
     def __init__(self, plasm):
@@ -14,7 +18,7 @@ class PoseFromFiducial(ecto.BlackBox):
         self.circle_drawer = calib.PatternDrawer('Circle Draw',
                                             rows=7, cols=3)
         self.circle_display = highgui.imshow('Pattern show',
-                                        name='Pattern', waitKey=10, maximize=True)
+                                        name='Pattern', waitKey=2, maximize=True)
         self.pose_calc = calib.FiducialPoseFinder('Pose Calc')
         self.pose_draw = calib.PoseDrawer('Pose Draw')
         self.camera_info = calib.CameraIntrinsics('Camera Info', camera_file="camera.yml")
@@ -38,9 +42,6 @@ class PoseFromFiducial(ecto.BlackBox):
                 self.circle_detector['out', 'ideal', 'found'] >> self.pose_calc['points', 'ideal', 'found'],
                 self.pose_calc['R', 'T'] >> self.pose_draw['R', 'T']
                ]
-
-plasm = ecto.Plasm()
-sched = ecto.schedulers.Singlethreaded(plasm)
 
 #add our black box to the plasm.
 pose_from_fiducial = PoseFromFiducial(plasm)
