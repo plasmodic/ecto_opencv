@@ -267,8 +267,8 @@ struct imshow
     }
     if(full_screen_())
     {
-      std::cout << "Fullscreen." << std::endl;
-      cv::namedWindow(window_name_, CV_WINDOW_FULLSCREEN);
+      cv::namedWindow(window_name_, CV_WINDOW_KEEPRATIO);
+      cv::setWindowProperty(window_name_,CV_WND_PROP_FULLSCREEN,true);
     }
     else if (auto_size_)
     {
