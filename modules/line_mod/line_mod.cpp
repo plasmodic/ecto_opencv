@@ -3,8 +3,10 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/features2d/features2d.hpp>
 #include <vector>
+#include <deque>
 #include <numeric> //for inner_product
 #include <functional> //for inner product
+#include <flann.hpp>
 
 using ecto::tendrils;
 using namespace cv;
@@ -23,7 +25,9 @@ namespace line_mod
 {
   /////////////////////////////////////////////////////////////////////////
    /**
-    * Compute the color order image: computeColorOrder which maps color ratios into 2 bits where
+    * Compute the color order image:
+    *
+    * computeColorOrder which maps color ratios into 2 bits where
     * 0 => ratio is lower than 0.75, 1=> ratio is (0.75, 1], 2=> ratio is (1, 1.25], 3=> ratio is > 1.25 for:
     * B/G (bits 0,1),
     * R/B (bits 2,3)
@@ -34,7 +38,16 @@ namespace line_mod
     */
    struct ColorMod
    {
-     void computeColorOrder(const cv::Mat &Iina, cv::Mat &Icolorord, const cv::Mat *Mask = 0) //Check
+     /**
+      * void computeColorOrder(const cv::Mat &Iina, cv::Mat &Icolorord, const cv::Mat &Mask)
+      *
+      * Code a color input image into a single channel (one byte) coded color image using an optional mask
+      *
+      * @param Iina        Input BGR image of uchars
+      * @param Icolorord   Return coded image here
+      * @param Mask        (optional) skip masked pixels (0's) if Mask is supplied.
+      */
+     void computeColorOrder(const cv::Mat &Iina, cv::Mat &Icolorord, const cv::Mat &Mask)
      {
        //    Mat Iin;
        //    resize(Iin,Iin,Size(Iin.cols/8,Iin.rows/8));
@@ -49,13 +62,13 @@ namespace line_mod
          {
            Icolorord.create(Iin.size(), CV_8UC1);
          }
-       if(Mask)
+       if(!Mask.empty()) //We have a mask
          {
-           if(Iina.size() != Mask->size())
+           if(Iina.size() != Mask.size())
              {
                throw std::runtime_error("ERROR: Mask in computeColorOrder size != Iina");
              }
-           if (Mask->type() != CV_8UC1)
+           if (Mask.type() != CV_8UC1)
              {
                throw std::runtime_error("ERROR: Mask is not of type CV_8UC1 in computeColorOrder");
              }
@@ -64,7 +77,7 @@ namespace line_mod
        float cratio;
        uchar oresult;
        //   int foo = 1;
-       if(!Mask) //No mask
+       if(Mask.empty()) //No mask
          {
          for (int y = 0; y < Iin.rows; y++)
            {
@@ -224,6 +237,8 @@ namespace line_mod
                             tendrils& outputs)
      {
        inputs.declare<cv::Mat> ("image", "An input image. RGB");
+       inputs.declare<cv::Mat> ("mask", "An input mask. Default is Mat(), meaning the mask is optional.");
+
        outputs.declare<cv::Mat> ("output", "A binarized color image.");
      }
 
@@ -236,8 +251,9 @@ namespace line_mod
      int process(const tendrils& inputs, tendrils& outputs)
      {
        cv::Mat image = inputs.get<cv::Mat> ("image");
-       cv::Mat& output = outputs.get<cv::Mat> ("output");
-       computeColorOrder(image, output);
+       cv::Mat mask = inputs.get<cv::Mat> ("mask");
+       cv::Mat& colorOrd = outputs.get<cv::Mat> ("output");
+       computeColorOrder(image, colorOrd, mask);
        return 0;
      }
 
@@ -270,7 +286,7 @@ namespace line_mod
 //     */
 //    double response(const Mat image, const Point offset)
 //    {
-//      if (image.type() != CV_8UC1) //Check return or not?
+//      if (image.type() != CV_8UC1)
 //        {
 //          throw std::runtime_error(
 //                                   "ERROR: Image is not of type CV_8UC1 in ColorTempl");
@@ -324,9 +340,11 @@ namespace line_mod
 //  };
 
    /**
-    * Below defines the histogram regions per template. The [x,y]start and teh [x,y]end
-    * -1 => invalid
-    * Histogram "type" indexes these, so
+    * Below defines the histogram regions per template.
+    *
+    * The start[x,y] and the end[x,y] each row denotes a different type of sub histogram pattern for the object
+    * There can be up to 16 histogram regions, but -1 => invalid if there are less than 16.
+    * Histogram "type" indexes start and stop histogram regions these, so
     * type 0 => invalid
     * type 1 => 4 overlapping histograms on a 3x3 grid
     * type 2 => 5 slightly overlapping left to right bands from top to bottom
@@ -373,16 +391,21 @@ static float endy [3][16] =
     };
 
     /**
-     * int calc_hist(const Mat &colorOrd, Point start,  Point stop, std::vector<float> hist)
-     * @brief Calculate the color ratio histogram of colorOrd in the region start to stop. All values must be in range!
+     * int calc_hist(const Mat &colorOrd, Point start,  Point stop, std::vector<float> hist, const Mat &Mask, int skipx = 1, int skipy = 1 )
+     *
+     * Calculate the color ratio histogram of colorOrd in the region start to stop. All values must be in range!
+     *
      * @param colorOrd Coded color image output from ColorMod
      * @param start   Start point of histogram region
      * @param stop    Stop point of histogram region
      * @param hist    Histogram to be filled out
+     * @param Mask    (optional) If mask, use it
+     * @param skipx, skipy Number of points to skip when computing hist. DEFAULT is 1 (no skip)
      * @return Number of points in the histogram
      */
-    int calc_hist(const Mat &colorOrd, Point start,  Point stop, std::vector<float> hist, const Mat &Mask ) //Check
+    int calc_hist(const Mat &colorOrd, Point start,  Point stop, std::vector<float> hist, const Mat &Mask, int skipx = 1, int skipy = 1)
     {
+      if(0 >= skipx) skipx = 1; if(0 >= skipy) skipy = 1;
       if((int)hist.size() != 16)
         {
           hist.resize(16,0.0);
@@ -392,43 +415,44 @@ static float endy [3][16] =
       int num_pts = 0;
       if(!Mask.empty()) //We have a mask
         {
-          for (int y = start.y; y <= stop.y; y++)
+          for (int y = start.y; y <= stop.y; y+=skipy)
             {
               const uchar *o = colorOrd.ptr<uchar> (y);
-              const uchar *m = Mask->ptr<uchar> (y);
-              for (int x = start.x; x <= stop.x; x++, o++, m++)
+              const uchar *m = Mask.ptr<uchar> (y);
+              for (int x = start.x; x <= stop.x; x+=skipx, o+=skipx, m+=skipx)
                 {
-                if(*m) continue; //Ignore masked pixels
-                if(!((*o)^0xC0))
-                  {
-                    continue; //Invalid color, don't count
-                  }
-                num_pts++; //count this point
-                uchar c = *o; //Put it into the histogram
-                hist[c&0x3] += 1.0; //B/G
-                hist[((c>>2)&0x3)+4] += 1.0; //R/B
-                hist[((c>>4)&0x3)+8] += 1.0; //G/R
-                hist[(c>>6)+12] += 1.0; //B/W
-              }
+                  if(!(*m)) continue; //Ignore masked pixels
+                  if(!((*o)^0xC0)) //Invalid color, don't count
+                    {
+                      continue;
+                    }
+                  num_pts++; //count this point
+                  uchar c = *o; //Put it into the histogram
+                  hist[c&0x3] += 1.0; //B/G
+                  hist[((c>>2)&0x3)+4] += 1.0; //R/B
+                  hist[((c>>4)&0x3)+8] += 1.0; //G/R
+                  hist[(c>>6)+12] += 1.0; //B/W
+                }
+            }
         }
       else //Not masked
         {
-          for (int y = start.y; y <= stop.y; y++)
+          for (int y = start.y; y <= stop.y; y+=skipy)
             {
               const uchar *o = colorOrd.ptr<uchar> (y);
-              for (int x = start.x; x <= stop.x; x++, o++)
-              {
-              if(!((*o)^0xC0))
+              for (int x = start.x; x <= stop.x; x+=skipx, o+=skipx)
                 {
-                  continue; //Invalid color, don't count
+                  if(!((*o)^0xC0))
+                    {
+                      continue; //Invalid color, don't count
+                    }
+                  num_pts++; //count this point
+                  uchar c = *o; //Put it into the histogram
+                  hist[c&0x3] += 1.0; //B/G
+                  hist[((c>>2)&0x3)+4] += 1.0; //R/B
+                  hist[((c>>4)&0x3)+8] += 1.0; //G/R
+                  hist[(c>>6)+12] += 1.0; //B/W
                 }
-              num_pts++; //count this point
-              uchar c = *o; //Put it into the histogram
-              hist[c&0x3] += 1.0; //B/G
-              hist[((c>>2)&0x3)+4] += 1.0; //R/B
-              hist[((c>>4)&0x3)+8] += 1.0; //G/R
-              hist[(c>>6)+12] += 1.0; //B/W
-            }
             }
         }
       //L2 norm
@@ -445,53 +469,54 @@ static float endy [3][16] =
     }
 
     /**
-     * float match(const Mat colorOrd, const Point offset);
-     * @brief Match a piece of an image using this template
-     * @param colorOrd  Coded color image output from ColorMod
-     * @param offset  Point to start match at
+     * float match(const Mat colorOrd, const Point offset, const Mat &Mask, int skipx = 1, int skipy = 1)
+     *
+     * @brief Match a patch of an image using the classe's template starting at point "offset"
+     *
+     * @param offset    Point to start match at
+     * @param Mask      If mask not empty, use it
+     * @param skipx, skipy Number of points to skip when computing hist. DEFAULT is 1 (no skip)
      * @return 1.0 = perfect match, 0 = total miss.
      */
-    float match(const Mat &colorOrd, const Point &offset)
+    float match(const Mat &colorOrd, const Point &offset, const Mat &Mask, int skipx = 1, int skipy = 1)
     {
-      if ((type < 1)||(type > max_hist_types)) //check  ... need a return
+      if(0 >= skipx) skipx = 1; if(0 >= skipy) skipy = 1;
+      if ((type < 1)||(type > max_hist_types))
           {
             throw std::runtime_error("ERROR: bad hist type ColorTempl::match");
-            return -1;
           }
       if (colorOrd.channels() != 1)
         {
           throw std::runtime_error("ERROR: channels != 1 in ColorTempl::match");
-          return -1;
         }
       if (colorOrd.type() != CV_8UC1)
         {
           throw std::runtime_error("ERROR: colorOrd is not of type CV_8UC1 in ColorTempl::match");
-          return -1;
         }
       Point start, stop;
-      //Check/set bounds, keep them in range
+      //Verify/set bounds, keep them in range
       int rows = colorOrd.rows, cols = colorOrd.cols;
-      Point start_roi = offset;
-      if((start_roi.x < 0)||(start_roi.x >= cols)) start_roi.x = 0;
-      if((start_roi.y < 0)||(start_roi.y >= rows)) start_roi.y = 0;
-      Point stop_roi = Point(start_roi.x + template_size.width,start_roi.y + template_size.height);
-      if(stop_roi.x >= cols) stop_roi.x = cols - 1;
-      if(stop_roi.y >= rows) stop_roi.y = rows - 1;
-      float w = (float)(stop_roi.x - start_roi.x); //Adjusted width and height of our hist roi
-      float h = (float)(stop_roi.y - start_roi.y);
+      Point start_pt = offset;
+      if((start_pt.x < 0)||(start_pt.x >= cols)) start_pt.x = 0;
+      if((start_pt.y < 0)||(start_pt.y >= rows)) start_pt.y = 0;
+      Point stop_pt = Point(start_pt.x + template_size.width,start_pt.y + template_size.height);
+      if(stop_pt.x >= cols) stop_pt.x = cols - 1;
+      if(stop_pt.y >= rows) stop_pt.y = rows - 1;
+      float w = (float)(stop_pt.x - start_pt.x); //Adjusted width and height of our hist roi
+      float h = (float)(stop_pt.y - start_pt.y);
       //Calculate histogram in roi of colorOrd
       int hindx = 0;
       int hlen = 0;
-      for(;startx[hlen],hlen++);
-      ColorTempl ct(type,Size(w,h),hlen,1.0);
-      vector<float> test_hist;
+      for(;startx[type][hlen] >= 0.0;hlen++); //find the number of sub-histograms that compose this object
+      ColorTempl ct(type,Size(w,h),hlen,1.0);  //Instantiate a color template
+      vector<float> test_hist;  //This will store one of "hlen" sub-histograms
       for(int i = 0; i<hlen; ++i)
         {
-          Point hstart = Point(start_roi.x + (int)(w*startx[i] + 0.5),
-                               (start_roi.y + (int)(h*starty[i]+ 0.5)));
-          Point hend = Point(start_roi.x + (int)(w*endx[i] + 0.5),
-                             (start_roi.y + (int)(h*endy[i]+ 0.5)));
-          calc_hist(colorOrd, hstart, hend, test_hist);
+          Point hstart = Point(start_pt.x + (int)(w*startx[type][i] + 0.5),
+                               (start_pt.y + (int)(h*starty[type][i]+ 0.5)));
+          Point hend = Point(start_pt.x + (int)(w*endx[type][i] + 0.5),
+                             (start_pt.y + (int)(h*endy[type][i]+ 0.5)));
+          calc_hist(colorOrd, hstart, hend, test_hist, Mask, skipx, skipy);
           ct.hists[i].push_back(test_hist);
         }
       //Score the collected histograms against our internal template
@@ -499,8 +524,127 @@ static float endy [3][16] =
     }
 
     /**
-     * float match_templates(const ColorTempl &ct)
-     * @brief match a template against an existing template.
+     * void learn(const Mat &colorOrd, const Mat &Mask, Point start_pt = Point(0,0), Point stop_pt = Point(0,0),  int skipx = 1, int skipy = 1)
+     *
+     * Learn (fill) this object's hists, weights, template_size according to type.
+     * You can use a Mask or an ROI or both but at least one of Mask or ROI must be set.
+     * This method will clear out any old values in the ColorTempl and fill in new ones.
+     *
+     * @param colorOrd  Coded color image output from ColorMod
+     * @param Mask      If mask not empty, use it
+     * @param start_pt, stop_pt If these are set, use them, else calculate from the mask
+     * @param skipx, skipy Number of points to skip when computing hist. DEFAULT is 1 (no skip)
+     */
+    void learn(const Mat &colorOrd, const Mat &Mask,
+               Point start_pt = Point(0,0), Point stop_pt = Point(0,0),
+               int skipx = 1, int skipy = 1)
+    {
+      //INPUT CHECKS
+      if(0 >= skipx) skipx = 1; if(0 >= skipy) skipy = 1;
+      if(stop)
+      if ((type < 1)||(type > max_hist_types))
+          {
+            throw std::runtime_error("ERROR: bad hist type ColorTempl::learn");
+          }
+      if (colorOrd.channels() != 1)
+        {
+          throw std::runtime_error("ERROR: colorOrd channels != 1 in ColorTempl::learn");
+        }
+      if (colorOrd.type() != CV_8UC1)
+        {
+          throw std::runtime_error("ERROR: colorOrd is not of type CV_8UC1 in ColorTempl::learn");
+        }
+      if (!Mask.empty())
+        {
+          if(colorOrd.size() != Mask.size())
+            {
+              throw std::runtime_error("ERROR colorOrd and Mask were not the same size in ColorTempl::learn");
+            }
+          if(Mask.channels() != 1)
+            {
+              throw std::runtime_error("ERROR: Mask channels != 1 in ColorTempl::learn");
+            }
+        }
+     //COMPUTE ROI FROM MASK IF NOT GIVEN
+      if(0 == stop_pt.y) //Need to compute roi from mask
+        {
+          if(Mask.empty())
+            throw std::runtime_error("ERROR: neither Mask nore start_pt, stop_pt are set in ColorTempl::learn");
+          //Find the bounding box of the template
+          int cY = -1, cYend = 0, minx = Mask.cols, maxx = 0;
+          for (int y = 0; y < Mask.rows; y++)
+            {
+              const uchar *m = Mask.ptr<uchar> (y);
+              for (int x = 0; x < Mask.cols; x++, m++)
+                {
+                  if (*m)
+                    {
+                      if (cY < 0)
+                        cY = y; //Mark the upper left corner, we'll need it for offsets below
+                      cYend = y;
+                      if (minx > x)
+                        minx = x;
+                      if(maxx < x) maxx = x;
+                      for(;x < Mask.cols; x++, m++)
+                        {
+                          if(*m)
+                            {
+                              if(maxx < x)
+                                maxx = x;
+                            }
+                        }
+                      break;
+                    }
+                }
+            }
+          start_pt = Point(minx,cY);
+          stop_pt = Point(maxx,Yend);
+        }
+      else //ADJUST ROI TO BE INBOUNDS
+        {
+          Point start, stop;
+          //Verify/set bounds, keep them in range
+          int rows = colorOrd.rows, cols = colorOrd.cols;
+          if((start_pt.x < 0)||(start_pt.x >= cols)) start_pt.x = 0;
+          if((start_pt.y < 0)||(start_pt.y >= rows)) start_pt.y = 0;
+          if(stop_pt.x >= cols) stop_pt.x = cols - 1;
+          if(stop_pt.y >= rows) stop_pt.y = rows - 1;
+        }
+      //COMPUTE HISTOGRAMS
+      float w = (float)(stop_pt.x - start_pt.x); //Adjusted width and height of our hist roi
+      float h = (float)(stop_pt.y - start_pt.y);
+      int hindx = 0;
+      int hlen = 0;
+      for(;startx[type][hlen] >= 0.0;hlen++); //find the number of sub-histograms that compose this object
+      clear(type);  //Reset all values except for type
+      hists.resize(hlen); //Make room for hlen hists
+      template_size = Size((int)w, (int)h);
+      vector<float> test_hist;  //This will store one of "hlen" sub-histograms
+      vector<int> num_pts;
+      float N,Ntot = 0;
+      for(int i = 0; i<hlen; ++i)
+        {
+          Point hstart = Point(start_pt.x + (int)(w*startx[type][i] + 0.5),
+                               (start_pt.y + (int)(h*starty[type][i]+ 0.5)));
+          Point hend = Point(start_pt.x + (int)(w*endx[type][i] + 0.5),
+                             (start_pt.y + (int)(h*endy[type][i]+ 0.5)));
+          N = (float)calc_hist(colorOrd, hstart, hend, test_hist, Mask, skipx, skipy);
+          Ntot += N;
+          weights.push_back(N);
+          hists[i].push_back(test_hist);
+        }
+      if(Ntot == 0.0) Ntot = 1.0;
+      else Ntot = 1.0/Ntot;
+      std::transform(weights.begin(), weights.end(), weights.begin(),
+                     std::bind1st(std::multiplies<T>(),Ntot)); //normalize weights
+    }
+
+
+    /**
+     * float match_templates(const ColorTempl &ct, int equal_wtd = 0)
+     *
+     * @brief match a template against an existing template. Use this to see if we should accept it for learning
+     *
      * @param ct  Template to be matched against this one
      * @param equal_wtd  If set, average the ct weight with this template's weight. Default: 0
      * @return matching score.  1.0 is perfect, 0 is total miss
@@ -530,93 +674,42 @@ static float endy [3][16] =
       return score;
     }
 
-    void clear()
+    void clear(int type_set = 0)
     {
       hists.clear();
       weights.clear();
       template_size = Size(0,0);
-      type = 0;
+      type = type_set;
     }
 
   };
   /////////////////////////////////////////////////////////////////////////////
   /**
+   * ColorTemplCalc
+   *
    * Calculate a color template
    * Note that the template starts from the upper left corner of the bounding box of the mask
    */
   struct ColorTemplCalc
   {
     /**
-     * learn_a_template(const Mat &Icolorord, const Mat &Mask, ColorTempl &ct)
-     * @param Icolorord  Image from computeColorOrder
-     * @param Mask       This should be the mask you want to collect, it should not conflict
-     *                   with prior masking of Icolorord (such as masking depth or plannar out).
-     * @param ct         The return template
+     * void learn_a_template(const Mat &colorOrd, ColorTempl &ct,const Mat &Mask, Point start_pt = Point(0,0), Point stop_pt = Point(0,0))
+     *
+     * Learn (fill) ColorTempl's hists, weights, template_size according to type.
+     * You can use a Mask or an ROI or both, but at least one of Mask or ROI must be set
+     * The ColorTempl ct will be cleared and reset according to type
+     * skipx and skipy will set the sampling of colors.
+     *
+     * @param colorOrd  Image from computeColorOrder
+     * @param ct         The return template. It will take hist_type from this class's settings
+     * @param Mask       This should be the mask you want to collect, but you can use an ROI instead.
+     * @param start_pt, stop_pt If these are set, use them, else calculate them from the mask
      */
-    void learn_a_template(const Mat &Icolorord, const Mat &Mask, ColorTempl &ct)
+    void learn_a_template(const Mat &colorOrd, ColorTempl &ct,const Mat &Mask,
+                          Point start_pt = Point(0,0), Point stop_pt = Point(0,0))
     {
-      ct.clear();
-      if (Icolorord.size() != Mask.size())
-        {
-          throw std::runtime_error("ERROR Icolorord and Mask were not the same size in ColorTemplCalc");
-        }
-
-      if ((Icolorord.channels() != Mask.channels()) && (Mask.channels() != 1))
-        {
-          throw std::runtime_error("ERROR: channels missmatch or != 1 in ColorTemplCalc");
-        }
-      if ((Icolorord.type() != CV_8UC1) || (Mask.type() != CV_8UC1))
-        {
-          throw std::runtime_error("ERROR: Icolorord and/or Mask is not of type CV_8UC1 in ColorTemplCalc");
-        }
-      //Find the bounding box of the template
-      int cY = -1, cYend, minx = Mask.cols;
-      vector<int> cX;
-      for (int y = 0; y < Mask.rows; y++)
-        {
-          const uchar *m = Mask.ptr<uchar> (y);
-          for (int x = 0; x < Mask.cols; x++, m++)
-            {
-              if (*m)
-                {
-                  if (cY < 0)
-                    cY = y; //Mark the upper left corner, we'll need it for offsets below
-                  cYend = y;
-                  cX.push_back(x);
-                  if (minx > x)
-                    minx = x;
-//                  while(*m && (x < Icolorord.cols)) //Go across the rest of the mask
-//                    {
-//                      m++, x++;
-//                    }
-//                  eX.push_back(x-1)
-                  break;
-                }
-            }
-        }
-
-      //Fill the template
-      int Maxx = minx;
-      int Maxy = 0;
-      for (int y = cY; y < cYend; y += skipy)
-        {
-          const uchar *m = Mask.ptr<uchar> (y);
-          const uchar *o = Icolorord.ptr<uchar> (y);
-          for (int x = cX[y - cY]; x < Icolorord.cols; x += skipx, m += skipx, o
-              += skipx)
-            {
-              if (*m)
-                {
-                  ct.coded_color.push_back(*o);
-                  ct.offsets.push_back(Point(x - minx, y - cY));
-                  if (Maxx < x)
-                    Maxx = x;
-                  if (Maxy < y)
-                    Maxy = y;
-                }
-            }
-        }
-      ct.template_size = Size(Maxx - minx, Maxy - cY); //bounding box of the actual touched points in the mask
+      ct.type = hist_type;
+      ct.learn(colorOrd, Mask, start_pt, stop_pt, skipx, skipy);
     }
 
     //Virtual functs
@@ -639,11 +732,12 @@ static float endy [3][16] =
     static void declare_io(const tendrils& params, tendrils& inputs,
                            tendrils& outputs)
     {
-      inputs.declare<cv::Mat> ("image",
+      inputs.declare<cv::Mat> ("colorord",
                                "A color coded template from the ColorMod module");
-      inputs.declare<cv::Mat> ("mask", "A mask of the object");
-      outputs.declare<ColorTempl> ("output",
-                                   "A color template of type ColorTempl.");
+      inputs.declare<cv::Mat> ("mask", "A mask of the object, optional");
+      inputs.declare<cv::Point> ("start_pt", "Optional upper left corner of an ROI", cv::Point(0,0));
+      inputs.declare<cv::Point> ("stop_pt", "Optional lower right corner of an ROI", cv::Point(0,0));
+      outputs.declare<ColorTempl> ("output","A color template of type ColorTempl.");
     }
 
     void configure(tendrils& params)
@@ -655,10 +749,12 @@ static float endy [3][16] =
 
     int process(const tendrils& inputs, tendrils& outputs)
     {
-      const Mat &image = inputs.get<cv::Mat> ("image");
+      const Mat &colorord = inputs.get<cv::Mat> ("colorord");
       const Mat &mask = inputs.get<cv::Mat> ("mask");
-      ColorTempl &output = outputs.get<ColorTempl> ("output");
-      learn_a_template(image, mask, output);
+      Point start_pt = inputs.get<cv::Point> ("start_pt");
+      Point stop_pt = inputs.get<cv::Point> ("stop_pt");
+      ColorTempl &ct = outputs.get<ColorTempl> ("colortempl");
+      learn_a_template(colorord, ct, mask, start_pt, stop_pt);
       return 0;
     }
     //settable
@@ -785,121 +881,312 @@ static float endy [3][16] =
 //
 //  };
 
-  ///////////////////////////////////////////////////////////////////////////////////
   /**
-   * Collect templates into a model
+   * colortree
+   *
+   * Class for growing a ColorTempl matching tree.
+   * ToDo: Add serialization
    */
-  struct ColorTemplCalc
-  {
-    void learn_a_template(const Mat &Icolorord, const Mat &Mask, ColorTempl &ct)
-    {
-      ct.clear();
-      if (Icolorord.size() != Mask.size())
-        {
-          throw std::runtime_error(
-                                   "ERROR Icolorord and Mask were not the same size in ColorTemplCalc");
-          return;
-        }
+ struct colortree
+ {
+    vector<ColorTempl>  colortempls;
+    vector<colortree>   colortrees;
 
-      if ((Icolorord.channels() != Mask.channels()) && (Mask.channels() != 1))
+    float threshold;             //Match threshold this level
+    float fract_thresh_incr;     //Fraction threshold should increase over levels
+    int level, maxlevel;         //This level, the maximum allowed level (leaf level).
+    colortree(float t, float frac, int l, int maxl) { threshold = t; fract_thresh_incr = frac;
+              level = l; maxlevel = maxl;}
+    colortree(): threshold(0.7), fract_thresh_incr(0.2), level(0), maxlevel(3){}
+    /**
+     * float match_level(const ColorTempl &ct, int &best_index)
+     *
+     * Find the score and index of the best match on this level.
+     *
+     * @param ct  ColorTempl to be matched this level
+     * @param best_index returns index of best match;
+     * @return Best matching score at this level. -1 => no match found
+     */
+    float match_level(const ColorTempl &ct, int &best_index)
+    {
+      int len = (int)colortempls.size();
+      if (0 == len) -1.0;
+      float max_match = -1.0;
+      best_match = 0;
+
+      for(int i = 0; i<len; ++i)
         {
-          throw std::runtime_error(
-                                   "ERROR: channels missmatch or != 1 in ColorTemplCalc");
-          return;
-        }
-      if ((Icolorord.type() != CV_8UC1) || (Mask.type() != CV_8UC1))
-        {
-          throw std::runtime_error(
-                                   "ERROR: Icolorord and/or Mask is not of type CV_8UC1 in ColorTemplCalc");
-          return;
-        }
-      //Find upperleft corner of mask
-      int cY = 0, cYend, minx = Mask.cols;
-      vector<int> cX;
-      for (int y = 0; y < Mask.rows; y++)
-        {
-          const uchar *m = Mask.ptr<uchar> (y);
-          for (int x = 0; x < Mask.cols; x++, m++)
+          float match = colortempls[i].match_templates(ct,1);
+          if(match > max_match)
             {
-              if (*m)
-                {
-                  if (!cY)
-                    cY = y; //Mark the upper left corner, we'll need it for offsets below
-                  cYend = y;
-                  cX.push_back(x);
-                  if (minx > x)
-                    minx = x;
-                  break;
-                }
+              max_match = match;
+              best_match = i;
             }
         }
-
-      //Log the template
-      int Maxx = minx;
-      int Maxy = 0;
-      for (int y = cY; y < cYend; y += skipy)
+      return max_match;
+    }
+    /**
+     * float match(const ColorTempl &ct)
+     *
+     * Return the best match of a ColorTempl with the stored models here. -1 => no match found
+     *
+     * @param ct ColorTempl to be matched
+     * @return best match score [0,1] or -1 => no match found
+     */
+    float match(const ColorTempl &ct)
+    {
+      int index;
+      float mymatch = match_level(ct,index);
+      if(mymatch < 0.0) return mymatch;
+      if(level == maxlevel) return mymatch;
+      return(colortrees[index].match(ct));
+    }
+    /**
+     * int insert(const ColorTempl &ct, int &level, int &index)
+     *
+     * insert a color template into the match tree. Sets the level and index of the return,
+     * Returns how many colortempls are at that leaf
+     *
+     * @param ct      ColorTempl to be insterted
+     * @param lev   Set this with the final level
+     * @param index   Set this with the final index
+     * @return  Total number of cts on this leaf
+     */
+    int insert(const ColorTempl &ct, int &lev, int &index)
+    {
+      if(level == maxlevel)
         {
-          const uchar *m = Mask.ptr<uchar> (y);
-          const uchar *o = Icolorord.ptr<uchar> (y);
-          for (int x = cX[y - cY]; x < Icolorord.cols; x += skipx, m += skipx, o
-              += skipx)
-            {
-              if (*m)
-                {
-                  ct.coded_color.push_back(*o);
-                  ct.offsets.push_back(Point(x - minx, y - cY));
-                  if (Maxx < x)
-                    Maxx = x;
-                  if (Maxy < y)
-                    Maxy = y;
-                }
-            }
+          colortempls.push_back(ct); //The insertion event
+          int len = (int)colortempls.size();
+          index = len-1;
+          lev = level;
+          return len;
         }
-      ct.template_size = Size(Maxx - minx, Maxy - cY); //bounding box of the actual touched points in the mask
+      int len;
+      float score = match_level(ct,index);
+      if(score > threshold) // We found a tree to go down
+        {
+          return(colortrees[index].insert(ct,lev,index));
+        }
+      else //No score good enough
+        {
+          colortempls.push_back(ct); //New tree stump matcher
+          len = (int)colortempls.size(); //New length
+          colortree cotree((1.0 - threshold)*fract_thresh_incr + threshold,
+                            fract_thresh_incr, level+1, maxlevel);
+          colortrees.push_back(cotree);
+          return(colortrees[len-1].insert(ct,lev,index));
+        }
     }
-
-    //Virtual functs
-    static void declare_params(tendrils& p)
+    /**
+     * coutstats()
+     *
+     * Just print out level, size and threshold. Returns how many colortempls there are
+     */
+    int coutstats(int detail = 0)
     {
-      p.declare<int> (
-                      "skipx",
-                      "Skip every skipx point in the x direction when collecting a template.",
-                      5);
-      p.declare<int> (
-                      "skipy",
-                      "Skip every skipy point in the y direction when collecting a template.t",
-                      5);
+      int len = (int)colortempls.size();
+      if(detail)
+        cout << "level " << level << " has " << len << " members. Thresh = " << threshold << endl;
+      return len;
     }
-
-    static void declare_io(const tendrils& params, tendrils& inputs,
-                           tendrils& outputs)
+    /**
+     * int report(int detail = 0)
+     *
+     * Do a breadth first report on what is in this recognition tree
+     *
+     * @param detail If set, print out level, len, thresholds, else (default) just give the sum of elements
+     * @return sum of all the elements
+     */
+    int report(int detail = 0)
     {
-      inputs.declare<cv::Mat> ("image",
-                               "A color coded template from the ColorMod module");
-      inputs.declare<cv::Mat> ("mask", "A mask of the object");
-      outputs.declare<ColorTempl> ("output",
-                                   "A color template of type ColorTempl.");
+      int sum = 0;
+      deque<colortree> Q;
+      Q.push_front(*this); //Enque the top of the tree;
+      while(!Q.empty())
+        {
+          colortree &cotree = Q.back(); //work on the last element
+          sum += cotree.coutstats(detail);     //print out its stats
+          int len = (int)(cotree.colortrees.size()); //Note that there are no trees on the bottom level
+          for(int i = 0; i<len; ++i)
+            Q.push_front(cotree.colortrees[i]); //Enque all the direct children colortrees
+          Q.pop_back(); //Deque this node
+        }
+      cout << "Total number of elements in tree = " << sum << endl;
+      return sum;
     }
-
-    void configure(tendrils& params)
+    /**
+     * int clear()
+     *
+     * Clear colortree of all its data. WARNING: This kills the whole tree
+     *
+     */
+    void clear()
     {
-      skipx = params.get<int> ("skipx");
-      skipy = params.get<int> ("skipy");
+      colortempls.clear();
+      colortrees.clear();
+      threshold = 0.7; fract_thresh_incr = 0.2; level = 0; maxlevel = 3;
     }
-
-    int process(const tendrils& inputs, tendrils& outputs)
+    /**
+     * void set(float t, float frac, int maxl)
+     *
+     * Clear out the color tree and set threshold, fract_thresh_incr, maxlevel
+     *
+     * @param t       threshold
+     * @param frac    fract_thresh_incr
+     * @param maxl
+     */
+    void set(float t, float frac, int maxl)
     {
-      const Mat &image = inputs.get<cv::Mat> ("image");
-      const Mat &mask = inputs.get<cv::Mat> ("mask");
-      ColorTempl &output = outputs.get<ColorTempl> ("output");
-      learn_a_template(image, mask, output);
-      return 0;
+      clear();
+      threshold = t;
+      fract_thresh_incr = frac;
+      level = 0;
+      maxlevel = maxl;
     }
-    //settable
-    float accept_threshold
-    int filter1debug2Collect0; //Turn on
+ };
 
-  };
+ /**
+  * TrainColorTempl
+  *
+  * This class learns color templates into a colortree structure "ctree". It only learns a new
+  * template if no existing template matches the new ColorTempl structure better than acceptance_threshold.
+  *
+  */
+ struct TrainColorTempl
+ {
+   float acceptance_threshold;  //Only learn a new ColorTempl if it has no match better than this
+   colortree ctree;             //Color tree matching structure which holds our model for this object
+   float threshold;             //Match threshold for colortree at top (really just to set ctree)
+   float fract_thresh_incr;     //Fraction match threshold should increase over levels (really just to set ctree)
+   int maxlevel;                //The maximum allowed level (leaf level). (really just to set ctree)
+
+   /**
+    * int add_a_template(const ColorTempl &ct, colortree *c_tree)
+    *
+    * Add a template to the colortree structure no other template there
+    * matches it above acceptance_threshold.
+    *
+    * @param ct
+    * @param c_tree
+    * @return  1=> template was inserted. 0 it was not inserted because existing templates are close
+    */
+   int add_a_template(const ColorTempl &ct, colortree *c_tree)
+   {
+     int inserted = 0;
+     float score = ctree.match(ct);
+     if(score < acceptance_threshold)
+       {
+         int lev, index;
+         ctree.insert(ct, lev, index);
+         inserted = 1;
+       }
+     *c_tree = &ctree;
+     return inserted;
+   }
+
+   /**
+    * int reset()
+    *
+    * Clears out the existing model (if any) and returns how large that model was that is now clear.
+    * Initializes top level number to be 0.
+    *
+    * @return How large the deleted colortree was.
+    */
+   int reset()
+   {
+     int csize = ctree.coutstats();
+     ctree.set(threshold, fract_thresh_incr, maxlevel);
+     return csize;
+   }
+
+   //Virtual functs
+   static void declare_params(tendrils& p)
+   {
+     p.declare<float> (
+                     "acceptance_threshold",
+                     "Only learn a new template if the best existing template's match is below acceptance_threshold.",
+                     0.85);
+//Check: Do threshold, fract_thresh_incr and maxlevel have to be declared here?
+   }
+
+   static void declare_io(const tendrils& params, tendrils& inputs,
+                          tendrils& outputs)
+   { //Check: Do the above params have to be declared here?  Or is this just for the data in the graph?
+     inputs.declare<ColorTempl> ("colortempl","Input a ColorTempl histogram");
+     outputs.declare<colortree *> ("output","A pointer to the trained colortree"); //Check: How to output ctree
+   }
+
+   void configure(tendrils& params)
+   {
+     acceptance_threshold = params.get<float> ("acceptance_threshold");
+     if(!ctree.coutstats())
+       {
+         threshold = params.get<float> ("threshold");
+         fract_thresh_incr = params.get<float> ("fract_thresh_incr");
+         maxlevel = params.get<int> ("maxlevel");
+         reset(); //clears then sets: ctree.set(threshold, fract_thresh_incr, maxlevel);
+       }
+   }
+
+   int process(const tendrils& inputs, tendrils& outputs)
+   {
+     const ColorTempl &ct = inputs.get<ColorTempl> ("colortempl");
+     colortree *c_tree = outputs.get<colortree> ("output"); //Check: Is this is messed up? don't know how to do it
+     add_a_template(ct,c_tree);
+     return 0;
+   }
+   //settable
+   float acceptance_threshold;  //Only learn a new ColorTempl if it has no match better than this
+   //member variables
+   colortree ctree;             //Color tree matching structure which holds our model for this object
+   float threshold;             //Match threshold for colortree at top
+   float fract_thresh_incr;     //Fraction match threshold should increase over levels
+   int maxlevel;                //The maximum allowed level (leaf level).
+
+ };
+
+
+
+ struct TestColorTempl
+ {
+   float test(const ColorTempl &ct, colortree *c_tree, float &score)
+   {
+     score = ctree.match(ct);
+     c_tree = &ctree;
+     return score;
+   }
+
+   //Virtual functs
+   static void declare_params(tendrils& p)
+   { //We have no parameters
+   }
+
+   static void declare_io(const tendrils& params, tendrils& inputs,
+                          tendrils& outputs)
+   { //Check: Do the above params have to be declared here?  Or is this just for the data in the graph?
+     inputs.declare<ColorTempml> ("colortempl","Input a ColorTempl histogram");
+     outputs.declare<colortree *> ("output","A pointer to the trained colortree"); //Check: How to output ctree
+     outputs.declare<float> ("score","The matching score to the input ColorTempls,"
+   }
+
+   void configure(tendrils& params)
+   {
+   }
+
+   int process(const tendrils& inputs, tendrils& outputs)
+   {
+     const ColorTempl &ct = inputs.get<ColorTempl> ("colortempl");
+     colortree *c_tree = outputs.get<colortree> ("output"); //Check: Is this is messed up? don't know how to do it
+     float score = outputs.get<float> ("score");
+     test(ct,c_tree,score);
+     return 0;
+   }
+   //settable
+   //member variables
+ };
+
+
 
 
   ///////////////////////////////////////////////////////////////////////////////////
@@ -915,14 +1202,14 @@ static float endy [3][16] =
      * @param Iout is the color coded debug image
      */
     void idealize_colors(cv::Mat Iin, cv::Mat& Iout)
-    {
+    {mask
       //decode binary images here:
       GaussianBlur(Iin, Iin, Size(5, 5), 2, 2);
       if (Iin.size() != Iout.size() || Iout.type() != CV_8UC3) //Make sure Iout is the right size and type
         {
           Iout.create(Iin.size(), CV_8UC3);
         }
-      if (Iin.type() != CV_8UC1) //Check, return or not?
+      if (Iin.type() != CV_8UC1)
         {
           throw std::runtime_error(
                                    "ERROR: Iin is not of type CV_8UC1 in idealize_colors");
@@ -1020,6 +1307,8 @@ static float endy [3][16] =
       return 0;
     }
   };
+
+
 }
 
 BOOST_PYTHON_MODULE(line_mod)
@@ -1028,4 +1317,5 @@ BOOST_PYTHON_MODULE(line_mod)
   ecto::wrap<ColorMod>("ColorMod");
   ecto::wrap<ColorDebug>("ColorDebug");
   ecto::wrap<ColorTemplCalc>("ColorTemplCalc");
+  ecto::wrap<TrainColorTempl>("TrainColorTempl");
 }
