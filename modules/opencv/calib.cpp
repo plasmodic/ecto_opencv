@@ -393,10 +393,11 @@ struct PoseDrawer
     string scaleText = "scale 0.25 meters";
     int baseline = 0;
     Size sz = getTextSize(scaleText, CV_FONT_HERSHEY_SIMPLEX, 1, 1, &baseline);
-    rectangle(drawImage, Point(10, 30 + 5),
-              Point(10, 30) + Point(sz.width, -sz.height - 5), Scalar::all(0),
+    Point box_origin(10, drawImage.size().height - 10);
+    rectangle(drawImage, box_origin + Point(0,5),
+              box_origin + Point(sz.width, -sz.height - 5), Scalar::all(0),
               -1);
-    putText(drawImage, scaleText, Point(10, 30), CV_FONT_HERSHEY_SIMPLEX, 1.0,
+    putText(drawImage, scaleText, box_origin, CV_FONT_HERSHEY_SIMPLEX, 1.0,
             c[0], 1, CV_AA, false);
     putText(drawImage, "Z", ip[3], CV_FONT_HERSHEY_SIMPLEX, 1.0, c[3], 1,
             CV_AA, false);
