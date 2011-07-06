@@ -22,10 +22,15 @@ class PoseFromFiducial(ecto.BlackBox):
                                                      rows=rows, cols=cols)
             self.circle_display = highgui.imshow('Pattern show',
                                                  name='Pattern', 
-                                                 waitKey=2, maximize=True)
+                                                 waitKey=2, autoSize=True)
             self.pose_draw = calib.PoseDrawer('Pose Draw')
 
     def expose_outputs(self):
+        return {
+                'R': self.pose_calc['R'],
+                'T': self.pose_calc['T'],
+               }
+    def expose_inputs(self):
         return {
                 'image': self.video_cap[:],
                }

@@ -6,7 +6,7 @@ from example_08 import PoseFromFiducial
 #lil bit of ros
 PKG = 'ecto_ros' # this package name
 import roslib; roslib.load_manifest(PKG)
-import ecto_ros, ecto_sensor_msgs
+import ecto_ros, ecto_sensor_msgs, ecto_geometry_msgs
 import sys
 if "__main__" == __name__:
   ecto_ros.init(sys.argv,"pose_estimator")
@@ -25,12 +25,15 @@ if "__main__" == __name__:
                                         pattern_type="acircles",
                                         square_size=0.03, debug=debug)
 
-  sub_rgb = ecto_sensor_msgs.Subscriber_Image("image_sub",topic_name='image')
-  im2mat_rgb = ecto_ros.Image2Mat("Image -> cv::Mat")
-  
+  sub_rgb = ecto_sensor_msgs.Subscriber_Image('Image sub',topic_name='image')
+  im2mat_rgb = ecto_ros.Image2Mat('Image -> cv::Mat')
+  pose_gen = ecto_ros.RT2PoseStamped('R,T -> PoseStamped',frame_id='/openni_rgb_optical_frame')
+  pose_pub = ecto_geometry_msgs.Publisher_PoseStamped('Pose Pub',topic_name='dot_pose')
   plasm.connect(
                 sub_rgb["output"]>>im2mat_rgb["image"],
                 im2mat_rgb["image"] >> pose_from_fiducial['image'],
+                pose_from_fiducial["R","T"] >> pose_gen["R","T"],
+                pose_gen['pose'] >> pose_pub[:]
                 )
                 
   ecto.view_plasm(plasm)
