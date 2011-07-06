@@ -238,6 +238,7 @@ struct imshow
                          "Number of millis to wait, -1 for not at all, 0 for infinity.",
                          -1);
     params.declare<bool> ("autoSize", "Autosize the window.", true);
+    params.declare<bool> ("maximize", "Fullscreen the window, takes precedence over autoSize.", false);
   }
 
   static void declare_io(const tendrils& params, tendrils& inputs,
@@ -252,6 +253,7 @@ struct imshow
     window_name_ = params.get<std::string> ("name");
     waitkey_ = params.get<int> ("waitKey");
     auto_size_ = params.get<bool> ("autoSize");
+    full_screen_ = params.at("maximize");
   }
 
   int process(const tendrils& inputs, tendrils& outputs)
@@ -263,7 +265,12 @@ struct imshow
       return 0;
       //throw std::logic_error("empty image!");
     }
-    if (auto_size_)
+    if(full_screen_())
+    {
+      std::cout << "Fullscreen." << std::endl;
+      cv::namedWindow(window_name_, CV_WINDOW_FULLSCREEN);
+    }
+    else if (auto_size_)
     {
       cv::namedWindow(window_name_, CV_WINDOW_KEEPRATIO);
     }
@@ -304,6 +311,7 @@ struct imshow
   std::string window_name_;
   int waitkey_;
   bool auto_size_;
+  ecto::spore<bool> full_screen_;
 };
 
 struct FPSDrawer
