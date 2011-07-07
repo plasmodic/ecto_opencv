@@ -1,4 +1,5 @@
 #include <ecto/ecto.hpp>
+#include <ecto/spore.hpp>
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/features2d/features2d.hpp>
@@ -6,18 +7,26 @@
 #include <deque>
 #include <numeric> //for inner_product
 #include <functional> //for inner product
-#include <flann.hpp>
+#include <opencv2/flann/flann.hpp>
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/serialization/vector.hpp>
+#include <fstream>
+
 
 using ecto::tendrils;
 using namespace cv;
 using namespace std;
+
+namespace boost {
+namespace serialization {
 
 /* BOILER_PLATE_MODULE
  struct MyModule
  {
  static void declare_params(tendrils& params);
  static void declare_io(const tendrils& params, tendrils& in, tendrils& out);
- void configure(tendrils& params);
+ void configure(tendrils& params, tendrils& in, tendrils& out);
  int process(const tendrils& in, tendrils& out);
  };
  */
@@ -242,7 +251,7 @@ namespace line_mod
        outputs.declare<cv::Mat> ("output", "A binarized color image.");
      }
 
-     void configure(tendrils& params)
+     void configure(tendrils& params, tendrils& in, tendrils& out)
      {
        gsize = params.get<int> ("gsize");
        gsig = params.get<double> ("gsig");
@@ -382,6 +391,19 @@ static float endy [3][16] =
     std::vector<vector<float> > hists; //Histograms (each of size 16), L2 normed
     std::vector<float> weights;  //This weights the histograms according to their area in the mask. Sum to 1
     Size template_size;
+
+    friend class boost::serialization::access;
+    template<class Archive>
+    void serialize(Archive & ar, const unsigned int version)
+    {
+        ar & type;
+        ar & template_size.width;
+        ar & template_size.height;
+        ar & hists;
+        ar & weights;
+    }
+
+
     ColorTempl(): type(-1){};
     ColorTempl(int t) { type = t; template_size = Size(0,0);};
     ColorTempl(int t, Size s) { type = t; template_size = s;};
@@ -458,11 +480,11 @@ static float endy [3][16] =
       //L2 norm
       float L2 = 0.0;
       std::vector<float>::iterator it;
-      for(it = hist.begin(); hist != hist.end(); ++it)
+      for(it = hist.begin(); it != hist.end(); ++it)
         L2 = (*it)*(*it);
       L2 = (float)sqrt(L2);
       if(num_pts == 0.0) L2 = 1.0;
-      for(it = hist.begin(); hist != hist.end(); ++it)
+      for(it = hist.begin(); it != hist.end(); ++it)
         *it /= L2; //Normalize it
       //get out
       return (num_pts);
@@ -505,7 +527,7 @@ static float endy [3][16] =
       float w = (float)(stop_pt.x - start_pt.x); //Adjusted width and height of our hist roi
       float h = (float)(stop_pt.y - start_pt.y);
       //Calculate histogram in roi of colorOrd
-      int hindx = 0;
+
       int hlen = 0;
       for(;startx[type][hlen] >= 0.0;hlen++); //find the number of sub-histograms that compose this object
       ColorTempl ct(type,Size(w,h),hlen,1.0);  //Instantiate a color template
@@ -517,10 +539,10 @@ static float endy [3][16] =
           Point hend = Point(start_pt.x + (int)(w*endx[type][i] + 0.5),
                              (start_pt.y + (int)(h*endy[type][i]+ 0.5)));
           calc_hist(colorOrd, hstart, hend, test_hist, Mask, skipx, skipy);
-          ct.hists[i].push_back(test_hist);
+          ct.hists.push_back(test_hist);
         }
       //Score the collected histograms against our internal template
-      float score = match_templates(ct);
+      return( match_templates(ct));
     }
 
     /**
@@ -541,7 +563,7 @@ static float endy [3][16] =
     {
       //INPUT CHECKS
       if(0 >= skipx) skipx = 1; if(0 >= skipy) skipy = 1;
-      if(stop)
+      if((stop_pt.x <= 0)||(stop_pt.y <= 0))
       if ((type < 1)||(type > max_hist_types))
           {
             throw std::runtime_error("ERROR: bad hist type ColorTempl::learn");
@@ -598,7 +620,7 @@ static float endy [3][16] =
                 }
             }
           start_pt = Point(minx,cY);
-          stop_pt = Point(maxx,Yend);
+          stop_pt = Point(maxx,cYend);
         }
       else //ADJUST ROI TO BE INBOUNDS
         {
@@ -613,7 +635,6 @@ static float endy [3][16] =
       //COMPUTE HISTOGRAMS
       float w = (float)(stop_pt.x - start_pt.x); //Adjusted width and height of our hist roi
       float h = (float)(stop_pt.y - start_pt.y);
-      int hindx = 0;
       int hlen = 0;
       for(;startx[type][hlen] >= 0.0;hlen++); //find the number of sub-histograms that compose this object
       clear(type);  //Reset all values except for type
@@ -631,12 +652,12 @@ static float endy [3][16] =
           N = (float)calc_hist(colorOrd, hstart, hend, test_hist, Mask, skipx, skipy);
           Ntot += N;
           weights.push_back(N);
-          hists[i].push_back(test_hist);
+          hists.push_back(test_hist);
         }
       if(Ntot == 0.0) Ntot = 1.0;
       else Ntot = 1.0/Ntot;
       std::transform(weights.begin(), weights.end(), weights.begin(),
-                     std::bind1st(std::multiplies<T>(),Ntot)); //normalize weights
+                     std::bind1st(std::multiplies<float>(),Ntot)); //normalize weights
     }
 
 
@@ -655,7 +676,7 @@ static float endy [3][16] =
         {
           throw std::runtime_error("ERROR: In ColorTempl, ct.type != type");
         }
-      len = (int)hists.size();
+      int len = (int)hists.size();
       float score = 0.0;
       if(equal_wtd) //Do equal weighting of ct and this template (for template to template compare)
         {
@@ -740,7 +761,7 @@ static float endy [3][16] =
       outputs.declare<ColorTempl> ("output","A color template of type ColorTempl.");
     }
 
-    void configure(tendrils& params)
+    void configure(tendrils& params, tendrils& in, tendrils& out)
     {
       skipx = params.get<int> ("skipx");
       skipy = params.get<int> ("skipy");
@@ -861,7 +882,7 @@ static float endy [3][16] =
 //                                   "A color template of type ColorTempl.");
 //    }
 //
-//    void configure(tendrils& params)
+//    void configure(tendrils& params, tendrils& in, tendrils& out)
 //    {
 //      skipx = params.get<int> ("skipx");
 //      skipy = params.get<int> ("skipy");
@@ -910,9 +931,9 @@ static float endy [3][16] =
     float match_level(const ColorTempl &ct, int &best_index)
     {
       int len = (int)colortempls.size();
-      if (0 == len) -1.0;
+      if (0 == len) return -1.0;
       float max_match = -1.0;
-      best_match = 0;
+      int best_match = 0;
 
       for(int i = 0; i<len; ++i)
         {
@@ -935,7 +956,7 @@ static float endy [3][16] =
      */
     float match(const ColorTempl &ct)
     {
-      int index;
+      int index = 0;
       float mymatch = match_level(ct,index);
       if(mymatch < 0.0) return mymatch;
       if(level == maxlevel) return mymatch;
@@ -1015,6 +1036,22 @@ static float endy [3][16] =
       cout << "Total number of elements in tree = " << sum << endl;
       return sum;
     }
+
+
+    friend class boost::serialization::access;
+    template<class Archive>
+    void serialize(Archive & ar, const unsigned int version)
+    {
+        ar & threshold;
+        ar & fract_thresh_incr;
+        ar & level;
+        ar & maxlevel;
+        ar & colortempls;
+        ar & colortrees;
+    }
+
+
+
     /**
      * int clear()
      *
@@ -1055,11 +1092,7 @@ static float endy [3][16] =
   */
  struct TrainColorTempl
  {
-   float acceptance_threshold;  //Only learn a new ColorTempl if it has no match better than this
-   colortree ctree;             //Color tree matching structure which holds our model for this object
-   float threshold;             //Match threshold for colortree at top (really just to set ctree)
-   float fract_thresh_incr;     //Fraction match threshold should increase over levels (really just to set ctree)
-   int maxlevel;                //The maximum allowed level (leaf level). (really just to set ctree)
+
 
    /**
     * int add_a_template(const ColorTempl &ct, colortree *c_tree)
@@ -1071,7 +1104,7 @@ static float endy [3][16] =
     * @param c_tree
     * @return  1=> template was inserted. 0 it was not inserted because existing templates are close
     */
-   int add_a_template(const ColorTempl &ct, colortree *c_tree)
+   int add_a_template(const ColorTempl &ct)
    {
      int inserted = 0;
      float score = ctree.match(ct);
@@ -1081,7 +1114,6 @@ static float endy [3][16] =
          ctree.insert(ct, lev, index);
          inserted = 1;
        }
-     *c_tree = &ctree;
      return inserted;
    }
 
@@ -1107,33 +1139,49 @@ static float endy [3][16] =
                      "acceptance_threshold",
                      "Only learn a new template if the best existing template's match is below acceptance_threshold.",
                      0.85);
-//Check: Do threshold, fract_thresh_incr and maxlevel have to be declared here?
+     p.declare<string> ("filename","Filename to store colortree 'ctree' to.","ctree.txt");
+     p.declare<float>("threshold",
+                      "Threshold at the root level of the color tree 'ctree'",0.86);
+     p.declare<float>("fract_thresh_incr","Fraction of (1-threshold) to increase threshold at each level in the tree",
+                      0.25);
+     p.declare<int>("maxlevel","Maximum number of levels in the colortree 'ctree'",4);
+     p.declare<bool>("trigger_save","Set true to trigger a persist to disk.",false);
    }
 
    static void declare_io(const tendrils& params, tendrils& inputs,
                           tendrils& outputs)
-   { //Check: Do the above params have to be declared here?  Or is this just for the data in the graph?
+   {
+     //Check: Do the above params have to be declared here?  Or is this just for the data in the graph?
+     //inputs and outputs only here. params may have been set by user.
      inputs.declare<ColorTempl> ("colortempl","Input a ColorTempl histogram");
-     outputs.declare<colortree *> ("output","A pointer to the trained colortree"); //Check: How to output ctree
    }
 
-   void configure(tendrils& params)
+   void trigger_cb(bool /*trigger*/)
+   {
+     //persist the colortree ctree
+     ofstream os(filename.c_str());
+     boost::archive::text_oarchive oar(os);
+     oar << ctree;
+   }
+
+   void configure(tendrils& params, tendrils& in, tendrils& out)
    {
      acceptance_threshold = params.get<float> ("acceptance_threshold");
      if(!ctree.coutstats())
        {
+         filename = params.get<string> ("filename");
          threshold = params.get<float> ("threshold");
          fract_thresh_incr = params.get<float> ("fract_thresh_incr");
          maxlevel = params.get<int> ("maxlevel");
          reset(); //clears then sets: ctree.set(threshold, fract_thresh_incr, maxlevel);
        }
+     params.at("trigger_save")->set_callback<bool>(boost::bind(&TrainColorTempl::trigger_cb,this,_1));
    }
 
    int process(const tendrils& inputs, tendrils& outputs)
    {
      const ColorTempl &ct = inputs.get<ColorTempl> ("colortempl");
-     colortree *c_tree = outputs.get<colortree> ("output"); //Check: Is this is messed up? don't know how to do it
-     add_a_template(ct,c_tree);
+     add_a_template(ct);
      return 0;
    }
    //settable
@@ -1143,6 +1191,7 @@ static float endy [3][16] =
    float threshold;             //Match threshold for colortree at top
    float fract_thresh_incr;     //Fraction match threshold should increase over levels
    int maxlevel;                //The maximum allowed level (leaf level).
+   string filename;             //Filename to store ctree to
 
  };
 
@@ -1150,39 +1199,45 @@ static float endy [3][16] =
 
  struct TestColorTempl
  {
-   float test(const ColorTempl &ct, colortree *c_tree, float &score)
+   float test(const ColorTempl &ct, float &score)
    {
      score = ctree.match(ct);
-     c_tree = &ctree;
      return score;
    }
 
    //Virtual functs
    static void declare_params(tendrils& p)
-   { //We have no parameters
+   {
+     p.declare<string>("filename","Name of colortree file to be read in.","ctree.txt");
    }
 
    static void declare_io(const tendrils& params, tendrils& inputs,
                           tendrils& outputs)
    { //Check: Do the above params have to be declared here?  Or is this just for the data in the graph?
-     inputs.declare<ColorTempml> ("colortempl","Input a ColorTempl histogram");
-     outputs.declare<colortree *> ("output","A pointer to the trained colortree"); //Check: How to output ctree
-     outputs.declare<float> ("score","The matching score to the input ColorTempls,"
+     inputs.declare<ColorTempl> ("colortempl","Input a ColorTempl histogram");
+     outputs.declare<float> ("score", "The matching score to the input ColorTempls");
    }
 
-   void configure(tendrils& params)
+   void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
    {
+     filename = params.get<string> ("filename");
+     ifstream is(filename.c_str());
+     boost::archive::text_iarchive iar(is);
+     iar >> ctree;
+     int len = ctree.coutstats();
+     if(len <= 0)
+       throw std::runtime_error("ERROR: ctree in TestColorTempl.configure is of size zero.");
    }
 
    int process(const tendrils& inputs, tendrils& outputs)
    {
      const ColorTempl &ct = inputs.get<ColorTempl> ("colortempl");
-     colortree *c_tree = outputs.get<colortree> ("output"); //Check: Is this is messed up? don't know how to do it
-     float score = outputs.get<float> ("score");
-     test(ct,c_tree,score);
+     test(ct,outputs.get<float> ("score"));
      return 0;
    }
    //settable
+   colortree ctree;           //Color tree matching structure which holds our model for this object
+   string filename;           //Filename for reading in ctree
    //member variables
  };
 
@@ -1202,7 +1257,7 @@ static float endy [3][16] =
      * @param Iout is the color coded debug image
      */
     void idealize_colors(cv::Mat Iin, cv::Mat& Iout)
-    {mask
+    {
       //decode binary images here:
       GaussianBlur(Iin, Iin, Size(5, 5), 2, 2);
       if (Iin.size() != Iout.size() || Iout.type() != CV_8UC3) //Make sure Iout is the right size and type
@@ -1309,7 +1364,7 @@ static float endy [3][16] =
   };
 
 
-}
+
 
 BOOST_PYTHON_MODULE(line_mod)
 {
@@ -1318,4 +1373,9 @@ BOOST_PYTHON_MODULE(line_mod)
   ecto::wrap<ColorDebug>("ColorDebug");
   ecto::wrap<ColorTemplCalc>("ColorTemplCalc");
   ecto::wrap<TrainColorTempl>("TrainColorTempl");
+  ecto::wrap<TestColorTempl>("TestColorTempl");
 }
+
+} //Namespace linemod
+} // namespace serialization
+} // namespace boost
