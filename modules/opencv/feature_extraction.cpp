@@ -19,145 +19,124 @@
 
 #include "feature_extraction.h"
 
-cv::FeatureDetector* FeatureDescriptorFinder::createDetector(const std::string& extractor_type,
-                                                             const std::map<std::string, double> &params)
+/** Convenience function to create a FeatureDetector from a property tree
+ * @param feature_type anything valid in FeatureDetector
+ * @param params the property tree to parse for parameters
+ * @return
+ */
+cv::FeatureDetector* createDetector(const std::string& feature_type, const boost::property_tree::ptree & params)
 {
-  cv::FeatureDetector* fd = 0;
-  if (!extractor_type.compare("FAST"))
+  if (feature_type == "FAST")
   {
-    if (params.end() != params.find("threshold"))
-      fd = new cv::FastFeatureDetector(params.at("threshold")/*threshold*/, true/*nonmax_suppression*/);
-    else
-      fd = new cv::FastFeatureDetector();
+    return new cv::FastFeatureDetector(params.get<float>("threshold"), true);
   }
-  else if (!extractor_type.compare("STAR"))
+  else if (feature_type == "STAR")
   {
-    if (params.end() != params.find("threshold"))
-      fd = new cv::StarFeatureDetector(16/*max_size*/, (int)params.at("threshold")/*response_threshold*/,
+    return new cv::StarFeatureDetector(16/*max_size*/, params.get<int>("threshold")/*response_threshold*/,
                                        10/*line_threshold_projected*/, 8/*line_threshold_binarized*/,
                                        5/*suppress_nonmax_size*/);
-    else
-      fd = new cv::StarFeatureDetector();
   }
-  else if (!extractor_type.compare("SIFT"))
+  else if (feature_type == "SIFT")
   {
-    fd = new cv::SiftFeatureDetector(cv::SIFT::DetectorParams::GET_DEFAULT_THRESHOLD(),
-                                     cv::SIFT::DetectorParams::GET_DEFAULT_EDGE_THRESHOLD());
+    return new cv::SiftFeatureDetector(cv::SIFT::DetectorParams::GET_DEFAULT_THRESHOLD(),
+                                       cv::SIFT::DetectorParams::GET_DEFAULT_EDGE_THRESHOLD());
   }
-  else if (!extractor_type.compare("SURF"))
+  else if (feature_type == "SURF")
   {
-    float threshold = params.at("threshold");
-
-    fd = new cv::SurfFeatureDetector(threshold/*hessian_threshold*/, 5/*octaves*/, 4/*octave_layers*/);
+    return new cv::SurfFeatureDetector(params.get<float>("threshold")/*hessian_threshold*/, 5/*octaves*/,
+                                       4/*octave_layers*/);
   }
-  else if (!extractor_type.compare("MSER"))
+  else if (feature_type == "MSER")
   {
-    float threshold = params.at("threshold");
-
-    fd = new cv::MserFeatureDetector(5/*delta*/, 60/*min_area*/, 14400/*_max_area*/, 0.25f/*max_variation*/,
-                                     0.2/*min_diversity*/, 200/*max_evolution*/, threshold/*area_threshold*/,
-                                     0.003/*min_margin*/, 5/*edge_blur_size*/);
+    return new cv::MserFeatureDetector(5/*delta*/, 60/*min_area*/, 14400/*_max_area*/, 0.25f/*max_variation*/,
+                                       0.2/*min_diversity*/, 200/*max_evolution*/,
+                                       params.get<float>("threshold")/*area_threshold*/, 0.003/*min_margin*/,
+                                       5/*edge_blur_size*/);
   }
-  else if (!extractor_type.compare("GFTT"))
+  else if (feature_type == "GFTT")
   {
-    float threshold = params.at("threshold");
-
-    fd = new cv::GoodFeaturesToTrackDetector(1000/*maxCorners*/, threshold/*qualityLevel*/, 1./*minDistance*/,
-                                             3/*int _blockSize*/, true/*useHarrisDetector*/, 0.04/*k*/);
+    return new cv::GoodFeaturesToTrackDetector(1000/*maxCorners*/, params.get<float>("threshold")/*qualityLevel*/,
+                                               1./*minDistance*/, 3/*int _blockSize*/, true/*useHarrisDetector*/,
+                                               0.04/*k*/);
   }
-  else if (!extractor_type.compare("ORB"))
+  else if (feature_type == "ORB")
   {
     cv::ORB::CommonParams orb_params;
-    orb_params.n_levels_ = params.at("octaves");
-    orb_params.scale_factor_ = params.at("scale_factor");
+    orb_params.n_levels_ = params.get<int>("octaves");
+    orb_params.scale_factor_ = params.get<float>("scale_factor");
 
-    fd = new cv::OrbFeatureDetector(params.at("n_features"), orb_params);
+    return new cv::OrbFeatureDetector(params.get<unsigned int>("n_features"), orb_params);
   }
   else
     assert(0);
-  return fd;
+  return 0;
 }
 
 FeatureDescriptorFinder* FeatureDescriptorFinder::create(const std::string &json_params)
 {
-  // First, parse the JSON string
+// First, parse the JSON string
   boost::property_tree::ptree params;
   boost::property_tree::read_json(json_params, params);
 
-  std::string descriptor_type = params.get<std::string>("descriptor");
-  std::string feature_type = params.get<std::string>("feature");
   std::string combination_type = params.get<std::string>("combination");
 
-  // Deal with some specific cases of feature/descriptor combination
+// Deal with some specific cases of feature/descriptor combination
   if (combination_type == "ORB")
   {
     cv::ORB::CommonParams orb_params;
     orb_params.scale_factor_ = params.get<float>("feature_params.scale_factor");
     orb_params.n_levels_ = params.get<unsigned int>("feature_params.octaves");
-    return new cv::OrbExtractor(orb_params, params.get<unsigned int>("feature_params.n_features"));
+    return new OrbFeatureDescriptor(orb_params, params.get<unsigned int>("feature_params.n_features"));
+  }
+  else if (combination_type == "SIFT")
+  {
+    cv::SIFT::CommonParams common_params;
+    common_params.angleMode = params.get<float>("feature_params.angleMode");
+    common_params.firstOctave = params.get<float>("feature_params.firstOctave");
+    common_params.nOctaveLayers = params.get<float>("feature_params.nOctavesLayers");
+    common_params.nOctaves = params.get<float>("feature_params.nOctaves");
+
+    cv::SIFT::DetectorParams detector_params;
+    cv::SIFT::DescriptorParams descriptor_params;
+    //TODO
+    return new SiftFeatureDescriptor(common_params, detector_params, descriptor_params);
   }
 
-  FeatureDescriptorFinder* fe = 0;
+// Figure out the feature detector
+  std::string feature_type = params.get<std::string>("feature");
+  boost::property_tree::ptree feature_params = params.get_child("feature_params");
   cv::Ptr<cv::FeatureDetector> detector;
-
-  if (params.detector_type == "DynamicSTAR")
+  if (feature_type == "DynamicSTAR")
   {
-    detector = new cv::DynamicAdaptedFeatureDetector(new cv::StarAdjuster(), params.detector_params.at("min_features"),
-                                                     params.detector_params.at("max_features"), 200);
+    detector = new cv::DynamicAdaptedFeatureDetector(new cv::StarAdjuster(),
+                                                     feature_params.get<unsigned int>("min_features"),
+                                                     feature_params.get<unsigned int>("max_features"), 200);
   }
-  else if (params.detector_type == "DynamicSURF")
-    detector = new cv::DynamicAdaptedFeatureDetector(new cv::SurfAdjuster(), params.detector_params.at("min_features"),
-                                                     params.detector_params.at("max_features"), 200);
+  else if (feature_type == "DynamicSURF")
+    detector = new cv::DynamicAdaptedFeatureDetector(new cv::SurfAdjuster(),
+                                                     feature_params.get<unsigned int>("min_features"),
+                                                     feature_params.get<unsigned int>("max_features"), 200);
   else
-  {
-    FeatureExtractionParams new_params = params;
-    if ((params.descriptor_type == "ORB") && (params.extractor_type == "multi-scale"))
-    {
-      new_params.detector_params.at("octaves") = 1;
-      new_params.detector_params.at("scale_factor") = 1;
-    }
+    detector = createDetector(feature_type, feature_params);
 
-    detector = FeatureDescriptorFinder::createDetector(params.detector_type, new_params.detector_params);
-  }
-
-  // Define the extractor
+// Define the descriptor extractor
+  std::string descriptor_type = params.get<std::string>("descriptor");
+  boost::property_tree::ptree descriptor_params = params.get_child("descriptor_params");
   cv::Ptr<cv::DescriptorExtractor> extractor;
-  if (params.descriptor_type == "ORB")
-  {
-    cv::ORB::CommonParams orb_params;
-    if (params.extractor_type == "multi-scale")
-    {
-      orb_params.n_levels_ = 1;
-      orb_params.scale_factor_ = 1;
-    }
-    else
-    {
-      orb_params.n_levels_ = params.extractor_params.at("octaves");
-      orb_params.scale_factor_ = params.extractor_params.at("scale_factor");
-    }
+  extractor = cv::DescriptorExtractor::create(descriptor_type);
+  if (extractor.empty())
+    throw std::runtime_error("bad extractor");
 
-    extractor = new cv::OrbDescriptorExtractor(orb_params);
-  }
-  else
+// Figure out how to combine features and descriptors
+  if (combination_type == "multiscale")
   {
-    extractor = cv::DescriptorExtractor::create(params.descriptor_type);
-    if (extractor.empty())
-      throw std::runtime_error("bad extractor");
+    boost::property_tree::ptree combination_params = params.get_child("combination_params");
+    return new MultiscaleExtractor(detector, extractor, combination_params.get<unsigned int>("octaves"));
   }
+  else if (combination_type == "sequential")
+    return new SequentialExtractor(detector, extractor);
 
-  if (params.extractor_type == "multi-scale")
-    fe = new MultiscaleExtractor(detector, extractor, params.extractor_params.at("octaves"));
-  else if (params.extractor_type == "sequential")
-    fe = new SequentialExtractor(detector, extractor);
-  else if (params.extractor_type == "ORB")
-  {
-    cv::ORB::CommonParams orb_params;
-    orb_params.scale_factor_ = params.extractor_params.at("scale_factor");
-    orb_params.n_levels_ = params.extractor_params.at("octaves");
-    fe = new OrbExtractor(orb_params, params.detector_params.at("n_features"));
-  }
-
-  return fe;
+  return 0;
 
 }
 
@@ -169,8 +148,8 @@ MultiscaleExtractor::MultiscaleExtractor(const cv::Ptr<cv::FeatureDetector>& d,
 {
 }
 
-void MultiscaleExtractor::detectAndExtract(const cv::Mat & image_in, const cv::Mat & mask_in,
-                                           std::vector<cv::KeyPoint> & keypoints_out, cv::Mat &descriptors_out) const
+void MultiscaleExtractor::detect_and_extract(const cv::Mat & image_in, const cv::Mat & mask_in,
+                                             std::vector<cv::KeyPoint> & keypoints_out, cv::Mat &descriptors_out) const
 {
   int octaves = n_octaves_;
   cv::Mat image = image_in.clone();
@@ -215,16 +194,30 @@ void MultiscaleExtractor::detectAndExtract(const cv::Mat & image_in, const cv::M
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-OrbExtractor::OrbExtractor(cv::ORB::CommonParams params, int n_desired_features) :
-    params_(params), n_desired_features_(n_desired_features)
+OrbFeatureDescriptor::OrbFeatureDescriptor(cv::ORB::CommonParams params, int n_desired_features)
 {
-  orb_ = cv::ORB(n_desired_features_, params);
+  orb_ = cv::ORB(n_desired_features, params);
 }
 
-void OrbExtractor::detectAndExtract(const cv::Mat & image, const cv::Mat & mask, std::vector<cv::KeyPoint> & keypoints,
-                                    cv::Mat &descriptors) const
+void OrbFeatureDescriptor::detect_and_extract(const cv::Mat & image, const cv::Mat & mask,
+                                              std::vector<cv::KeyPoint> & keypoints, cv::Mat &descriptors) const
 {
   orb_(image, mask, keypoints, descriptors);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+SiftFeatureDescriptor::SiftFeatureDescriptor(cv::SIFT::CommonParams common_params,
+                                             cv::SIFT::DetectorParams detector_params,
+                                             cv::SIFT::DescriptorParams descriptor_params)
+{
+  sift_ = cv::SIFT(common_params, detector_params, descriptor_params);
+}
+
+void SiftFeatureDescriptor::detect_and_extract(const cv::Mat & image, const cv::Mat & mask,
+                                               std::vector<cv::KeyPoint> & keypoints, cv::Mat &descriptors) const
+{
+  sift_(image, mask, keypoints, descriptors);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -235,8 +228,8 @@ SequentialExtractor::SequentialExtractor(const cv::Ptr<cv::FeatureDetector>& d,
 {
 
 }
-void SequentialExtractor::detectAndExtract(const cv::Mat & image, const cv::Mat & mask,
-                                           std::vector<cv::KeyPoint> & keypoints, cv::Mat &descriptors) const
+void SequentialExtractor::detect_and_extract(const cv::Mat & image, const cv::Mat & mask,
+                                             std::vector<cv::KeyPoint> & keypoints, cv::Mat &descriptors) const
 {
   detector_->detect(image, keypoints, mask);
   extractor_->compute(image, keypoints, descriptors);
@@ -249,12 +242,12 @@ FileExtractor::FileExtractor(const std::string& f2dname) :
 {
 
 }
-void FileExtractor::detectAndExtract(const cv::Mat & image, const cv::Mat & mask, std::vector<cv::KeyPoint> & keypoints,
-                                     cv::Mat &descriptors) const
+void FileExtractor::detect_and_extract(const cv::Mat & image, const cv::Mat & mask,
+                                       std::vector<cv::KeyPoint> & keypoints, cv::Mat &descriptors) const
 {
   cv::FileStorage fs(f2dname_, cv::FileStorage::READ);
   cv::read(fs["keypoints"], keypoints);
-  //    fs["keypoints"] >> features.keypoints;
+//    fs["keypoints"] >> features.keypoints;
   fs["descriptors"] >> descriptors;
 }
 
@@ -301,15 +294,13 @@ struct FeatureDescriptor
   void configure(ecto::tendrils& params, ecto::tendrils& inputs, ecto::tendrils& outputs)
   {
     // First, try to get the parameter from the string
-    std::string json_params_ = params.get<std::string>("json_params");
-    FeatureExtractionParams feature_descriptor_params;
-    if (params_.empty())
+    json_params_ = params.get<std::string>("json_params");
+    if (json_params_.empty())
     {
       // Read them from the file
     }
 
-    feature_descriptor_params.read(json_params_);
-    feature_descriptor_ = FeatureDescriptorFinder::create(feature_descriptor_params);
+    feature_descriptor_ = boost::shared_ptr<FeatureDescriptorFinder>(FeatureDescriptorFinder::create(json_params_));
   }
 
   int process(const ecto::tendrils& inputs, ecto::tendrils& outputs)
@@ -318,16 +309,16 @@ struct FeatureDescriptor
     const cv::Mat &mask = inputs.get<cv::Mat>("mask");
 
     std::vector<cv::KeyPoint>& keypoints = outputs.get<std::vector<cv::KeyPoint> >("keypoints");
-    std::vector<cv::KeyPoint>& descriptors = outputs.get<std::vector<cv::KeyPoint> >("descriptors");
+    cv::Mat& descriptors = outputs.get<cv::Mat>("descriptors");
 
-    cv::FastFeatureDetector fd(thresh_, true);
-    fd.detect(in, kpts, mask);
+    feature_descriptor_->detect_and_extract(image, mask, keypoints, descriptors);
+
     return 0;
   }
 private:
   /** The parameters (stored in a JSON string) */
   std::string json_params_;
-  boost::shared_ptr<FeatureDescriptor> feature_descriptor_;
+  boost::shared_ptr<FeatureDescriptorFinder> feature_descriptor_;
 };
 
 void wrap_FeatureDescriptor()

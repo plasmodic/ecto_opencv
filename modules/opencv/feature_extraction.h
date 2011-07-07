@@ -23,12 +23,20 @@ public:
   virtual ~FeatureDescriptorFinder()
   {
   }
-  virtual void detectAndExtract(const cv::Mat & image, const cv::Mat & mask, std::vector<cv::KeyPoint> & keypoints,
+  virtual void detect_and_extract(const cv::Mat & image, const cv::Mat & mask, std::vector<cv::KeyPoint> & keypoints,
                                 cv::Mat &descriptors) const = 0;
+  /** Given a JSON string, parse it and create the object to comptue the features/descriptors
+   * @param params parameter string with the following format:
+   * feature: anything valid in FeatureDetector
+   * descriptor: anything valid in DescriptorExtractor
+   * combination: it can be "ORB", "SIFT" (in which case both feature/descriptor are SIFT or ORB), or
+   *                    "multiscale" or "sequential" (first feature then descriptor)
+   * feature_params: a JSON string detailing the parameters to use (the naming is the one used for the params in OpenCV)
+   * descriptor_params: same as feature-params
+   * combination_params: parameters used for the combination (only multiscale has one, which is "octaves")
+   * @return
+   */
   static FeatureDescriptorFinder* create(const std::string &params);
-private:
-  static cv::FeatureDetector* createDetector(const std::string& detectorType,
-                                             const std::map<std::string, double> &params);
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -65,7 +73,7 @@ public:
 
     }
 
-  virtual void detectAndExtract(const cv::Mat & image, const cv::Mat & mask, std::vector<cv::KeyPoint> & keypoints,
+  virtual void detect_and_extract(const cv::Mat & image, const cv::Mat & mask, std::vector<cv::KeyPoint> & keypoints,
                                 cv::Mat &descriptors) const;
 private:
   cv::Ptr<cv::FeatureDetector> detector_;
@@ -75,18 +83,31 @@ private:
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-class OrbExtractor : public FeatureDescriptorFinder
+class OrbFeatureDescriptor : public FeatureDescriptorFinder
 {
 public:
-  OrbExtractor(cv::ORB::CommonParams params, int n_desired_features);
+  OrbFeatureDescriptor(cv::ORB::CommonParams params, int n_desired_features);
   void detectAndExtract(const cv::Mat& image, std::vector<cv::KeyPoint>& keypoints, cv::Mat& descriptors,
                         const cv::Mat& mask = cv::Mat()) const;
-  virtual void detectAndExtract(const cv::Mat & image, const cv::Mat & mask, std::vector<cv::KeyPoint> & keypoints,
+  virtual void detect_and_extract(const cv::Mat & image, const cv::Mat & mask, std::vector<cv::KeyPoint> & keypoints,
                                 cv::Mat &descriptors) const;
 private:
-  cv::ORB::CommonParams params_;
-  int n_desired_features_;
   mutable cv::ORB orb_;
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+class SiftFeatureDescriptor : public FeatureDescriptorFinder
+{
+public:
+  SiftFeatureDescriptor(cv::SIFT::CommonParams common_params, cv::SIFT::DetectorParams detector_params,
+                        cv::SIFT::DescriptorParams descriptor_params);
+  void detectAndExtract(const cv::Mat& image, std::vector<cv::KeyPoint>& keypoints, cv::Mat& descriptors,
+                        const cv::Mat& mask = cv::Mat()) const;
+  virtual void detect_and_extract(const cv::Mat & image, const cv::Mat & mask, std::vector<cv::KeyPoint> & keypoints,
+                                cv::Mat &descriptors) const;
+private:
+  cv::SIFT sift_;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -109,7 +130,7 @@ public:
   {
   }
 
-  virtual void detectAndExtract(const cv::Mat & image, const cv::Mat & mask, std::vector<cv::KeyPoint> & keypoints,
+  virtual void detect_and_extract(const cv::Mat & image, const cv::Mat & mask, std::vector<cv::KeyPoint> & keypoints,
                                 cv::Mat &descriptors) const;
 
 private:
@@ -128,7 +149,7 @@ public:
   virtual ~NOPExtractor()
   {
   }
-  virtual void detectAndExtract(const cv::Mat & image, const cv::Mat & mask, std::vector<cv::KeyPoint> & keypoints,
+  virtual void detect_and_extract(const cv::Mat & image, const cv::Mat & mask, std::vector<cv::KeyPoint> & keypoints,
                                 cv::Mat &descriptors) const
   {
   }
@@ -146,7 +167,7 @@ public:
   virtual ~FileExtractor()
   {
   }
-  virtual void detectAndExtract(const cv::Mat & image, const cv::Mat & mask, std::vector<cv::KeyPoint> & keypoints,
+  virtual void detect_and_extract(const cv::Mat & image, const cv::Mat & mask, std::vector<cv::KeyPoint> & keypoints,
                                 cv::Mat &descriptors) const;
 private:
   std::string f2dname_;
