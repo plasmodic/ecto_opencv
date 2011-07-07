@@ -25,7 +25,7 @@ public:
   }
   virtual void detect_and_extract(const cv::Mat & image, const cv::Mat & mask, std::vector<cv::KeyPoint> & keypoints,
                                 cv::Mat &descriptors) const = 0;
-  /** Given a JSON string, parse it and create the object to comptue the features/descriptors
+  /** Given a JSON string, parse it and create the object to compute the features/descriptors
    * @param params parameter string with the following format:
    * feature: anything valid in FeatureDetector
    * descriptor: anything valid in DescriptorExtractor

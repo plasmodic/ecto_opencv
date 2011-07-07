@@ -7,6 +7,7 @@
  */
 #include <cstddef>
 #include <iostream>
+#include <sstream>
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -76,7 +77,9 @@ FeatureDescriptorFinder* FeatureDescriptorFinder::create(const std::string &json
 {
 // First, parse the JSON string
   boost::property_tree::ptree params;
-  boost::property_tree::read_json(json_params, params);
+  std::stringstream ssparams;
+  ssparams << json_params;
+  boost::property_tree::read_json(ssparams, params);
 
   std::string combination_type = params.get<std::string>("combination");
 
@@ -84,8 +87,8 @@ FeatureDescriptorFinder* FeatureDescriptorFinder::create(const std::string &json
   if (combination_type == "ORB")
   {
     cv::ORB::CommonParams orb_params;
-    orb_params.scale_factor_ = params.get<float>("feature_params.scale_factor");
-    orb_params.n_levels_ = params.get<unsigned int>("feature_params.octaves");
+    orb_params.scale_factor_ = params.get<float>("feature_params.scale_factor", orb_params.scale_factor_);
+    orb_params.n_levels_ = params.get<unsigned int>("feature_params.n_levels", orb_params.n_levels_);
     return new OrbFeatureDescriptor(orb_params, params.get<unsigned int>("feature_params.n_features"));
   }
   else if (combination_type == "SIFT")
@@ -96,9 +99,9 @@ FeatureDescriptorFinder* FeatureDescriptorFinder::create(const std::string &json
     common_params.nOctaveLayers = params.get<float>("feature_params.nOctavesLayers");
     common_params.nOctaves = params.get<float>("feature_params.nOctaves");
 
+    //TODO make parameters explicit
     cv::SIFT::DetectorParams detector_params;
     cv::SIFT::DescriptorParams descriptor_params;
-    //TODO
     return new SiftFeatureDescriptor(common_params, detector_params, descriptor_params);
   }
 
@@ -279,7 +282,7 @@ struct FeatureDescriptor
   {
     p.declare<std::string>("json_params", "The parameters of the feature/descriptor in JSON format.", "");
     p.declare<std::string>("param_file",
-                           "The path of the file containing YAML parameters for feature/descriptor extraction.");
+                           "The path of the file containing YAML parameters for feature/descriptor extraction.", "");
   }
 
   static void declare_io(const ecto::tendrils& params, ecto::tendrils& inputs, ecto::tendrils& outputs)
@@ -298,6 +301,25 @@ struct FeatureDescriptor
     if (json_params_.empty())
     {
       // Read them from the file
+      std::string param_file = params.get<std::string>("param_file");
+      std::ifstream file(param_file.c_str(), std::ios::in);
+
+      if (file.is_open())
+      {
+        std::stringstream ssparams;
+        while (file.good())
+        {
+          std::string line;
+          std::getline(file, line);
+          ssparams << line;
+        }
+        json_params_ = ssparams.str();
+        file.close();
+      }
+      else
+      {
+        throw std::runtime_error("file " + param_file + " does not exist");
+      }
     }
 
     feature_descriptor_ = boost::shared_ptr<FeatureDescriptorFinder>(FeatureDescriptorFinder::create(json_params_));
