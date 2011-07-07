@@ -23,7 +23,7 @@ circle_drawer = calib.PatternDrawer('Circle Draw',
 checker_drawer = calib.PatternDrawer('Checker Draw',
                                      rows=5, cols=4)
 circle_display = highgui.imshow('Pattern show',
-                                name='Pattern', waitKey= 10, autoSize=True,
+                                name='Pattern', waitKey= 2, maximize=True,
                                 strand=display_strand)
 
 plasm.connect(video_cap['image'] >> circle_drawer['input'],
