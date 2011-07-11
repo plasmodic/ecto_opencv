@@ -56,7 +56,7 @@ namespace line_mod
       * @param Icolorord   Return coded image here
       * @param Mask        (optional) skip masked pixels (0's) if Mask is supplied.
       */
-     void computeColorOrder(const cv::Mat &Iina, cv::Mat &Icolorord, const cv::Mat &Mask)
+     void computeColorOrder(const cv::Mat &Iina, cv::Mat &Icolorord, cv::Mat Mask)
      {
        //    Mat Iin;
        //    resize(Iin,Iin,Size(Iin.cols/8,Iin.rows/8));
@@ -76,6 +76,13 @@ namespace line_mod
            if(Iina.size() != Mask.size())
              {
                throw std::runtime_error("ERROR: Mask in computeColorOrder size != Iina");
+             }
+           if (Mask.type() == CV_8UC3)
+             {
+               //don't write into the Mask, as its supposed to be const.
+               cv::Mat temp;
+               cv::cvtColor(Mask,temp,CV_RGB2GRAY);
+               Mask = temp;
              }
            if (Mask.type() != CV_8UC1)
              {
@@ -407,25 +414,25 @@ static float endy [3][16] =
     ColorTempl(): type(-1){};
     ColorTempl(int t) { type = t; template_size = Size(0,0);};
     ColorTempl(int t, Size s) { type = t; template_size = s;};
-    ColorTempl(int t, Size s, int len, float wval=0.0)
+    ColorTempl(int t, Size s, int len)
     {
-      type = t; template_size = s; hists.resize(len); weights.resize(len,wval);
+      type = t; template_size = s; hists.reserve(len); weights.reserve(len);
     };
 
     /**
-     * int calc_hist(const Mat &colorOrd, Point start,  Point stop, std::vector<float> hist, const Mat &Mask, int skipx = 1, int skipy = 1 )
+     * int calc_hist(const Mat &colorOrd, const Mat &Mask, Point start,  Point stop, std::vector<float> hist, int skipx = 1, int skipy = 1 )
      *
      * Calculate the color ratio histogram of colorOrd in the region start to stop. All values must be in range!
      *
      * @param colorOrd Coded color image output from ColorMod
+     * @param Mask    (optional) If mask, use it
      * @param start   Start point of histogram region
      * @param stop    Stop point of histogram region
      * @param hist    Histogram to be filled out
-     * @param Mask    (optional) If mask, use it
      * @param skipx, skipy Number of points to skip when computing hist. DEFAULT is 1 (no skip)
      * @return Number of points in the histogram
      */
-    int calc_hist(const Mat &colorOrd, Point start,  Point stop, std::vector<float> hist, const Mat &Mask, int skipx = 1, int skipy = 1)
+    int calc_hist(const Mat &colorOrd, const Mat &Mask, Point start,  Point stop, std::vector<float> &hist,  int skipx = 1, int skipy = 1)
     {
       if(0 >= skipx) skipx = 1; if(0 >= skipy) skipy = 1;
       if((int)hist.size() != 16)
@@ -441,6 +448,8 @@ static float endy [3][16] =
             {
               const uchar *o = colorOrd.ptr<uchar> (y);
               const uchar *m = Mask.ptr<uchar> (y);
+              m += (int)start.x;
+              o += (int)start.x;
               for (int x = start.x; x <= stop.x; x+=skipx, o+=skipx, m+=skipx)
                 {
                   if(!(*m)) continue; //Ignore masked pixels
@@ -462,6 +471,7 @@ static float endy [3][16] =
           for (int y = start.y; y <= stop.y; y+=skipy)
             {
               const uchar *o = colorOrd.ptr<uchar> (y);
+              o += start.x;
               for (int x = start.x; x <= stop.x; x+=skipx, o+=skipx)
                 {
                   if(!((*o)^0xC0))
@@ -481,11 +491,20 @@ static float endy [3][16] =
       float L2 = 0.0;
       std::vector<float>::iterator it;
       for(it = hist.begin(); it != hist.end(); ++it)
-        L2 = (*it)*(*it);
+        L2 += (*it)*(*it);
+//      cout << "L2_pre = " << L2;
       L2 = (float)sqrt(L2);
+//      cout << ", L2_post = " << L2 << ". num_pts " << num_pts << "\nL2:\n" << endl;
       if(num_pts == 0.0) L2 = 1.0;
-      for(it = hist.begin(); it != hist.end(); ++it)
+//      float ssum = 0.0;
+      int i = 0;
+      for(it = hist.begin(); it != hist.end(); ++i, ++it)
+        {
         *it /= L2; //Normalize it
+//        ssum += (*it)*(*it);
+//        cout << "[" << i << "] " << *it << ", ";
+        }
+//      cout << "L2 squared sum = " << ssum << endl;
       //get out
       return (num_pts);
     }
@@ -530,7 +549,7 @@ static float endy [3][16] =
 
       int hlen = 0;
       for(;startx[type][hlen] >= 0.0;hlen++); //find the number of sub-histograms that compose this object
-      ColorTempl ct(type,Size(w,h),hlen,1.0);  //Instantiate a color template
+      ColorTempl ct(type,Size(w,h),hlen);  //Instantiate a color template
       vector<float> test_hist;  //This will store one of "hlen" sub-histograms
       for(int i = 0; i<hlen; ++i)
         {
@@ -538,7 +557,7 @@ static float endy [3][16] =
                                (start_pt.y + (int)(h*starty[type][i]+ 0.5)));
           Point hend = Point(start_pt.x + (int)(w*endx[type][i] + 0.5),
                              (start_pt.y + (int)(h*endy[type][i]+ 0.5)));
-          calc_hist(colorOrd, hstart, hend, test_hist, Mask, skipx, skipy);
+          calc_hist(colorOrd, Mask,  hstart, hend, test_hist, skipx, skipy);
           ct.hists.push_back(test_hist);
         }
       //Score the collected histograms against our internal template
@@ -561,9 +580,9 @@ static float endy [3][16] =
                Point start_pt = Point(0,0), Point stop_pt = Point(0,0),
                int skipx = 1, int skipy = 1)
     {
+      cout << "hists.size = " << hists.size() << " weights.size = " << weights.size() << " type = " << type << endl;
       //INPUT CHECKS
       if(0 >= skipx) skipx = 1; if(0 >= skipy) skipy = 1;
-      if((stop_pt.x <= 0)||(stop_pt.y <= 0))
       if ((type < 1)||(type > max_hist_types))
           {
             throw std::runtime_error("ERROR: bad hist type ColorTempl::learn");
@@ -593,7 +612,7 @@ static float endy [3][16] =
           if(Mask.empty())
             throw std::runtime_error("ERROR: neither Mask nore start_pt, stop_pt are set in ColorTempl::learn");
           //Find the bounding box of the template
-          int cY = -1, cYend = 0, minx = Mask.cols, maxx = 0;
+        int cY = -1, cYend = 0, minx = Mask.cols, maxx = 0;
           for (int y = 0; y < Mask.rows; y++)
             {
               const uchar *m = Mask.ptr<uchar> (y);
@@ -637,23 +656,30 @@ static float endy [3][16] =
       float h = (float)(stop_pt.y - start_pt.y);
       int hlen = 0;
       for(;startx[type][hlen] >= 0.0;hlen++); //find the number of sub-histograms that compose this object
+
+      cout << "w= " << w << " h= " << h << "start_pt(" << start_pt.x << ", " << start_pt.y << "), stop_pt(" << stop_pt.x << ", " << stop_pt.y << "), hlen = " << hlen << endl;
+
+
+
       clear(type);  //Reset all values except for type
-      hists.resize(hlen); //Make room for hlen hists
+      hists.reserve(hlen); //Make room for hlen hists
       template_size = Size((int)w, (int)h);
       vector<float> test_hist;  //This will store one of "hlen" sub-histograms
       vector<int> num_pts;
       float N,Ntot = 0;
+
       for(int i = 0; i<hlen; ++i)
         {
-          Point hstart = Point(start_pt.x + (int)(w*startx[type][i] + 0.5),
+         Point hstart = Point(start_pt.x + (int)(w*startx[type][i] + 0.5),
                                (start_pt.y + (int)(h*starty[type][i]+ 0.5)));
           Point hend = Point(start_pt.x + (int)(w*endx[type][i] + 0.5),
                              (start_pt.y + (int)(h*endy[type][i]+ 0.5)));
-          N = (float)calc_hist(colorOrd, hstart, hend, test_hist, Mask, skipx, skipy);
+         N = (float)calc_hist(colorOrd, Mask, hstart, hend, test_hist, skipx, skipy);
           Ntot += N;
           weights.push_back(N);
           hists.push_back(test_hist);
         }
+
       if(Ntot == 0.0) Ntot = 1.0;
       else Ntot = 1.0/Ntot;
       std::transform(weights.begin(), weights.end(), weights.begin(),
@@ -678,19 +704,40 @@ static float endy [3][16] =
         }
       int len = (int)hists.size();
       float score = 0.0;
+      vector<float>::iterator it;
+      vector<float>::const_iterator cit;
+
       if(equal_wtd) //Do equal weighting of ct and this template (for template to template compare)
         {
         for(int i = 0; i<len; ++i)
           {
-            score += (weights[i]*ct.weights[i]*0.5)*inner_product(hists[i].begin(),hists[i].end(),ct.hists[i].begin(),0);
+            float tmpdot = 0.0;
+            for(it=hists[i].begin(), cit = ct.hists[i].begin(); it < hists[i].end(); ++it,++cit)
+              {
+//                  cout << "("<< *it << ")*(" << *cit << ") = " << (*it)*(*cit) ;
+                tmpdot += (*it)*(*cit);
+//                  cout << " accum: " << tmpdot;
+              }
+            score += (weights[i]+ct.weights[i]*0.5)*tmpdot;
           }
         }
       else //Use this template's weights (for comparing a new image patch to this template)
         {
-        for(int i = 0; i<len; ++i)
-          {
-            score += weights[i]*inner_product(hists[i].begin(),hists[i].end(),ct.hists[i].begin(),0);
-          }
+          cout << "in match_templates, 'else' statement. Len = " << len << endl;
+//          float tmptotal = 0.0;
+          for(int i = 0; i<len; ++i)
+            {
+              float tmpdot = 0.0;
+//              cout << "weights[" << i << "] = " << weights[i] << ". Then hists: " << endl;
+              for(it=hists[i].begin(), cit = ct.hists[i].begin(); it < hists[i].end(); ++it,++cit)
+                {
+//                  cout << "("<< *it << ")*(" << *cit << ") = " << (*it)*(*cit) ;
+                  tmpdot += (*it)*(*cit);
+//                  cout << " accum: " << tmpdot;
+                }
+              score += weights[i]*tmpdot;
+              cout << "score(" << score << ") += weights[" << i << "](" << weights[i] << ")*tmpdot(" << tmpdot << ") w[i]*tmpdot == " <<  weights[i]*tmpdot << endl;
+            }
         }
       return score;
     }
@@ -713,6 +760,7 @@ static float endy [3][16] =
    */
   struct ColorTemplCalc
   {
+    vector<ColorTempl> dbctmatch;
     /**
      * void learn_a_template(const Mat &colorOrd, ColorTempl &ct,const Mat &Mask, Point start_pt = Point(0,0), Point stop_pt = Point(0,0))
      *
@@ -729,8 +777,26 @@ static float endy [3][16] =
     void learn_a_template(const Mat &colorOrd, ColorTempl &ct,const Mat &Mask,
                           Point start_pt = Point(0,0), Point stop_pt = Point(0,0))
     {
-      ct.type = hist_type;
+//      ct.type = hist_type;
+      ct.clear(hist_type);
       ct.learn(colorOrd, Mask, start_pt, stop_pt, skipx, skipy);
+      //db
+//      ofstream os("colortempl.txt");
+//      boost::archive::text_oarchive oar(os);
+//      oar << ct;
+//      int len = (int)dbctmatch.size();
+//      if(0 == len)
+//        {
+//          float scoreit = ct.match_templates(ct);
+//          cout << "Match score with itself = " << scoreit << endl;
+//        }
+//      else
+//        {
+//          float scoreit = dbctmatch[len-1].match_templates(ct);
+//          cout << "match of template[" << len-1 << "] against template[" << len << "] = " << scoreit << endl;
+//
+//        }
+//      dbctmatch.push_back(ct);
     }
 
     //Virtual functs
@@ -758,7 +824,7 @@ static float endy [3][16] =
       inputs.declare<cv::Mat> ("mask", "A mask of the object, optional");
       inputs.declare<cv::Point> ("start_pt", "Optional upper left corner of an ROI", cv::Point(0,0));
       inputs.declare<cv::Point> ("stop_pt", "Optional lower right corner of an ROI", cv::Point(0,0));
-      outputs.declare<ColorTempl> ("output","A color template of type ColorTempl.");
+      outputs.declare<ColorTempl> ("colortempl","A color template of type ColorTempl.");
     }
 
     void configure(tendrils& params, tendrils& in, tendrils& out)
@@ -770,6 +836,7 @@ static float endy [3][16] =
 
     int process(const tendrils& inputs, tendrils& outputs)
     {
+//      std::cout << __PRETTY_FUNCTION__ << std::endl;
       const Mat &colorord = inputs.get<cv::Mat> ("colorord");
       const Mat &mask = inputs.get<cv::Mat> ("mask");
       Point start_pt = inputs.get<cv::Point> ("start_pt");
@@ -842,7 +909,9 @@ static float endy [3][16] =
 //        {
 //          const uchar *m = Mask.ptr<uchar> (y);
 //          const uchar *o = Icolorord.ptr<uchar> (y);
-//          for (int x = cX[y - cY]; x < Icolorord.cols; x += skipx, m += skipx, o
+//          m += (int)(cX[y - cY]);
+//          o += (int)(cX[y - cY]);
+//          for (int x = cX[y - cY], m+=x; x < Icolorord.cols; x += skipx, m += skipx, o
 //              += skipx)
 //            {
 //              if (*m)
@@ -925,23 +994,26 @@ static float endy [3][16] =
      * Find the score and index of the best match on this level.
      *
      * @param ct  ColorTempl to be matched this level
-     * @param best_index returns index of best match;
+     * @param best_index returns index of best match; -1 => no match found
      * @return Best matching score at this level. -1 => no match found
      */
     float match_level(const ColorTempl &ct, int &best_index)
     {
+      best_index = -1;
       int len = (int)colortempls.size();
+      cout << "in ctree.match_level, len = " << len << endl;
       if (0 == len) return -1.0;
       float max_match = -1.0;
-      int best_match = 0;
 
       for(int i = 0; i<len; ++i)
         {
-          float match = colortempls[i].match_templates(ct,1);
+          float match = colortempls[i].match_templates(ct); //,1);
+          cout << "  in match_level for(" << i << ") loop, match = " << match << " max_match = " << max_match << endl;
           if(match > max_match)
             {
               max_match = match;
-              best_match = i;
+              best_index = i;
+              cout << " max_match = " << max_match << ", best_index is now " << i << endl;
             }
         }
       return max_match;
@@ -975,22 +1047,28 @@ static float endy [3][16] =
      */
     int insert(const ColorTempl &ct, int &lev, int &index)
     {
+      cout << "In insert at level = " << level << ", maxlevel = " << maxlevel << endl;
       if(level == maxlevel)
         {
+          cout << "Pushing back at maxlevel. Now: ";
           colortempls.push_back(ct); //The insertion event
           int len = (int)colortempls.size();
           index = len-1;
           lev = level;
+          cout << " len = " << len << ", index = " << index << " level = " << level << endl;
           return len;
         }
       int len;
       float score = match_level(ct,index);
+      cout << "score result is " << score << " index " << index << endl;
       if(score > threshold) // We found a tree to go down
         {
+          cout << "DESCENDING from level " << level << ", index " << index << endl;
           return(colortrees[index].insert(ct,lev,index));
         }
       else //No score good enough
         {
+          cout << "Adding another colortree" << endl;
           colortempls.push_back(ct); //New tree stump matcher
           len = (int)colortempls.size(); //New length
           colortree cotree((1.0 - threshold)*fract_thresh_incr + threshold,
@@ -1106,14 +1184,20 @@ static float endy [3][16] =
     */
    int add_a_template(const ColorTempl &ct)
    {
+     cout << "In TrainColorTempl, add_a_template" << endl;
      int inserted = 0;
      float score = ctree.match(ct);
      if(score < acceptance_threshold)
        {
          int lev, index;
          ctree.insert(ct, lev, index);
+         score = 1.0;  //Inserted item now matches itself perfectly
          inserted = 1;
+         cout << "Inserted at lev " << lev << ", index " << index << ", with score " << score << endl;
        }
+     else
+       cout << "Not inserted at score " << score << " >= acceptance_threshold " << acceptance_threshold << endl;
+     ctree.report(1);
      return inserted;
    }
 
@@ -1169,6 +1253,7 @@ static float endy [3][16] =
      acceptance_threshold = params.get<float> ("acceptance_threshold");
      if(!ctree.coutstats())
        {
+         cout << "In TrainColorTempl configure if !ctree.coutstats()" << endl;
          filename = params.get<string> ("filename");
          threshold = params.get<float> ("threshold");
          fract_thresh_incr = params.get<float> ("fract_thresh_incr");
@@ -1295,8 +1380,6 @@ static float endy [3][16] =
                 }
               //B/G
               cratio = *o & 3;
-              //        if(!(foo%70000))
-              //          cout << "B/G (3-0)= " << (unsigned)cratio << endl;
               if (cratio == 3)
                 *b = 255;
               else if (cratio == 2)
@@ -1305,8 +1388,6 @@ static float endy [3][16] =
                 *b = 128;
               //R/B
               cratio = *o & 12;
-              //        if(!(foo%70000))
-              //          cout << "R/G (12-4)= " << (unsigned)cratio << endl;
               if (cratio == 12)
                 *r = 255;
               else if (cratio == 8)
@@ -1315,8 +1396,6 @@ static float endy [3][16] =
                 *r = 128;
               //G/R
               cratio = *o & 48;
-              //        if(!(foo%70000))
-              //          cout << "G/R (48-16)= " << (unsigned)cratio << endl;
               if (cratio == 48)
                 *g = 255;
               else if (cratio == 32)
