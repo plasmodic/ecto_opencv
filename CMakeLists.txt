@@ -11,8 +11,6 @@ configure_file(python/__init__.py.in
   ${LIBRARY_OUTPUT_PATH}/__init__.py
   @ONLY)
 
-set(ecto_user_PYTHONPATH ${CMAKE_BINARY_DIR})
-
 
 #use the cmake cache, to -DOpenCV_dir=<path_to_build_of_opencv>
 #  svn co https://code.ros.org/svn/opencv/trunk
@@ -21,6 +19,7 @@ find_package(OpenCV 2.3.1 EXACT REQUIRED)
 find_package(ecto 0.1.0 REQUIRED)
 find_package(Boost COMPONENTS system filesystem REQUIRED)
 
+ecto_python_env_gen(${CMAKE_BINARY_DIR})
 set_ecto_install_package_name(ecto_opencv)
 
 install(FILES ${LIBRARY_OUTPUT_PATH}/__init__.py

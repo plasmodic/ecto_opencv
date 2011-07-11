@@ -15,10 +15,10 @@ rgb2gray = imgproc.cvtColor('rgb -> gray',
 display_strand = ecto.Strand()
 
 gray_display = highgui.imshow('gray show',
-                              name='gray', waitKey=-1, autoSize=True, strand=display_strand)
+                              name='gray', waitKey=-1, maximize=True, strand=display_strand)
 
 video_display = highgui.imshow('imshow',
-                               name='video_cap', waitKey=10, autoSize=True, strand=display_strand)
+                               name='video_cap', waitKey=2, maximize=True, strand=display_strand)
 
 plasm.connect(video_cap['image'] >> fps['image'],
               fps['image'] >> video_display['input'],
