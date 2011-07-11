@@ -86,8 +86,7 @@ struct PatternDetector
     params.declare<int> ("rows", "Number of dots in row direction", 4);
     params.declare<int> ("cols", "Number of dots in col direction", 11);
     params.declare<float> ("square_size", "The dimensions of each square", 1.0f);
-    params.declare<std::string> (
-                                 "pattern_type",
+    params.declare<std::string> ("pattern_type",
                                  "The pattern type, possible values are: [chessboard|circles|acircles]",
                                  "acircles");
 
@@ -159,12 +158,10 @@ struct PatternDetector
   float square_size_;
   Pattern pattern_;
   object_pts_t ideal_pts_;
-
 };
 
 struct PatternDrawer
 {
-
   static void declare_params(tendrils& params)
   {
     params.declare<int> ("rows", "Number of dots in row direction", 4);
@@ -341,7 +338,6 @@ struct FiducialPoseFinder
     in.declare<cv::Mat> ("K", "The camera projection matrix.",
                          cv::Mat::eye(3, 3, CV_32F));
     in.declare<bool> ("found");
-
     out.declare<cv::Mat> ("R", "3x3 Rotation matrix.");
     out.declare<cv::Mat> ("T", "3x1 Translation vector.");
   }

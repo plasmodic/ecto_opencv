@@ -269,6 +269,23 @@ struct BitwiseAnd
   }
 };
 
+struct BitwiseNot
+{
+  static void declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
+  {
+    inputs.declare<cv::Mat> ("input", "Image to not.").required(true);
+    outputs.declare<cv::Mat> ("out", "!input");
+  }
+  int process(tendrils& in, tendrils& out)
+  {
+    cv::Mat input, output;
+    in["input"] >> input;
+    cv::bitwise_not(input,output);
+    out["out"] << output;
+    return 0;
+  }
+};
+
 struct AbsNormalized
 {
   static void declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
@@ -298,4 +315,6 @@ BOOST_PYTHON_MODULE(imgproc)
   ecto::wrap<CartToPolar>("CartToPolar", "Takes x and y derivatives and does a polar coordinate tranform.");
   ecto::wrap<KMeansGradient>("KMeansGradient", "Takes x and y derivatives and runs kmeans in 2d vectorspace.");
   ecto::wrap<GaussianBlur>("GaussianBlur","Given an image, blurs it.");
+  ecto::wrap<BitwiseNot>("BitwiseNot","Given an image, bitwise nots it.");
+
 }
