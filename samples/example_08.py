@@ -64,7 +64,7 @@ if "__main__" == __name__:
   sched = ecto.schedulers.Singlethreaded(plasm)
 
   #lil bit of debug On/Off
-  debug = False
+  debug = True
   if 'R' in sys.argv:
       debug = False
 
