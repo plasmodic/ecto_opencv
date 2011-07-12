@@ -17,7 +17,7 @@ configure_file(python/__init__.py.in
 #  and cmake that baby
 find_package(OpenCV 2.3.1 EXACT REQUIRED)
 find_package(ecto 0.1.0 REQUIRED)
-find_package(Boost COMPONENTS system filesystem REQUIRED)
+find_package(Boost COMPONENTS system filesystem serialization REQUIRED)
 
 ecto_python_env_gen(${CMAKE_BINARY_DIR})
 set_ecto_install_package_name(ecto_opencv)
