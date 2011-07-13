@@ -551,9 +551,9 @@ struct PingPongDetector
 
   int process(const tendrils& in, tendrils& out)
   {
-    cv::Mat image = image_();
-    cv::HoughCircles(image, *circles_, CV_HOUGH_GRADIENT, dp(), minDist(),
-                     param1(), param2(), minRad(), maxRad());
+    cv::Mat image = image_.read();
+    cv::HoughCircles(image, *circles_, CV_HOUGH_GRADIENT, dp.read(), minDist.read(),
+                     param1.read(), param2.read(), minRad.read(), maxRad.read());
     return 0;
   }
 
@@ -583,8 +583,8 @@ struct CircleDrawer
 
   int process(const tendrils& in, tendrils& out)
   {
-    const std::vector<cv::Vec3f>& circles = circles_();
-    image_().copyTo(*draw_image_);
+    const std::vector<cv::Vec3f>& circles = circles_.read();
+    image_.read().copyTo(*draw_image_);
     for (size_t i = 0; i < circles.size(); i++)
     {
       cv::Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
