@@ -108,7 +108,7 @@ struct PlanarSegmentation
     double numerator = numerator_(0);
     int width = mask.size().width;
     int height = mask.size().height;
-    cv::Mat_<uint16_t>::iterator dit = depth.begin<uint16_t> ();
+    cv::Mat_<float_t>::iterator dit = depth.begin<float_t> ();
     cv::Mat_<uint8_t>::iterator it = mask.begin<uint8_t> ();
     cv::Mat_<uint8_t>::iterator mit = box_mask.begin();
     cv::Vec3d uv(0, 0, 1);
@@ -118,12 +118,17 @@ struct PlanarSegmentation
       for (int u = 0; u < width; u++, ++it, ++mit, ++dit)
       {
         if (*mit == 0) continue;
+        float_t depth = *dit;
+        float_t min_d = O(2) - z_crop, max_b = O(2) + z_crop;
+        if(depth > max_b || depth < min_d)
+          continue;
         uv[0] = u;
         cv::Matx<double, 1, 1> AtN = N_t_A_x * uv;
         double k = numerator / AtN(0);
         cv::Matx<double, 1, 1> X = k * (A_x.row(2) * uv);
-        uint16_t depth = *dit;
-        *it = 255 * uint8_t((depth > (O(2) + z_crop)) && (depth < uint16_t(X(0) * 1000)));
+        float_t max_d = X(0);
+        //std::cout << depth << " " << O(2) + z_crop<< " "<< X(0)<< std::endl;
+        *it = 255 * uint8_t( depth < max_d);
       }
     }
     return 0;

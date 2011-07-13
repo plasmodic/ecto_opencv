@@ -13,7 +13,8 @@ struct cvtColor
   {
     std::stringstream ss;
     ss << "Convert an image's color using opencv, possible flags are:\n" << " RGB2GRAY = " << CV_RGB2GRAY << "\n"
-        << " RGB2BGR = " << CV_RGB2BGR << "\n" << " RGB2LAB = " << CV_RGB2Lab << "\n" << " BGR2LAB = " << CV_BGR2Lab;
+        << " RGB2BGR = " << CV_RGB2BGR << "\n" << " RGB2LAB = " << CV_RGB2Lab << "\n" << " BGR2LAB = " << CV_BGR2Lab
+        << "\n" << " GRAY2RGB = " << CV_GRAY2RGB;
     p.declare<int> ("flag", ss.str(), CV_RGB2BGR);
   }
   static void declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
