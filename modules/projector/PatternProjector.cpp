@@ -4,6 +4,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <boost/filesystem.hpp>
+#include <algorithm>
 
 namespace fs = boost::filesystem;
 using ecto::tendrils;
@@ -31,7 +32,7 @@ static std::vector<cv::Point3f> calcChessboardCorners(
                                         float(i * squareSize), 0) + offset);
       break;
     case ASYMMETRIC_CIRCLES_GRID:
-      for (int i = 0; i < boardSize.height; i++)
+      for (int i = boardSize.height-1; i >= 0; i--)
         for (int j = 0; j < boardSize.width; j++)
           corners.push_back(
                             cv::Point3f(float(i * squareSize),
@@ -65,25 +66,26 @@ struct PatternProjector
 
   void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
   {
+    cv::Size grid_size_,image_size_;
+    pts3d_t  points_;
+    pts2d_t points_out_;
+    float square_size_;
     grid_size_ = cv::Size(params.get<int> ("cols"), params.get<int> ("rows"));
     image_size_ = cv::Size(params.get<int> ("image_width"), params.get<int> ("image_height"));
 
-    square_size_ = std::min(image_size_.width/float(grid_size_.height + 2), image_size_.height/float(grid_size_.width + 3));
+    square_size_ = std::min(image_size_.width/float(grid_size_.width + 2), image_size_.height/float(grid_size_.height + 3));
     points_ = calcChessboardCorners(grid_size_, square_size_, ASYMMETRIC_CIRCLES_GRID,cv::Point3f(square_size_,square_size_,0));
     cv::Mat image_out = cv::Mat::zeros(image_size_,CV_8UC1);
     for(size_t i = 0; i < points_.size(); i++)
     {
       cv::Point3f p = points_[i];
-      points_out_.push_back(cv::Point2f(p.y,p.x));
-      cv::circle(image_out,cv::Point(p.y,p.x),square_size_ * 0.3,cv::Scalar::all(255),-1,8);
+      points_out_.push_back(cv::Point2f(p.x,p.y));
+      cv::circle(image_out,cv::Point(p.x,p.y),square_size_ * 0.3,cv::Scalar::all(255),-1,8);
     }
     outputs["pattern"] << image_out;
     outputs["points"] << points_out_;
   }
-  cv::Size grid_size_,image_size_;
-  pts3d_t  points_;
-  pts2d_t points_out_;
-  float square_size_;
+
 };
 
 ECTO_CELL(projector, PatternProjector,"PatternProjector", "Draws a dot pattern.");
