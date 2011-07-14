@@ -5,7 +5,6 @@ ectomodule(projector
   PatternProjector.cpp
   calibrator.cpp
   fitter.cpp
-  )
   depth_warper.cpp
   fiducial_warper.cpp)
 link_ecto(projector ${OpenCV_LIBS})
