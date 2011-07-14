@@ -93,7 +93,7 @@ struct DepthWarper
     int width = 640, height=480;
     cv::Mat_<float> x = cv::Mat_<float>(1, width), y = cv::Mat_<float>(height, 1);
     x = cv::repeat(x, height, 1);
-    y = cv::repeat(y, 1, with);
+    y = cv::repeat(y, 1, width);
 
     cv::Mat_<float> scaled_points;
 
