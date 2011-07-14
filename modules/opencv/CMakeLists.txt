@@ -1,6 +1,6 @@
 project(opencv)
 
-ectomodule(calib calib.cpp)
+ectomodule(calib calib.cpp planar.cpp)
 link_ecto(calib ${OpenCV_LIBS})
 install_ecto_module(calib)
 
@@ -12,6 +12,8 @@ ectomodule(imgproc imgproc.cpp)
 link_ecto(imgproc ${OpenCV_LIBS})
 install_ecto_module(imgproc)
 
-ectomodule(features2d features2d.cpp)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+ectomodule(features2d features2d.cpp feature_extraction.cpp)
 link_ecto(features2d ${OpenCV_LIBS})
+#include_ecto(features2d ./)
 install_ecto_module(features2d)

@@ -50,8 +50,8 @@ void writeOpenCVCalibration(const Camera& camera, const std::string& calibfile)
 static std::vector<cv::Point3f> calcChessboardCorners(
                                                       cv::Size boardSize,
                                                       float squareSize,
-                                                      Pattern patternType =
-                                                          CHESSBOARD)
+                                                      Pattern patternType = CHESSBOARD,
+                                                      cv::Point3f offset = cv::Point3f())
 {
   std::vector<cv::Point3f> corners;
   switch (patternType)
@@ -62,14 +62,14 @@ static std::vector<cv::Point3f> calcChessboardCorners(
         for (int j = 0; j < boardSize.width; j++)
           corners.push_back(
                             cv::Point3f(float(j * squareSize),
-                                        float(i * squareSize), 0));
+                                        float(i * squareSize), 0) + offset);
       break;
     case ASYMMETRIC_CIRCLES_GRID:
       for (int i = 0; i < boardSize.height; i++)
         for (int j = 0; j < boardSize.width; j++)
           corners.push_back(
                             cv::Point3f(float(i * squareSize),
-                                        float((2 * j + i % 2) * squareSize), 0));
+                                        float((2 * j + i % 2) * squareSize), 0) + offset);
       break;
     default:
       std::logic_error("Unknown pattern type.");
@@ -86,11 +86,12 @@ struct PatternDetector
     params.declare<int> ("rows", "Number of dots in row direction", 4);
     params.declare<int> ("cols", "Number of dots in col direction", 11);
     params.declare<float> ("square_size", "The dimensions of each square", 1.0f);
-    params.declare<std::string> (
-                                 "pattern_type",
+    params.declare<std::string> ("pattern_type",
                                  "The pattern type, possible values are: [chessboard|circles|acircles]",
                                  "acircles");
-
+    params.declare<float>("offset_x", "Offset in x.",0);
+    params.declare<float>("offset_y", "Offset in y.",0);
+    params.declare<float>("offset_z", "Offset in z.",0);
   }
 
   static void declare_io(const tendrils& params, tendrils& in, tendrils& out)
@@ -108,7 +109,12 @@ struct PatternDetector
     grid_size_ = cv::Size(params.get<int> ("cols"), params.get<int> ("rows"));
     choosePattern(params.get<std::string> ("pattern_type"));
     square_size_ = params.get<float> ("square_size");
-    ideal_pts_ = calcChessboardCorners(grid_size_, square_size_, pattern_);
+    cv::Point3f offset;
+    params["offset_x"] >> offset.x;
+    params["offset_y"] >> offset.y;
+    params["offset_z"] >> offset.z;
+    ideal_pts_ = calcChessboardCorners(grid_size_, square_size_, pattern_,offset);
+
   }
 
   int process(const tendrils& in, tendrils& out)
@@ -120,7 +126,7 @@ struct PatternDetector
       case ASYMMETRIC_CIRCLES_GRID:
         out.get<bool> ("found")
             = cv::findCirclesGrid(inm, grid_size_, outv,
-                                  cv::CALIB_CB_ASYMMETRIC_GRID);
+                                  cv::CALIB_CB_ASYMMETRIC_GRID | cv::CALIB_CB_CLUSTERING);
         break;
       case CHESSBOARD:
         out.get<bool> ("found") = cv::findChessboardCorners(inm, grid_size_,
@@ -159,12 +165,68 @@ struct PatternDetector
   float square_size_;
   Pattern pattern_;
   object_pts_t ideal_pts_;
+};
 
+static const char* POINTS = "points_%04d";
+static const char* IDEAL = "ideal_%04d";
+static const char* FOUND = "found_%04d";
+struct GatherPoints
+{
+  typedef std::vector<cv::Point3f> object_pts_t;
+  typedef std::vector<cv::Point2f> observation_pts_t;
+
+
+  static void declare_params(tendrils& params)
+  {
+    params.declare<int> ("N", "Number of patterns to gather", 2);
+  }
+  static void declare_io(const tendrils& params, tendrils& in, tendrils& out)
+  {
+    int N;
+    params.at("N") >> N;
+    for(int i =0; i < N; i++)
+    {
+      in.declare<observation_pts_t> (boost::str(boost::format(POINTS)%i), "Image points");
+      in.declare<object_pts_t> (boost::str(boost::format(IDEAL)%i), "The ideal object points.");
+      in.declare<bool> (boost::str(boost::format(FOUND)%i));
+    }
+    out.declare<observation_pts_t> ("out", "The observed pattern points.");
+    out.declare<object_pts_t> ("ideal", "The ideal pattern points.");
+    out.declare<bool> ("found", "Found some points.");
+
+  }
+  void configure(tendrils& params, tendrils& in, tendrils& out)
+   {
+    params["N"] >> N;
+   }
+  int process(tendrils& in,tendrils& out)
+  {
+    object_pts_t obj_pts;
+    observation_pts_t observe_pts;
+    bool found_any = false;
+    for(int i = 0; i < N; i++)
+    {
+      bool found;
+      in[boost::str(boost::format(FOUND)%i)] >> found;
+      if(!found) continue;
+      found_any = true;
+      object_pts_t ideal;
+      observation_pts_t points;
+      in[boost::str(boost::format(POINTS)%i)] >> points;
+      in[boost::str(boost::format(IDEAL)%i)] >> ideal;
+      obj_pts.insert(obj_pts.end(),ideal.begin(),ideal.end());
+      observe_pts.insert(observe_pts.end(),points.begin(),points.end());
+    }
+    out["found"] << found_any;
+    out["ideal"] << obj_pts;
+    out["out"] << observe_pts;
+    return ecto::OK;
+  }
+  int N;
 };
 
 struct PatternDrawer
 {
-
   static void declare_params(tendrils& params)
   {
     params.declare<int> ("rows", "Number of dots in row direction", 4);
@@ -193,11 +255,13 @@ struct PatternDrawer
     bool found = in.get<bool> ("found");
     cv::Mat& image_out = out.get<cv::Mat> ("out");
     image.copyTo(image_out);
-    cv::drawChessboardCorners(image_out, grid_size_, points, found);
+    if(found)
+      cv::drawChessboardCorners(image_out, grid_size_, points, found);
     return 0;
   }
   cv::Size grid_size_;
 };
+
 
 struct CameraCalibrator
 {
@@ -341,7 +405,6 @@ struct FiducialPoseFinder
     in.declare<cv::Mat> ("K", "The camera projection matrix.",
                          cv::Mat::eye(3, 3, CV_32F));
     in.declare<bool> ("found");
-
     out.declare<cv::Mat> ("R", "3x3 Rotation matrix.");
     out.declare<cv::Mat> ("T", "3x1 Translation vector.");
   }
@@ -413,6 +476,7 @@ struct PoseDrawer
     in.declare<cv::Mat> ("R", "3x3 Rotation matrix.");
     in.declare<cv::Mat> ("T", "3x1 Translation vector.");
     in.declare<cv::Mat> ("image", "The original image to draw the pose onto.");
+    in.declare<bool> ("trigger", "Should i draw.",true);
     out.declare<cv::Mat> ("output",
                           "The pose of the fiducial, drawn on an image");
   }
@@ -426,7 +490,8 @@ struct PoseDrawer
     image = in.get<cv::Mat> ("image");
     cv::Mat& output = out.get<cv::Mat> ("output");
     image.copyTo(output);
-    draw(output, K, R, T);
+    if(in.get<bool>("trigger"))
+      draw(output, K, R, T);
     return 0;
   }
 };
@@ -486,9 +551,9 @@ struct PingPongDetector
 
   int process(const tendrils& in, tendrils& out)
   {
-    cv::Mat image = image_();
-    cv::HoughCircles(image, *circles_, CV_HOUGH_GRADIENT, dp(), minDist(),
-                     param1(), param2(), minRad(), maxRad());
+    cv::Mat image = image_.read();
+    cv::HoughCircles(image, *circles_, CV_HOUGH_GRADIENT, dp.read(), minDist.read(),
+                     param1.read(), param2.read(), minRad.read(), maxRad.read());
     return 0;
   }
 
@@ -518,8 +583,8 @@ struct CircleDrawer
 
   int process(const tendrils& in, tendrils& out)
   {
-    const std::vector<cv::Vec3f>& circles = circles_();
-    image_().copyTo(*draw_image_);
+    const std::vector<cv::Vec3f>& circles = circles_.read();
+    image_.read().copyTo(*draw_image_);
     for (size_t i = 0; i < circles.size(); i++)
     {
       cv::Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
@@ -536,6 +601,7 @@ struct CircleDrawer
   ecto::spore<std::vector<cv::Vec3f> > circles_;
 
 };
+ECTO_INSTANTIATE_REGISTRY(calib)
 
 BOOST_PYTHON_MODULE(calib)
 {
@@ -552,4 +618,6 @@ BOOST_PYTHON_MODULE(calib)
   ecto::wrap<PingPongDetector>("PingPongDetector",
                                "Detect 40 mm ping pong balls.");
   ecto::wrap<CircleDrawer>("CircleDrawer", "Draw circles...");
+  ecto::wrap<GatherPoints>("GatherPoints", "Gather points found by multiple patterns.");
+  ECTO_REGISTER(calib);
 }

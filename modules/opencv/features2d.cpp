@@ -1,6 +1,7 @@
 #include <ecto/ecto.hpp>
 
 #include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/features2d/features2d.hpp>
 
@@ -116,6 +117,8 @@ struct DrawKeypoints
   }
 };
 
+void wrap_FeatureDescriptor();
+
 BOOST_PYTHON_MODULE(features2d)
 {
   namespace bp = boost::python;
@@ -123,4 +126,6 @@ BOOST_PYTHON_MODULE(features2d)
       "An ORB detector. Takes a image and a mask, and computes keypoints and descriptors(32 byte binary).");
   ecto::wrap<FAST>("FAST", "Computes fast keypoints given an image, and mask.");
   ecto::wrap<DrawKeypoints>("DrawKeypoints");
+
+  wrap_FeatureDescriptor();
 }

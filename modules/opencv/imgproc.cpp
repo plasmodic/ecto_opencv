@@ -13,7 +13,8 @@ struct cvtColor
   {
     std::stringstream ss;
     ss << "Convert an image's color using opencv, possible flags are:\n" << " RGB2GRAY = " << CV_RGB2GRAY << "\n"
-        << " RGB2BGR = " << CV_RGB2BGR << "\n" << " RGB2LAB = " << CV_RGB2Lab << "\n" << " BGR2LAB = " << CV_BGR2Lab;
+        << " RGB2BGR = " << CV_RGB2BGR << "\n" << " RGB2LAB = " << CV_RGB2Lab << "\n" << " BGR2LAB = " << CV_BGR2Lab
+        << "\n" << " GRAY2RGB = " << CV_GRAY2RGB;
     p.declare<int> ("flag", ss.str(), CV_RGB2BGR);
   }
   static void declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
@@ -269,6 +270,23 @@ struct BitwiseAnd
   }
 };
 
+struct BitwiseNot
+{
+  static void declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
+  {
+    inputs.declare<cv::Mat> ("input", "Image to not.").required(true);
+    outputs.declare<cv::Mat> ("out", "!input");
+  }
+  int process(tendrils& in, tendrils& out)
+  {
+    cv::Mat input, output;
+    in["input"] >> input;
+    cv::bitwise_not(input,output);
+    out["out"] << output;
+    return 0;
+  }
+};
+
 struct AbsNormalized
 {
   static void declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
@@ -298,4 +316,6 @@ BOOST_PYTHON_MODULE(imgproc)
   ecto::wrap<CartToPolar>("CartToPolar", "Takes x and y derivatives and does a polar coordinate tranform.");
   ecto::wrap<KMeansGradient>("KMeansGradient", "Takes x and y derivatives and runs kmeans in 2d vectorspace.");
   ecto::wrap<GaussianBlur>("GaussianBlur","Given an image, blurs it.");
+  ecto::wrap<BitwiseNot>("BitwiseNot","Given an image, bitwise nots it.");
+
 }

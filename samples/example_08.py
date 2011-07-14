@@ -70,13 +70,18 @@ if "__main__" == __name__:
 
   #add our black box to the plasm.
   pose_from_fiducial = PoseFromFiducial(plasm,
-                                        rows=7, cols=3, 
+                                        rows=5, cols=3, 
                                         pattern_type="acircles",
-                                        square_size=0.03, debug=debug)
+                                        square_size=0.04, debug=debug)
+  pff2 =  PoseFromFiducial(plasm, rows=5, cols=3, 
+                                  pattern_type="acircles",
+                                  square_size=0.04, debug=debug)
 
   video_cap = highgui.VideoCapture(video_device=0)
-
-  plasm.connect(video_cap['image'] >> pose_from_fiducial['image'],
+  invert = imgproc.BitwiseNot()
+  
+  plasm.connect(video_cap['image'] >> (invert[:],),
+                invert[:] >> pff2['image']
                 )
                 
   ecto.view_plasm(plasm)

@@ -214,9 +214,10 @@ struct VideoCapture
   int process(const tendrils& inputs, tendrils& outputs)
   {
     open_video_device();
-
+    cv::Mat image;
     //outputs.get is a reference;
-    capture >> outputs.get<cv::Mat> ("image");
+    capture >> image;
+    outputs["image"] << image;
 
     //increment our frame number.
     ++(outputs.get<int> ("frame_number"));
@@ -265,7 +266,7 @@ struct imshow
       return 0;
       //throw std::logic_error("empty image!");
     }
-    if(full_screen_())
+    if(full_screen_.read())
     {
       cv::namedWindow(window_name_, CV_WINDOW_KEEPRATIO);
       cv::setWindowProperty(window_name_,CV_WND_PROP_FULLSCREEN,true);
@@ -361,6 +362,43 @@ struct FPSDrawer
   double freq;
 };
 
+struct ImageSaver
+{
+  static void declare_params(tendrils& params)
+  {
+    params.declare<std::string> ("filename", "The filename prefix to save the image to.", "./image_");
+
+  }
+  ImageSaver():count(0){}
+  static void declare_io(const tendrils& params, tendrils& in, tendrils& out)
+  {
+    in.declare<cv::Mat> ("image", "The original image to draw the pose onto.");
+    in.declare<int> (
+                             "trigger",
+                             "'s' to save.",
+                             0);
+  }
+  void configure(tendrils&p,tendrils&in,tendrils&o)
+  {
+    prefix = p.at("filename");
+  }
+  int process(tendrils& in, tendrils& out)
+  {
+    int trigger;
+    in["trigger"] >> trigger;
+    if(trigger != 's'){
+      return 0;
+    }
+    cv::Mat image;
+    in["image"] >> image;
+    std::string filename = boost::str(boost::format("%s%04d.png")%*prefix%count++);
+    std::cout << "Saving image to : " << filename << std::endl;
+    cv::imwrite(filename,image);
+    return 0;
+  }
+  int count;
+  ecto::spore<std::string> prefix;
+};
 BOOST_PYTHON_MODULE(highgui)
 {
   ecto::wrap<VideoCapture>("VideoCapture",
@@ -369,6 +407,7 @@ BOOST_PYTHON_MODULE(highgui)
   ecto::wrap<ImageReader>("ImageReader", "Read images from a directory.");
   ecto::wrap<OpenNICapture>("OpenNICapture", "OpenNI capture device.");
   ecto::wrap<FPSDrawer>("FPSDrawer", "Draw the Hz on an image.");
+  ecto::wrap<ImageSaver>("ImageSaver","A png file saver for images.");
 
 
 }
