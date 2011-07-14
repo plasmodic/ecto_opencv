@@ -111,9 +111,6 @@ struct Warper
     cv::Mat_<float> points_2d(4, 2);
     cv::convertPointsFromHomogeneous(points_homogeneous.t(), points_2d);
     points_2d.push_back((const cv::Mat &)(points_2d.row(0)));
-    points_2d = 100*points_2d;
-
-    std::cout << points_2d <<std::endl;
 
     cv::Mat drawn_image = cv::Mat::zeros(480, 640, CV_8UC3);
 

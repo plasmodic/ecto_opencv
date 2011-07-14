@@ -37,6 +37,7 @@
 
 #include <ecto/ecto.hpp>
 
+#include <opencv2/calib3d/calib3d.hpp>
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/features2d/features2d.hpp>
@@ -68,6 +69,7 @@ cv::Mat_<float> kronecker(const cv::Mat_<float> &A, const cv::Mat_<float> &B)
 void solve_for_P(const cv::Mat & points_2d, const cv::Mat &points_3d, cv::Mat & P)
 {
   int n = points_2d.cols;
+
   cv::Mat_<float> one_vect = cv::Mat_<float>::zeros(n + 1, 1);
   one_vect(0, 0) = 1;
 
@@ -76,19 +78,15 @@ void solve_for_P(const cv::Mat & points_2d, const cv::Mat &points_3d, cv::Mat & 
 
   cv::Mat_<float> D(3 * n, n + 12);
   cv::Mat_<float> D_left = D.colRange(0, n);
+  cv::Mat_<float> tmp = kronecker(cv::Mat_<float>::eye(n, n), points_2d);
+
   cv::Mat_<float>(cv::Mat_<float>(kronecker(cv::Mat_<float>::eye(n, n), points_2d)) * C).copyTo(D_left);
   cv::Mat_<float> D_right = D.colRange(n, n + 12);
   cv::Mat_<float>(-kronecker(points_3d.t(), cv::Mat_<float>::eye(3, 3))).copyTo(D_right);
 
   cv::SVD svd;
-  /*std::cout << D << std::endl;
-   cv::Mat_<float> rewarp = C * cv::Mat_<float>::ones(n, 1);
-   rewarp = rewarp.reshape(1, n);
-   std::cout << rewarp << std::endl;*/
   svd(D);
-  std::cout << svd.vt.col(svd.vt.cols - 1).t() << std::endl;
-  std::cout << svd.vt.col(svd.vt.cols - 1).rowRange(0, n) << std::endl;
-  cv::Mat_<float> P_row = cv::Mat(svd.vt.col(svd.vt.cols - 1).rowRange(n, n + 12)).clone();
+  cv::Mat_<float> P_row = cv::Mat(svd.vt.row(svd.vt.rows - 1).colRange(n, n + 12)).clone();
 
   P = (cv::Mat(P_row)).reshape(1, 4).t();
   std::cout << P << std::endl;
@@ -147,8 +145,6 @@ struct Calibrator
     points_t pattern_vector, points;
     inputs["pattern"] >> pattern_vector;
     inputs["points"] >> points;
-    std::cout << cv::Mat(points).reshape(1).t() << std::endl;
-    std::cout << cv::Mat(pattern_vector).reshape(1).t() << std::endl;
 
     cv::Mat K, depth;
     inputs["K"] >> K;
@@ -180,8 +176,11 @@ struct Calibrator
     final_points_tmp.resize(4, cv::Scalar(1));
 
     static cv::Mat_<float> final_points;
+    static std::vector<std::vector<cv::Point3f> > final_points_calib;
     static cv::Mat pattern;
-    cv::Mat pattern_tmp = cv::Mat(pattern_vector).reshape(1).t();
+    static std::vector<std::vector<cv::Point2f> > pattern_calib;
+
+    cv::Mat_<float> pattern_tmp = cv::Mat(pattern_vector).reshape(1).t();
     pattern_tmp.resize(3, cv::Scalar(1));
     pattern_tmp = pattern_tmp.t();
 
@@ -196,19 +195,15 @@ struct Calibrator
       pattern.push_back((const cv::Mat &)(pattern_tmp));
     }
 
-    std::cout << final_points_tmp << std::endl;
-    std::cout << pattern.t() << std::endl;
+    cv::Mat_<float> P1, P2, P3, distortion;
+    solve_for_P(pattern.t(), final_points.t(), P1);
+    solve_for_P_old(pattern, final_points, P2);
+    P1 = P1 / P1(2, 3);
+    P2 = P2 / P2(2, 3);
+    //std::cout << P1 << std::endl;
+    //std::cout << P2 << std::endl;
 
-    cv::Mat_<float> P, P_new;
-    solve_for_P(pattern.t(), final_points.t(), P);
-    P_new = P.clone();
-
-    solve_for_P_old(pattern, final_points, P);
-    std::cout << P << std::endl;
-    P_new = P_new / P_new(2, 3) * P(2, 3);
-    std::cout << P_new << std::endl << "done" << std::endl;
-
-    writeOpenCVCalibration(P, "projector_calibration.yml");
+    writeOpenCVCalibration(P1, "projector_calibration.yml");
     //outputs.get<cv::Mat>("P") = P;
 
     return 0;
