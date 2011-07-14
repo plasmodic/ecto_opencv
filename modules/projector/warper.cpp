@@ -48,16 +48,10 @@
 
 using ecto::tendrils;
 
-struct Camera
-{
-  cv::Mat K, D;
-  cv::Size image_size;
-};
-
 /** Ecto implementation of a module that takes
  *
  */
-struct Warper
+struct FiducialWarper
 {
   typedef std::vector<cv::Point2f> points_t;
   static void declare_params(tendrils& p)
@@ -126,4 +120,4 @@ private:
   cv::Mat P_;
 };
 
-ECTO_CELL(projector, Warper, "Warper", "Figures out the calibration of the projector.");
+ECTO_CELL(projector, FiducialWarper, "FiducialWarper", "Figures out the calibration of the projector.");

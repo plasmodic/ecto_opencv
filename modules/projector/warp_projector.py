@@ -79,8 +79,15 @@ def do_projector():
     # add the display of the pattern
     video_display = highgui.imshow('pattern',
                                name='video_cap', waitKey=2, maximize=False, autoSize=True)
-    warper = projector.Warper(projection_file='projector_calibration.yml')
-    graph += [pose_from_fiducial['R', 'T', 'found'] >> warper['R', 'T', 'found'],
+    case = 1
+    if case == 0:
+        warper = projector.FiducialWarper(projection_file='projector_calibration.yml')
+        graph += [pose_from_fiducial['R', 'T', 'found'] >> warper['R', 'T', 'found'],
+              warper['output'] >> highgui.imshow("warped image", name="warped", waitKey= -1, strand=s1)[:],
+              ]
+    elif case == 1:
+        warper = projector.FiducialWarper(projection_file='projector_calibration.yml')
+        graph += [pose_from_fiducial['R', 'T', 'found'] >> warper['R', 'T', 'found'],
               warper['output'] >> highgui.imshow("warped image", name="warped", waitKey= -1, strand=s1)[:],
               ]
 
