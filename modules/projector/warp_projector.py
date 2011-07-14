@@ -51,13 +51,6 @@ def do_projector():
     plasm = ecto.Plasm()
     offset_x = 0
 
-    pose_from_fiducial = PoseFromFiducial(plasm,
-                                        rows=5, cols=3,
-                                        pattern_type="acircles",
-                                        square_size=0.04,
-                                        offset_x=offset_x,
-                                        debug=DEBUG)
-
     s1 = ecto.Strand()
     main_display = highgui.imshow("rgb show", name="rgb", waitKey=5, strand=s1)
     graph = [
@@ -66,10 +59,6 @@ def do_projector():
                 sync["depth"] >> im2mat_depth["image"],
                 im2mat_depth["image"] >> highgui.imshow("depth show", name="depth", waitKey= -1, strand=s1)[:],
                 im2mat_rgb["image"] >> (brg2rgb["input"], bgr2gray["input"]),
-                brg2rgb["out"] >> pose_from_fiducial['color_image'],
-                bgr2gray["out"] >> pose_from_fiducial['image'],
-                camera_info['K'] >> pose_from_fiducial['K'],
-                pose_from_fiducial['debug_image'] >> highgui.imshow("pattern show", name="pattern", waitKey= -1, strand=s1)[:],
 #                sync["image","depth"] >> pattern_detection['image', 'depth'],
 #                pattern_detection['points'] >> projection_estimator['points']
             ]
@@ -79,17 +68,31 @@ def do_projector():
     # add the display of the pattern
     video_display = highgui.imshow('pattern',
                                name='video_cap', waitKey=2, maximize=False, autoSize=True)
-    case = 1
+    case = 0
     if case == 0:
+        pose_from_fiducial = PoseFromFiducial(plasm,
+                                        rows=5, cols=3,
+                                        pattern_type="acircles",
+                                        square_size=0.04,
+                                        offset_x=offset_x,
+                                        debug=DEBUG)
+        # deal with fiducial markers
+        graph += [ brg2rgb["out"] >> pose_from_fiducial['color_image'],
+                bgr2gray["out"] >> pose_from_fiducial['image'],
+                camera_info['K'] >> pose_from_fiducial['K'],
+                pose_from_fiducial['debug_image'] >> highgui.imshow("pattern show", name="pattern", waitKey= -1, strand=s1)[:],
+                ]
+        # Deal with the warping
         warper = projector.FiducialWarper(projection_file='projector_calibration.yml')
         graph += [pose_from_fiducial['R', 'T', 'found'] >> warper['R', 'T', 'found'],
               warper['output'] >> highgui.imshow("warped image", name="warped", waitKey= -1, strand=s1)[:],
               ]
     elif case == 1:
-        warper = projector.FiducialWarper(projection_file='projector_calibration.yml')
-        graph += [pose_from_fiducial['R', 'T', 'found'] >> warper['R', 'T', 'found'],
-              warper['output'] >> highgui.imshow("warped image", name="warped", waitKey= -1, strand=s1)[:],
-              ]
+        warper = projector.DepthWarper(projection_file='projector_calibration.yml')
+        graph += [camera_info['K'] >> warper['K'],
+                  im2mat_depth["image"] >> warper['depth'],
+                  depth_warper['output'] >> highgui.imshow("warped image", name="warped", waitKey= -1, strand=s1)[:],
+                  ]
 
     plasm.connect(graph)
 
