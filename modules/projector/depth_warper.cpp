@@ -130,7 +130,7 @@ struct DepthWarper
         int kernel_size = 5;
         for (int jj = std::max(j - kernel_size, 0); jj < std::min(j + kernel_size, height); ++jj)
           for (int ii = std::max(i - kernel_size, 0); ii < std::min(i + kernel_size, width); ++ii)
-            drawn_image.at<cv::Vec3b>(jj, ii) = cv::Vec3b(255.0 / 1 * points_3d(2, n), 255, 255);
+            drawn_image.at<cv::Vec3b>(jj, ii) = cv::Vec3b(255.0 / 1 * (points_3d(2, n)-0.5), 255, 255);
       }
     }
     cv::Mat & output = outputs.get<cv::Mat>("output");
