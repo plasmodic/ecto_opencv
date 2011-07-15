@@ -84,7 +84,8 @@ def do_projector():
                 pose_from_fiducial['debug_image'] >> highgui.imshow("pattern show", name="pattern", waitKey= -1, strand=s1)[:],
                 ]
         # Deal with the warping
-        warper = projector.FiducialWarper(projection_file='projector_calibration.yml')
+        warper = projector.FiducialWarper(projection_file='projector_calibration.yml',
+        radius=0.10)
         graph += [pose_from_fiducial['R', 'T', 'found'] >> warper['R', 'T', 'found'],
               warper['output'] >> highgui.imshow("warped image", name="warped", waitKey= -1, strand=s1)[:],
               ]
@@ -96,7 +97,7 @@ def do_projector():
                   ]
     elif case == 2:
         # Deal with the warping
-        warper = projector.FiducialWarper(projection_file='projector_calibration.yml', offset_x=0,offset_y=0)
+        warper = projector.FiducialWarper(projection_file='projector_calibration.yml', offset_x=0,offset_y=0,radius=0.40)
         pose_from_plane = projector.PlaneFitter()
         pose_draw = calib.PoseDrawer('Plane Pose Draw')
         graph += [im2mat_depth["image"] >> pose_from_plane['depth'],

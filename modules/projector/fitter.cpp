@@ -96,7 +96,7 @@ depthTo3d(const cv::Mat& K, const cv::Mat& depth, cv::Mat& points3d, const cv::R
   float fy = K.at<float>(1,1);
   float cx = K.at<float>(0,2);
   float cy = K.at<float>(1,2);
-  std::cout << fx << " "<< fy << std::endl;
+  // std::cout << fx << " "<< fy << std::endl;
   // Create 3D points in one go.
   cv::Size depth_size = depth.size();
   for(int v = 0; v < depth_size.height; v++)
@@ -134,6 +134,14 @@ void solvePlane(cv::Mat xyz,cv::Mat& plane)
   plane = svd.vt.row(svd.vt.rows-1);
 }
 
+template<typename T>
+int sign(T f) {
+    if (f>0)
+        return 1;
+    else
+        return -1;
+}
+
 void solveRT(const cv::Mat_<float>& plane,cv::Mat_<float>& R, cv::Mat_<float>& T)
 {
   float a = plane(0), b = plane(1), c = plane(2), d = plane(3);
@@ -157,10 +165,11 @@ void solveRT(const cv::Mat_<float>& plane,cv::Mat_<float>& R, cv::Mat_<float>& T
                                                 Vz(0),Vz(1),Vz(2));
   // eye(3) = R * B;
   // BT * RT = eye(3)
-  std::cout << "B = " << B << std::endl;
+  // std::cout << "B = " << B << std::endl;
   cv::solve(B,cv::Mat_<float>::eye(3,3),R);
   cv::SVD svd(R.t());
-  R = svd.u * svd.vt;
+  cv::Mat_<float> diag = (cv::Mat_<float>(3,3) << sign(svd.w.at<float>(0)),0,0,0,(-1),0,0,0,sign(svd.w.at<float>(2)));
+  R = svd.u * diag * svd.vt;
   //std::cout << "R*RT = " << R * R.t() << std::endl;
 }
 using ecto::tendrils;
@@ -198,18 +207,18 @@ struct PlaneFitter
     inputs["depth"] >> depth;
     K.clone().convertTo(K, CV_32F);
     cv::Mat points3d;
-    int roi_size = 20;//sets the sample region MxM
+    int roi_size = 40;//sets the sample region MxM
     cv::Rect roi(depth.size().width/2 - roi_size/2,depth.size().height/2 - roi_size/2,roi_size,roi_size);
     cv::Mat depth_sub = depth(roi); //grab the sample region
     depthTo3d(K,depth_sub,points3d,roi);
     cv::Mat plane;
     //std::cout <<"points: " << points3d.t() << std::endl;
     solvePlane(points3d,plane);
-    std::cout << "Plane = " << plane << std::endl;
+    //std::cout << "Plane = " << plane << std::endl;
     cv::Mat_<float> R, T;
     solveRT(plane,R,T);
-    std::cout << "R = " << R << std::endl;
-    std::cout << "T = " << T << std::endl;
+    //std::cout << "R = " << R << std::endl;
+    //std::cout << "T = " << T << std::endl;
     outputs["R"] << cv::Mat(R);
     outputs["T"] << cv::Mat(T);
     return 0;
