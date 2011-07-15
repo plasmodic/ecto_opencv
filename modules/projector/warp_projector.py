@@ -91,7 +91,7 @@ def do_projector():
         warper = projector.DepthWarper(projection_file='projector_calibration.yml')
         graph += [camera_info['K'] >> warper['K'],
                   im2mat_depth["image"] >> warper['depth'],
-                  depth_warper['output'] >> highgui.imshow("warped image", name="warped", waitKey= -1, strand=s1)[:],
+                  warper['output'] >> highgui.imshow("warped image", name="warped", waitKey= -1, strand=s1)[:],
                   ]
 
     plasm.connect(graph)
