@@ -96,6 +96,7 @@ void solvePlane(cv::Mat xyz,cv::Mat& plane)
 //    B = v(:,4);              % Solution is last column of v.
   cv::Mat A = xyz;
   A.resize(4,cv::Scalar(1));
+  std::cout << "A= " << A.t() << std::endl;
   cv::SVD svd(A.t());
   plane = svd.vt.row(svd.vt.rows-1);
 }
@@ -164,12 +165,12 @@ struct PlaneFitter
     inputs["depth"] >> depth;
     K.clone().convertTo(K, CV_32F);
     cv::Mat points3d;
-    int roi_size = 40;
+    int roi_size = 100;//sets the sample region
     cv::Rect roi(depth.size().width/2 - roi_size/2,depth.size().height/2 - roi_size/2,roi_size,roi_size);
     cv::Mat depth_sub = depth(roi);
     depth23d(K,depth_sub,points3d,roi);
     cv::Mat plane;
-    //std::cout <<"points: " << points3d.t() << std::endl;
+    std::cout <<"points: " << points3d.t() << std::endl;
     solvePlane(points3d,plane);
     std::cout << "Plane = " << plane << std::endl;
     cv::Mat_<float> R, T;
