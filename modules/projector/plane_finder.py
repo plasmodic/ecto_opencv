@@ -57,6 +57,7 @@ def do_projector():
                                         square_size=0.04,
                                         offset_x=offset_x,
                                         debug=DEBUG)
+    pose_from_plane = projector.PlaneFitter()
 
     s1 = ecto.Strand()
     main_display = highgui.imshow("rgb show", name="rgb", waitKey=5, strand=s1)
@@ -64,24 +65,27 @@ def do_projector():
                 sync["image"] >> im2mat_rgb["image"],
                 im2mat_rgb["image"] >> main_display[:],
                 sync["depth"] >> im2mat_depth["image"],
-                im2mat_depth["image"] >> highgui.imshow("depth show", name="depth", waitKey= -1, strand=s1)[:],
+                im2mat_depth["image"] >> (highgui.imshow("depth show", name="depth", waitKey= -1, strand=s1)[:],pose_from_plane['depth']),
                 im2mat_rgb["image"] >> (brg2rgb["input"], bgr2gray["input"]),
                 brg2rgb["out"] >> pose_from_fiducial['color_image'],
                 bgr2gray["out"] >> pose_from_fiducial['image'],
-                camera_info['K'] >> pose_from_fiducial['K'],
+                camera_info['K'] >> (pose_from_fiducial['K'],pose_from_plane['K']),
                 pose_from_fiducial['debug_image'] >> highgui.imshow("pattern show", name="pattern", waitKey= -1, strand=s1)[:],
 #                sync["image","depth"] >> pattern_detection['image', 'depth'],
 #                pattern_detection['points'] >> projection_estimator['points']
             ]
 
     print "Press 's' to capture a view."
-
+    pose_draw = calib.PoseDrawer('Plane Pose Draw')
     # add the display of the pattern
     video_display = highgui.imshow('pattern',
                                name='video_cap', waitKey=2, maximize=False, autoSize=True)
-    warper = projector.Warper(projection_file='projector_calibration.yml')
-    graph += [pose_from_fiducial['R', 'T', 'found'] >> warper['R', 'T', 'found'],
-              warper['output'] >> highgui.imshow("warped image", name="warped", waitKey= -1, strand=s1)[:],
+    warper = projector.FiducialWarper(projection_file='projector_calibration.yml')
+    graph += [pose_from_fiducial['R', 'T', 'found'] >> (warper['R', 'T', 'found'],),
+              pose_from_plane['R','T'] >> pose_draw['R', 'T'],
+              camera_info['K'] >> pose_draw['K'],
+              pose_from_fiducial['debug_image'] >> pose_draw['image'],
+              pose_draw['output'] >> highgui.imshow("warped image", name="warped", waitKey= -1, strand=s1)[:],
               ]
 
     plasm.connect(graph)
