@@ -57,6 +57,6 @@ inline void writeOpenCVCalibration(const cv::Mat &P, const std::string& P_file)
 namespace projector
 {
 void
-depth23d(const cv::Mat& K, const cv::Mat& depth, cv::Mat& points3d, const cv::Point2f& topleft)
+depth23d(const cv::Mat& K, const cv::Mat& depth, cv::Mat& points3d, const cv::Rect& roi)
 ;
 }

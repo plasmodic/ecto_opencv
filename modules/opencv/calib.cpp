@@ -484,9 +484,10 @@ struct PoseDrawer
   int process(const tendrils& in, tendrils& out)
   {
     cv::Mat K, R, T, image;
-    K = in.get<cv::Mat> ("K");
-    R = in.get<cv::Mat> ("R");
-    T = in.get<cv::Mat> ("T");
+    in.get<cv::Mat>("K").convertTo(K,CV_64F);
+    in.get<cv::Mat>("R").convertTo(R,CV_64F);
+    in.get<cv::Mat>("T").convertTo(T,CV_64F);
+
     image = in.get<cv::Mat> ("image");
     cv::Mat& output = out.get<cv::Mat> ("output");
     image.copyTo(output);

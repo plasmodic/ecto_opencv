@@ -49,41 +49,89 @@
 namespace projector
 {
 void
-depth23d(const cv::Mat& K, const cv::Mat& depth, cv::Mat& points3d, const cv::Point2f& topleft)
+depth23d(const cv::Mat& K, const cv::Mat& depth, cv::Mat& points3d, const cv::Rect& roi)
 {
-  cv::Mat_<float> scaled_points = cv::Mat_<float>(3, depth.size().area());
+  cv::Mat_<float> scaled_points = cv::Mat_<float>(depth.size().area(),3);
   // Create the scaled keypoints
   cv::Size depth_size = depth.size();
   cv::Mat_<float>::const_iterator begin = depth.begin<float> (), end = depth.end<float> ();
   cv::Mat_<float>::iterator sp_begin = scaled_points.begin();
-  cv::Point2f point = topleft;
+  cv::Point2f point = roi.tl();
   while (begin != end)
   {
     float d = *(begin++);
     *(sp_begin++) = point.x * d;
     *(sp_begin++) = point.y * d;
     *(sp_begin++) = d;
-    if (point.x < depth_size.width + topleft.x)
+    if (point.x < roi.br().x)
     {
       point.x += 1;
     }
     else
     {
       point.y += 1;
-      point.x = topleft.x;
+      point.x = roi.tl().x;
     }
   }
   // Figure out the 3D points
   cv::Mat_<float> final_points_tmp;
-  cv::solve(K, scaled_points, final_points_tmp);
+  cv::solve(K, scaled_points.t(), final_points_tmp);
   points3d = final_points_tmp;
 }
 
+void solvePlane(cv::Mat xyz,cv::Mat& plane)
+{
+  //points is 3,N
+//    % Set up constraint equations of the form  AB = 0,
+//    % where B is a column vector of the plane coefficients
+//    % in the form   b(1)*X + b(2)*Y +b(3)*Z + b(4) = 0.
+//
+//    A = [XYZ' ones(npts,1)]; % Build constraint matrix
+//
+//    if npts == 3             % Pad A with zeros
+//      A = [A; zeros(1,4)];
+//    end
+//
+//    [u d v] = svd(A);        % Singular value decomposition.
+//    B = v(:,4);              % Solution is last column of v.
+  cv::Mat A = xyz;
+  A.resize(4,cv::Scalar(1));
+  std::cout << "A= " << A.t() << std::endl;
+  cv::SVD svd(A.t());
+  plane = svd.vt.row(svd.vt.rows-1);
+}
+
+void solveRT(const cv::Mat_<float>& plane,cv::Mat_<float>& R, cv::Mat_<float>& T)
+{
+  float a = plane(0), b = plane(1), c = plane(2), d = plane(3);
+  float z = -d/c;
+  cv::Mat_<float> normal = (cv::Mat_<float>(3,1) << a,b,c);
+  normal = normal/cv::norm(normal);
+  if(normal(2) > 0)
+    normal = -normal;
+  T = (cv::Mat_<float>(3,1) << 0,0,z);
+  //construct an ortho normal basis.
+  cv::Mat_<float> Vx =(cv::Mat_<float>(3,1) << 1, 0, 0); //unit x vector.
+  Vx = Vx - Vx.dot(normal) * normal;
+  cv::Mat_<float> Vy =(cv::Mat_<float>(3,1) << 0, 1, 0);
+  Vy = Vy - Vy.dot(normal) * normal;
+  Vx = Vx/cv::norm(Vx);
+  Vy = Vy/cv::norm(Vy);
+  cv::Mat_<float> Vz = Vx.cross(Vy);
+  //std::cout << normal.dot(Vz) << std::endl;
+  cv::Mat_<float> B = (cv::Mat_<float>(3,3) <<  Vx(0),Vx(1),Vx(2),
+                                                Vy(0),Vy(1),Vy(2),
+                                                Vz(0),Vz(1),Vz(2));
+  // eye(3) = R * B;
+  // BT * RT = eye(3)
+  //std::cout << "B = " << B << std::endl;
+  cv::solve(B.t(),cv::Mat_<float>::eye(3,3),R);
+  cv::SVD svd(R.t());
+  R = svd.u * svd.vt;
+  //std::cout << "R*RT = " << R * R.t() << std::endl;
+}
 using ecto::tendrils;
 
-/** Ecto implementation of a module that takes
- *
- */
 struct PlaneFitter
 {
   typedef std::vector<cv::Point2f> points_t;
@@ -95,6 +143,10 @@ struct PlaneFitter
   {
     inputs.declare<cv::Mat>("K", "The calibration matrix");
     inputs.declare<cv::Mat>("depth", "The depth image");
+    outputs.declare<cv::Mat>("R", "The output R vec");
+    outputs.declare<cv::Mat>("T", "The output T vec");
+    outputs.declare<bool>("found", "Found a plane",true);
+
   }
 
   void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
@@ -113,11 +165,20 @@ struct PlaneFitter
     inputs["depth"] >> depth;
     K.clone().convertTo(K, CV_32F);
     cv::Mat points3d;
-    int roi_size = 10;
+    int roi_size = 100;//sets the sample region
     cv::Rect roi(depth.size().width/2 - roi_size/2,depth.size().height/2 - roi_size/2,roi_size,roi_size);
     cv::Mat depth_sub = depth(roi);
-    depth23d(K,depth_sub,points3d,roi.tl());
-    std::cout << points3d <<std::endl;
+    depth23d(K,depth_sub,points3d,roi);
+    cv::Mat plane;
+    std::cout <<"points: " << points3d.t() << std::endl;
+    solvePlane(points3d,plane);
+    std::cout << "Plane = " << plane << std::endl;
+    cv::Mat_<float> R, T;
+    solveRT(plane,R,T);
+    std::cout << "R = " << R << std::endl;
+    std::cout << "T = " << T << std::endl;
+    outputs["R"] << cv::Mat(R);
+    outputs["T"] << cv::Mat(T);
     return 0;
   }
 };
