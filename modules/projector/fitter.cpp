@@ -136,7 +136,7 @@ void solvePlane(cv::Mat xyz,cv::Mat& plane)
 
 void solveRT(const cv::Mat_<float>& plane,cv::Mat_<float>& R, cv::Mat_<float>& T)
 {
-  float a = -plane(0), b = plane(1), c = plane(2), d = plane(3);
+  float a = plane(0), b = plane(1), c = plane(2), d = plane(3);
   float z = -d/c;
   cv::Mat_<float> normal = (cv::Mat_<float>(3,1) << a,b,c);
   normal = normal/cv::norm(normal);
