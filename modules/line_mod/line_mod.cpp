@@ -1122,28 +1122,22 @@ static float endy [3][16] =
      */
     int insert(const ColorTempl &ct, int &lev, int &index)
     {
-//      cout << "In insert at level = " << level << ", maxlevel = " << maxlevel << endl;
       if(level == maxlevel)
         {
-//          cout << "Pushing back at maxlevel. Now: ";
           colortempls.push_back(ct); //The insertion event
           int len = (int)colortempls.size();
           index = len-1;
           lev = level;
-//          cout << " len = " << len << ", index = " << index << " level = " << level << endl;
           return len;
         }
       int len;
       float score = match_level(ct,index);
-//      cout << "score result is " << score << " index " << index << endl;
       if(score > threshold) // We found a tree to go down
         {
-//          cout << "DESCENDING from level " << level << ", index " << index << endl;
           return(colortrees[index].insert(ct,lev,index));
         }
       else //No score good enough
         {
-//          cout << "Adding another colortree" << endl;
           colortempls.push_back(ct); //New tree stump matcher
           len = (int)colortempls.size(); //New length
           colortree cotree((1.0 - threshold)*fract_thresh_incr + threshold,
@@ -1188,7 +1182,6 @@ static float endy [3][16] =
      */
     int report(int detail = 0)
     {
-//      cout << "hist_type = " << hist_type << endl;
       int sum = 0;
       deque<colortree> Q;  //Prepare for breadth first search of tree
       Q.push_front(*this); //Enque the top of the tree;
@@ -1277,7 +1270,6 @@ static float endy [3][16] =
     */
    int add_a_template(const ColorTempl &ct)
    {
-//     cout << "In TrainColorTempl, add_a_template" << endl;
      int inserted = 0;
      string name;
      int frame;
@@ -1285,28 +1277,21 @@ static float endy [3][16] =
      if(score < acceptance_threshold)
        {
          int lev, index;
-//         int num_at_leaf =
          ctree.insert(ct, lev, index);
-//         cout << "Number of ColorTempl at inserted leaf = " << num_at_leaf << " occured at level " << lev << " index " << index << endl;
-//         score = 1.0;  //Inserted item now matches itself perfectly
          inserted = 1;
- //        cout << "Inserted at lev " << lev << ", index " << index << ", with score " << score << endl;
        }
-//     else
-//       cout << "Not inserted at score " << score << " >= acceptance_threshold " << acceptance_threshold << endl;
-//     ctree.report(1);
      cout << "=============writing out ctree as test_tree.txt==============" << endl;
      ofstream os("test_tree.txt");
      boost::archive::text_oarchive oar(os);
      oar << ctree;
      os.flush();
      os.close();
-     cout << "=============reading it in to ctree2===============" << endl;
-     colortree ctree2;
-     ifstream is("test_tree.txt");
-     boost::archive::text_iarchive iar(is);
-     iar >> ctree2;
-     ctree2.report(1);
+//     cout << "=============reading it in to ctree2===============" << endl;
+//     colortree ctree2;
+//     ifstream is("test_tree.txt");
+//     boost::archive::text_iarchive iar(is);
+//     iar >> ctree2;
+//     ctree2.report(1);
      return inserted;
    }
 
@@ -1362,7 +1347,6 @@ static float endy [3][16] =
      acceptance_threshold = params.get<float> ("acceptance_threshold");
      if(!ctree.coutstats())
        {
-//         cout << "In TrainColorTempl configure if !ctree.coutstats()" << endl;
          filename = params.get<string> ("filename");
          threshold = params.get<float> ("threshold");
          fract_thresh_incr = params.get<float> ("fract_thresh_incr");
@@ -1403,6 +1387,81 @@ static float endy [3][16] =
    /**
     * Clear out all parameters in test_imageROI_detections
     */
+
+   void non_max_suppress(float overlap_thresh = 0.75)
+   {
+
+//     cout << "Number of detections prior to suppression: " << (int)detections.size() << endl;
+     vector<Rect> d; //Keep where objects were found
+     vector<float> s;    //Their scores
+     vector<string> o; //their ids
+     vector<int> f;        //Their frame numbers so that we can reconstruct their views
+     int len = (int)detections.size();
+     vector<bool> mark_out(len, 0);
+     Rect I; //Intersection
+     vector<Rect>::iterator diti, ditj;
+     diti = detections.begin();
+     for(int i = 0; i<len; ++i,++diti)
+       {
+//         if(mark_out[i]) //Don't test rectangles that are already suppressed
+//           continue;
+         ditj = detections.begin() + i+1;
+         for(int j = i+1; j<len; ++j,++ditj)
+           {
+             if(mark_out[j]) //Don't test rectangles that are already suppressed
+               continue;
+             //see if we even intersecct
+             if(((*diti).x) > ((*ditj).x + (*ditj).width)) continue; //i left edge > j right edge
+             if(((*diti).x + (*diti).width) < ((*ditj).x)) continue; //i right edge < j left edge
+             if(((*diti).y) > ((*ditj).y + (*ditj).height)) continue; //i's top is > (below) j's bottom
+             if(((*diti).y + (*diti).height) < (*ditj).y) continue;    //i's bottom is < (above) j's top
+
+//             float sizei = detections[i].width*detections[i].height;
+             float sizei = ((*diti).width)*((*diti).height);
+//             float sizej = detections[j].width*detections[j].height;
+             float sizej = ((*ditj).width)*((*ditj).height);
+//             I = detections[i] & detections[j]; //Rectangle intersection
+             I = (*diti) & (*ditj);
+             float sizeI = I.width*I.height;
+//             cout << "i" << sizei << ", j" << sizej << ", I" << sizeI << ". I/i" << sizeI/sizei << ". sizeI/sizej" << sizeI/sizej << ". overlap_thresh" << overlap_thresh << endl;
+             if(((sizeI/sizei)>overlap_thresh)||((sizeI/sizej)>overlap_thresh)) //We have too much overlap
+               {
+                 if(scores[i]>=scores[j]) //Markout j
+                   {
+                     mark_out[j] = true;
+ //                    cout << "j:" << j << " is out" << endl;
+                   }
+                 else //Markout i
+                   {
+                     mark_out[i] = true;  //Our guy "i" failed :-(
+ //                    cout << "i:" << i << " is out" << endl;
+ //                    break;
+                   }
+               }//end if overalap
+           }//end for j
+         if(!mark_out[i])
+           {
+//             d.push_back(detections[i]);
+             d.push_back(*diti);
+             s.push_back(scores[i]);
+             o.push_back(object_ids[i]);
+             f.push_back(frames[i]);
+           }
+       }//end for i
+     //Transfer the max supression files
+     detections = d;
+     scores = s;
+     object_ids = o;
+     frames = f;
+//     cout << "Number of detections left is: " << (int)detections.size() << endl;
+   }
+
+
+   /**
+    * void clear()
+    *
+    * Clears all storage (detections, scores, object_ids, frames)
+    */
    void clear()
    {
      detections.clear();
@@ -1422,11 +1481,12 @@ static float endy [3][16] =
     //STATE
     colortree ctree;
     string filename;           //Filename for reading in ctree
-    float match_thresh;
-    Size template_size;
-    int sample_skipx, sample_skipy;
-    int search_skipx, search_skipy;
-    int hist_type;
+    float match_thresh;        //Declare object detected if its score is > match_thresh
+    Size template_size;             //the size of template to collect histograms from
+    int sample_skipx, sample_skipy; //Skip this many pixels between sampling for histogram collection
+    int search_skipx, search_skipy; //Skip this many pixels when searching for object detections
+    int hist_type;              //type of histogram in ColorTempl
+    float overlap_thresh;       //Suppress detections whose rectangle overlap % is > overlap_thresh
 
 
     /**
@@ -1469,10 +1529,9 @@ static float endy [3][16] =
       int halfx = template_size.width >> 1;
       Ys += halfy; Xs += halfx; Ye -= halfy; Xe -= halfx;
       ColorTempl ct;
-      cout << "test_imageROI hist_type = " << hist_type << endl;
       ct.type = hist_type;
       ct.template_size = template_size;
-      cout << "test_imageROI ct.type = " << ct.type << ", template size = " << ct.template_size.width << ", " << ct.template_size.height << endl;
+//      cout << "test_imageROI ct.type = " << ct.type << ", template size = " << ct.template_size.width << ", " << ct.template_size.height << endl;
       Point start_pt, stop_pt;  //This will be the template that we're searching
       int found = 0; //Count how many items are found
       //GO THROUGH COLORIMAGE LOOKING FOR MATCHES
@@ -1484,7 +1543,6 @@ static float endy [3][16] =
           for (int y = Ys; y < Ye; y+= search_skipy)
             {
               const uchar *m = attention_mask.ptr<uchar> (y) + Xs;
- //             const uchar *o =  colorOrd.ptr<uchar> (y) + Xs;
               start_pt.y = y - halfy; stop_pt.y = y + halfy - 1;
               for (int x = Xs; x < Xe; x+=search_skipx, m+=search_skipx)
                 {
@@ -1511,7 +1569,6 @@ static float endy [3][16] =
         {
           for (int y = Ys; y < Ye; y+= search_skipy)
             {
- //             const uchar *o =  colorOrd.ptr<uchar> (y) + Xs;
               start_pt.y = y - halfy; stop_pt.y = y + halfy - 1;
               for (int x = Xs; x < Xe; x+=search_skipx)
                 {
@@ -1532,6 +1589,8 @@ static float endy [3][16] =
                 }
             }
         }
+      //Nonmax suppression
+      detect.non_max_suppress(overlap_thresh);
       return found;
     }
 
@@ -1546,6 +1605,7 @@ static float endy [3][16] =
       p.declare<int>("search_skipx","Distance to skip in x when searching the image for an object",5);
       p.declare<int>("search_skipy","Distance to skip in y when searching the image for an object",5);
       p.declare<int>("hist_type","Histogram type to be computed in the ColorTempls",1);
+      p.declare<float>("overlap_thresh","Non-maximum suppression: Suppress detections whose overlap is > overlap_thresh",0.5);
     }
 
     static void declare_io(const tendrils& params, tendrils& inputs,
@@ -1567,7 +1627,7 @@ static float endy [3][16] =
       int len = ctree.coutstats();
       if(len <= 0)
         throw std::runtime_error("ERROR: ctree in TestColorTempl.configure is of size zero.");
-      ctree.report(2);
+      ctree.report(0);
       params["hist_type"] >> hist_type;
       params["sample_skipx"] >> sample_skipx;
       params["sample_skipy"] >> sample_skipy;
@@ -1575,7 +1635,7 @@ static float endy [3][16] =
       params["search_skipy"] >> search_skipy;
       params["template_size"] >> template_size;
       params["match_thresh"] >> match_thresh;
-
+      params["overlap_thresh"] >> overlap_thresh;
     }
 
     int process(const tendrils& inputs, tendrils& outputs)
@@ -1595,6 +1655,7 @@ static float endy [3][16] =
    */
    struct DrawDetections
    {
+     float match_thresh; //Matching threshold (just for scaling the colors when drawing
     /**
      * void draw_detections(const Mat &raw, Mat &Iout, TestColorImage_detections &detect)
      *
@@ -1619,8 +1680,9 @@ static float endy [3][16] =
        raw.copyTo(Iout);
        for(int i = 0; i<numd; ++i)
          {
-           int val = detect.scores[i]*255;
-           rectangle(Iout, detect.detections[i],Scalar(255,val,0));
+           int val = ((detect.scores[i] - match_thresh)/(1.0-match_thresh))*255;
+           if(val < 0) val = 0;
+           rectangle(Iout, detect.detections[i],Scalar(255,0,val));
          }
      }
 
@@ -1628,6 +1690,8 @@ static float endy [3][16] =
      //Virtual functs
      static void declare_params(tendrils& p)
      {
+       p.declare<float>("match_thresh","Objects who score above this threshold are considered detected",0.9);
+
      }
 
      static void declare_io(const tendrils& params, tendrils& inputs,
@@ -1640,7 +1704,9 @@ static float endy [3][16] =
 
      void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
      {
-     }
+       params["match_thresh"] >> match_thresh;
+       if(match_thresh == 1.0) match_thresh = 0.999; //Avoid divide by zero above
+    }
 
      int process(const tendrils& inputs, tendrils& outputs)
      {
@@ -1701,7 +1767,7 @@ static float endy [3][16] =
      int len = ctree.coutstats();
      if(len <= 0)
        throw std::runtime_error("ERROR: ctree in TestColorTempl.configure is of size zero.");
-     ctree.report(1);
+     ctree.report(0);
    }
 
    int process(const tendrils& inputs, tendrils& outputs)
