@@ -33,6 +33,8 @@
  *
  */
 
+#include <math.h>
+
 #include <boost/foreach.hpp>
 
 #include <ecto/ecto.hpp>
@@ -59,6 +61,8 @@ struct FiducialWarper
     p.declare<std::string>("projection_file");
     p.declare<int>("width");
     p.declare<int>("height");
+    p.declare<float>("offset", "The offset", 0.05);
+    p.declare<float>("radius", "The radius of the circle", 0.15);
   }
 
   static void declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
@@ -72,6 +76,8 @@ struct FiducialWarper
   void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
   {
     readOpenCVCalibration(P_, params.get<std::string>("projection_file"));
+    radius_ = params.get<float>("radius");
+    offset_ = params.get<float>("offset");
   }
 
   /** Get the 2d keypoints and figure out their 3D position from the depth map
@@ -91,24 +97,33 @@ struct FiducialWarper
     inputs.get<cv::Mat>("R").convertTo(R, CV_32F);
     inputs.get<cv::Mat>("T").convertTo(T, CV_32F);
 
-    cv::Point3f x(0.25, 0, 0);
-    cv::Point3f y(0.25, 0.25, 0);
-    cv::Point3f z(0, 0.25, 0);
-    cv::Point3f o(0, 0, 0);
-    std::vector<cv::Point3f> op(4);
-    op[1] = x, op[2] = y, op[3] = z, op[0] = o;
-    cv::Mat_<float> points_3d = cv::Mat(op).reshape(1).t();
-    T * cv::Mat_<float>::ones(1, 4);
-    cv::Mat_<float> points_kinect = R * points_3d + T * cv::Mat_<float>::ones(1, 4);
+    std::vector<cv::Point3f> points_3d_vec;
+
+    // Buld a circle
+    for (float i = 0; i < 2 * CV_PI; i += 0.1)
+      points_3d_vec.push_back(cv::Point3f(offset_ + radius_ * cos(i), offset_ + radius_ * sin(i), 0));
+
+    // And ad a square around it
+    points_3d_vec.push_back(cv::Point3f(offset_ + radius_, offset_ + radius_, 0));
+    points_3d_vec.push_back(cv::Point3f(offset_ - radius_, offset_ + radius_, 0));
+    points_3d_vec.push_back(cv::Point3f(offset_ - radius_, offset_ - radius_, 0));
+    points_3d_vec.push_back(cv::Point3f(offset_ + radius_, offset_ - radius_, 0));
+    points_3d_vec.push_back(points_3d_vec[0]);
+    int n_points = points_3d_vec.size();
+
+    // Compute the 3D warped points
+    cv::Mat_<float> points_3d = cv::Mat(points_3d_vec).reshape(1, n_points).t();
+    cv::Mat_<float> points_kinect = R * points_3d + T * cv::Mat_<float>::ones(1, n_points);
     points_kinect.resize(4, cv::Scalar(1));
+
+    // Project them to 2d
     cv::Mat points_homogeneous = P_ * points_kinect;
-    cv::Mat_<float> points_2d(4, 2);
+    cv::Mat_<float> points_2d;
     cv::convertPointsFromHomogeneous(points_homogeneous.t(), points_2d);
-    points_2d.push_back((const cv::Mat &)(points_2d.row(0)));
 
+    // Draw the final image
     cv::Mat drawn_image = cv::Mat::zeros(480, 640, CV_8UC3);
-
-    for (unsigned int i = 0; i < 4; ++i)
+    for (int i = 0; i < points_2d.rows - 1; ++i)
       cv::line(drawn_image, cv::Point2f(points_2d(i, 0), points_2d(i, 1)),
                cv::Point2f(points_2d(i + 1, 0), points_2d(i + 1, 1)), cv::Scalar(255, 255, 255), 10);
 
@@ -118,6 +133,8 @@ struct FiducialWarper
   }
 private:
   cv::Mat P_;
+  float offset_;
+  float radius_;
 };
 
 ECTO_CELL(projector, FiducialWarper, "FiducialWarper", "Figures out the calibration of the projector.");
