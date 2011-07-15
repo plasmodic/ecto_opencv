@@ -68,8 +68,9 @@ def do_projector():
     # add the display of the pattern
     video_display = highgui.imshow('pattern',
                                name='video_cap', waitKey=2, maximize=False, autoSize=True)
-    case = 0
+    case = 2
     if case == 0:
+        offset_x = -.25
         pose_from_fiducial = PoseFromFiducial(plasm,
                                         rows=5, cols=3,
                                         pattern_type="acircles",
@@ -95,7 +96,7 @@ def do_projector():
                   ]
     elif case == 2:
         # Deal with the warping
-        warper = projector.FiducialWarper(projection_file='projector_calibration.yml')
+        warper = projector.FiducialWarper(projection_file='projector_calibration.yml', offset_x=0,offset_y=0)
         pose_from_plane = projector.PlaneFitter()
         pose_draw = calib.PoseDrawer('Plane Pose Draw')
         graph += [im2mat_depth["image"] >> pose_from_plane['depth'],

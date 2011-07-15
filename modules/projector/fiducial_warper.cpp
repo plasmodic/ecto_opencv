@@ -61,7 +61,8 @@ struct FiducialWarper
     p.declare<std::string>("projection_file");
     p.declare<int>("width");
     p.declare<int>("height");
-    p.declare<float>("offset", "The offset", 0.05);
+    p.declare<float>("offset_x", "The X offset", 0.15);
+    p.declare<float>("offset_y", "The Y offset", 0);
     p.declare<float>("radius", "The radius of the circle", 0.15);
   }
 
@@ -69,7 +70,7 @@ struct FiducialWarper
   {
     inputs.declare<cv::Mat>("R", "The original 2D pattern");
     inputs.declare<cv::Mat>("T", "The points we want to 3d-fy (an aternative to the keypoints)");
-    inputs.declare<bool>("found", "The calibration matrix");
+    inputs.declare<bool>("found", "The calibration matrix", true);
     outputs.declare<cv::Mat>("output", "The depth image");
   }
 
@@ -77,7 +78,8 @@ struct FiducialWarper
   {
     readOpenCVCalibration(P_, params.get<std::string>("projection_file"));
     radius_ = params.get<float>("radius");
-    offset_ = params.get<float>("offset");
+    offset_x_ = params.get<float>("offset_x");
+    offset_y_ = params.get<float>("offset_y");
   }
 
   /** Get the 2d keypoints and figure out their 3D position from the depth map
@@ -101,13 +103,13 @@ struct FiducialWarper
 
     // Buld a circle
     for (float i = 0; i < 2 * CV_PI; i += 0.1)
-      points_3d_vec.push_back(cv::Point3f(offset_ + radius_ * cos(i), offset_ + radius_ * sin(i), 0));
+      points_3d_vec.push_back(cv::Point3f(offset_x_ + radius_ * cos(i), offset_y_ + radius_ * sin(i), 0));
 
     // And ad a square around it
-    points_3d_vec.push_back(cv::Point3f(offset_ + radius_, offset_ + radius_, 0));
-    points_3d_vec.push_back(cv::Point3f(offset_ - radius_, offset_ + radius_, 0));
-    points_3d_vec.push_back(cv::Point3f(offset_ - radius_, offset_ - radius_, 0));
-    points_3d_vec.push_back(cv::Point3f(offset_ + radius_, offset_ - radius_, 0));
+    points_3d_vec.push_back(cv::Point3f(offset_x_ + radius_, offset_y_ + radius_, 0));
+    points_3d_vec.push_back(cv::Point3f(offset_x_ - radius_, offset_y_ + radius_, 0));
+    points_3d_vec.push_back(cv::Point3f(offset_x_ - radius_, offset_y_ - radius_, 0));
+    points_3d_vec.push_back(cv::Point3f(offset_x_ + radius_, offset_y_ - radius_, 0));
     points_3d_vec.push_back(points_3d_vec[0]);
     int n_points = points_3d_vec.size();
 
@@ -133,7 +135,8 @@ struct FiducialWarper
   }
 private:
   cv::Mat P_;
-  float offset_;
+  float offset_x_;
+  float offset_y_;
   float radius_;
 };
 
