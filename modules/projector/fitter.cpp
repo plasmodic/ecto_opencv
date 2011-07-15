@@ -78,7 +78,41 @@ depth23d(const cv::Mat& K, const cv::Mat& depth, cv::Mat& points3d, const cv::Re
   cv::solve(K, scaled_points.t(), final_points_tmp);
   points3d = final_points_tmp;
 }
-
+/**
+ *
+ * @param K
+ * @param depth a subregion of a matrix.
+ * @param points3d
+ * @param roi the roi that create the subregion.
+ */
+void
+depthTo3d(const cv::Mat& K, const cv::Mat& depth, cv::Mat& points3d, const cv::Rect& roi)
+{
+  //allocate points.
+  cv::Mat_<float> points = cv::Mat_<float>(depth.size().area(),3);
+  cv::Mat_<float>::iterator sp_begin = points.begin();
+  //grab camera params
+  float fx = K.at<float>(0,0);
+  float fy = K.at<float>(1,1);
+  float cx = K.at<float>(0,2);
+  float cy = K.at<float>(1,2);
+  std::cout << fx << " "<< fy << std::endl;
+  // Create 3D points in one go.
+  cv::Size depth_size = depth.size();
+  for(int v = 0; v < depth_size.height; v++)
+  {
+  for(int u = 0; u < depth_size.width; u++)
+  {
+      cv::Point p(u,v);
+      cv::Point rp = p + roi.tl();
+      float z = depth.at<float>(p.y,p.x);
+      *(sp_begin++) = ( rp.x - cx) * z/fx ;
+      *(sp_begin++) = ( rp.y - cy) * z/fy;
+      *(sp_begin++) = z;
+    }
+  }
+  points3d = points.t();//return 3xN matrix
+}
 void solvePlane(cv::Mat xyz,cv::Mat& plane)
 {
   //points is 3,N
@@ -96,14 +130,13 @@ void solvePlane(cv::Mat xyz,cv::Mat& plane)
 //    B = v(:,4);              % Solution is last column of v.
   cv::Mat A = xyz;
   A.resize(4,cv::Scalar(1));
-  std::cout << "A= " << A.t() << std::endl;
   cv::SVD svd(A.t());
   plane = svd.vt.row(svd.vt.rows-1);
 }
 
 void solveRT(const cv::Mat_<float>& plane,cv::Mat_<float>& R, cv::Mat_<float>& T)
 {
-  float a = plane(0), b = plane(1), c = plane(2), d = plane(3);
+  float a = -plane(0), b = plane(1), c = plane(2), d = plane(3);
   float z = -d/c;
   cv::Mat_<float> normal = (cv::Mat_<float>(3,1) << a,b,c);
   normal = normal/cv::norm(normal);
@@ -124,8 +157,8 @@ void solveRT(const cv::Mat_<float>& plane,cv::Mat_<float>& R, cv::Mat_<float>& T
                                                 Vz(0),Vz(1),Vz(2));
   // eye(3) = R * B;
   // BT * RT = eye(3)
-  //std::cout << "B = " << B << std::endl;
-  cv::solve(B.t(),cv::Mat_<float>::eye(3,3),R);
+  std::cout << "B = " << B << std::endl;
+  cv::solve(B,cv::Mat_<float>::eye(3,3),R);
   cv::SVD svd(R.t());
   R = svd.u * svd.vt;
   //std::cout << "R*RT = " << R * R.t() << std::endl;
@@ -165,12 +198,12 @@ struct PlaneFitter
     inputs["depth"] >> depth;
     K.clone().convertTo(K, CV_32F);
     cv::Mat points3d;
-    int roi_size = 100;//sets the sample region
+    int roi_size = 20;//sets the sample region MxM
     cv::Rect roi(depth.size().width/2 - roi_size/2,depth.size().height/2 - roi_size/2,roi_size,roi_size);
-    cv::Mat depth_sub = depth(roi);
-    depth23d(K,depth_sub,points3d,roi);
+    cv::Mat depth_sub = depth(roi); //grab the sample region
+    depthTo3d(K,depth_sub,points3d,roi);
     cv::Mat plane;
-    std::cout <<"points: " << points3d.t() << std::endl;
+    //std::cout <<"points: " << points3d.t() << std::endl;
     solvePlane(points3d,plane);
     std::cout << "Plane = " << plane << std::endl;
     cv::Mat_<float> R, T;
