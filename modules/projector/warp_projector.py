@@ -91,7 +91,21 @@ def do_projector():
         warper = projector.DepthWarper(projection_file='projector_calibration.yml')
         graph += [camera_info['K'] >> warper['K'],
                   im2mat_depth["image"] >> warper['depth'],
-                  depth_warper['output'] >> highgui.imshow("warped image", name="warped", waitKey= -1, strand=s1)[:],
+                  warper['output'] >> highgui.imshow("warped image", name="warped", waitKey= -1, strand=s1)[:],
+                  ]
+    elif case == 2:
+        # Deal with the warping
+        warper = projector.FiducialWarper(projection_file='projector_calibration.yml')
+        pose_from_plane = projector.PlaneFitter()
+        pose_draw = calib.PoseDrawer('Plane Pose Draw')
+        graph += [im2mat_depth["image"] >> pose_from_plane['depth'],
+                  camera_info['K'] >> pose_from_plane['K'],
+                  pose_from_plane['R', 'T'] >> warper['R', 'T'],
+                  im2mat_rgb["image"] >> pose_draw['image'],
+                  camera_info['K'] >> pose_draw['K'],
+                  pose_from_plane['R', 'T'] >> pose_draw['R', 'T'],
+                  pose_draw['output'] >> highgui.imshow("pose", name="pose", waitKey= -1, strand=s1)[:],
+                  warper['output'] >> highgui.imshow("warped image", name="warped", waitKey= -1, strand=s1)[:],
                   ]
 
     plasm.connect(graph)
