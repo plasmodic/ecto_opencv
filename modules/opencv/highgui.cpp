@@ -77,6 +77,31 @@ struct ImageReader
   std::vector<std::string> images;
 
 };
+
+struct imread
+{
+  static void declare_params(tendrils& params)
+  {
+    params.declare<std::string> ("image_file", "The path to the image to read.",
+                                 "lena.jpg");
+  }
+
+  static void declare_io(const tendrils& params, tendrils& inputs,
+                         tendrils& outputs)
+  {
+    //set outputs
+    outputs.declare<cv::Mat> ("image", "The image in full color.", cv::Mat());
+  }
+
+  void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
+  {
+    std::string file;
+    params["image_file"] >> file;
+    cv::Mat image = cv::imread(file);
+    outputs["image"] << image;
+  }
+
+};
 void declare_video_device_outputs(tendrils& outputs)
 {
   //set outputs
@@ -408,6 +433,7 @@ BOOST_PYTHON_MODULE(highgui)
   ecto::wrap<OpenNICapture>("OpenNICapture", "OpenNI capture device.");
   ecto::wrap<FPSDrawer>("FPSDrawer", "Draw the Hz on an image.");
   ecto::wrap<ImageSaver>("ImageSaver","A png file saver for images.");
+  ecto::wrap<imread>("imread","A single png reader.");
 
 
 }

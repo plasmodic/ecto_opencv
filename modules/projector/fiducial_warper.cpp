@@ -49,21 +49,73 @@
 #include "common.h"
 
 using ecto::tendrils;
+//void function()
+//{
+//  Point3f z(0, 0, 0.25);
+//      Point3f x(0.25, 0, 0);
+//      Point3f y(0, 0.25, 0);
+//      Point3f o(0, 0, 0);
+//      vector<Point3f> op(4);
+//      op[1] = x, op[2] = y, op[3] = z, op[0] = o;
+//      vector<Point2f> ip;
+//      projectPoints(Mat(op), R, T, K, Mat(4, 1, CV_64FC1, Scalar(0)), ip);
+//
+//  std::vector<cv::Scalar> c(4); //colors
+//  c[0] = cv::Scalar(255, 255, 255);
+//  c[1] = cv::Scalar(255, 0, 0);//x
+//  c[2] = cv::Scalar(0, 255, 0);//y
+//  c[3] = cv::Scalar(0, 0, 255);//z
+//  cv::line(drawImage, ip[0], ip[1], c[1]);
+//  cv::line(drawImage, ip[0], ip[2], c[2]);
+//  cv::line(drawImage, ip[0], ip[3], c[3]);
+//  std::string scaleText = "scale 0.25 meters";
+//  int baseline = 0;
+//  Size sz = getTextSize(scaleText, CV_FONT_HERSHEY_SIMPLEX, 1, 1, &baseline);
+//  Point box_origin(10, drawImage.size().height - 10);
+//  rectangle(drawImage, box_origin + Point(0,5),
+//            box_origin + Point(sz.width, -sz.height - 5), Scalar::all(0),
+//            -1);
+//  putText(drawImage, scaleText, box_origin, CV_FONT_HERSHEY_SIMPLEX, 1.0,
+//          c[0], 1, CV_AA, false);
+//  putText(drawImage, "Z", ip[3], CV_FONT_HERSHEY_SIMPLEX, 1.0, c[3], 1,
+//          CV_AA, false);
+//  putText(drawImage, "Y", ip[2], CV_FONT_HERSHEY_SIMPLEX, 1.0, c[2], 1,
+//          CV_AA, false);
+//  putText(drawImage, "X", ip[1], CV_FONT_HERSHEY_SIMPLEX, 1.0, c[1], 1,
+//          CV_AA, false);
+//}
 
-/** Ecto implementation of a module that takes
- *
- */
-struct FiducialWarper
+cv::Mat_<float> calcH(const cv::Mat_<float>& R, const cv::Mat_<float>& T, const cv::Mat_<float>& P,float scale, float cx, float cy)
+{
+
+  cv::Mat_<float> H, A  = (cv::Mat_<float>(4,3)  << R(0,0),R(0,1),T(0),
+                                                    R(1,0),R(1,1),T(1),
+                                                    R(2,0),R(2,1),T(2),
+                                                         0,     0,   1
+                          );
+  cv::Mat_<float> offset  = (cv::Mat_<float>(3,3)  << 1,0,cx,
+                                                      0,-1,cy,
+                                                      0,0,1
+                            );
+  H = P * A;
+  cv::Mat_<float> SR = H.colRange(0,2);
+  SR *= scale;
+  H = H * offset;
+  return H;
+}
+
+template<typename Cell>
+struct Warper
 {
   typedef std::vector<cv::Point2f> points_t;
   static void declare_params(tendrils& p)
   {
     p.declare<std::string>("projection_file");
-    p.declare<int>("width");
-    p.declare<int>("height");
-    p.declare<float>("offset_x", "The X offset", 0.15);
+    p.declare<int>("width").set_default_val(640);
+    p.declare<int>("height").set_default_val(480);
+    p.declare<float>("offset_x", "The X offset", 0);
     p.declare<float>("offset_y", "The Y offset", 0);
-    p.declare<float>("radius", "The radius of the circle", 0.15);
+    Cell::declare_params(p);
   }
 
   static void declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
@@ -72,14 +124,17 @@ struct FiducialWarper
     inputs.declare<cv::Mat>("T", "The points we want to 3d-fy (an aternative to the keypoints)");
     inputs.declare<bool>("found", "The calibration matrix", true);
     outputs.declare<cv::Mat>("output", "The depth image");
+    Cell::declare_io(params,inputs,outputs);
   }
 
   void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
   {
     readOpenCVCalibration(P_, params.get<std::string>("projection_file"));
-    radius_ = params.get<float>("radius");
-    offset_x_ = params.get<float>("offset_x");
-    offset_y_ = params.get<float>("offset_y");
+    params["offset_x"] >> offset_x_;
+    params["offset_y"] >> offset_y_;
+    params["width"] >> width;
+    params["height"] >> height;
+    cell.configure(params,inputs,outputs);
   }
 
   /** Get the 2d keypoints and figure out their 3D position from the depth map
@@ -91,25 +146,61 @@ struct FiducialWarper
   {
     bool found;
     inputs["found"] >> found;
-
     if (!found)
       return 0;
-
     cv::Mat R, T;
     inputs.get<cv::Mat>("R").convertTo(R, CV_32F);
     inputs.get<cv::Mat>("T").convertTo(T, CV_32F);
+    // Draw the final image
+    cv::Mat drawn_image = cv::Mat::zeros(height,width, CV_8UC3);
+    cell.process(inputs,outputs,drawn_image,R,T,P_,offset_x_,offset_y_);
+    outputs.get<cv::Mat>("output") = drawn_image;
+    return 0;
+  }
+private:
+  cv::Mat P_;
+  float offset_x_;
+  float offset_y_;
+  int width,height;
+  Cell cell;
+};
+/** Ecto implementation of a module that takes
+ *
+ */
+struct FiducialWarper
+{
+  typedef std::vector<cv::Point2f> points_t;
+  static void declare_params(tendrils& p)
+  {
+    p.declare<float>("radius", "The radius of the circle", 0.15);
+  }
 
+  static void declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
+  {
+  }
+
+  void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
+  {
+    radius = params.get<float>("radius");
+  }
+
+  /** Get the 2d keypoints and figure out their 3D position from the depth map
+   * @param inputs
+   * @param outputs
+   * @return
+   */
+  int process(tendrils& inputs, tendrils& outputs,cv::Mat& draw_image, const cv::Mat_<float>& R, const cv::Mat_<float>& T, const cv::Mat_<float>& P,int offset_x,int offset_y)
+  {
     std::vector<cv::Point3f> points_3d_vec;
-
     // Buld a circle
     for (float i = 0; i < 2 * CV_PI; i += 0.1)
-      points_3d_vec.push_back(cv::Point3f(offset_x_ + radius_ * cos(i), offset_y_ + radius_ * sin(i), 0));
+      points_3d_vec.push_back(cv::Point3f(offset_x + radius * cos(i), offset_y + radius * sin(i), 0));
 
     // And ad a square around it
-    points_3d_vec.push_back(cv::Point3f(offset_x_ + radius_, offset_y_ + radius_, 0));
-    points_3d_vec.push_back(cv::Point3f(offset_x_ - radius_, offset_y_ + radius_, 0));
-    points_3d_vec.push_back(cv::Point3f(offset_x_ - radius_, offset_y_ - radius_, 0));
-    points_3d_vec.push_back(cv::Point3f(offset_x_ + radius_, offset_y_ - radius_, 0));
+    points_3d_vec.push_back(cv::Point3f(offset_x + radius, offset_y + radius, 0));
+    points_3d_vec.push_back(cv::Point3f(offset_x - radius, offset_y + radius, 0));
+    points_3d_vec.push_back(cv::Point3f(offset_x - radius, offset_y - radius, 0));
+    points_3d_vec.push_back(cv::Point3f(offset_x + radius, offset_y - radius, 0));
     points_3d_vec.push_back(points_3d_vec[0]);
     int n_points = points_3d_vec.size();
 
@@ -117,27 +208,57 @@ struct FiducialWarper
     cv::Mat_<float> points_3d = cv::Mat(points_3d_vec).reshape(1, n_points).t();
     cv::Mat_<float> points_kinect = R * points_3d + T * cv::Mat_<float>::ones(1, n_points);
     points_kinect.resize(4, cv::Scalar(1));
-
     // Project them to 2d
-    cv::Mat points_homogeneous = P_ * points_kinect;
+    cv::Mat points_homogeneous = P * points_kinect;
     cv::Mat_<float> points_2d;
     cv::convertPointsFromHomogeneous(points_homogeneous.t(), points_2d);
 
     // Draw the final image
-    cv::Mat drawn_image = cv::Mat::zeros(480, 640, CV_8UC3);
     for (int i = 0; i < points_2d.rows - 1; ++i)
-      cv::line(drawn_image, cv::Point2f(points_2d(i, 0), points_2d(i, 1)),
-               cv::Point2f(points_2d(i + 1, 0), points_2d(i + 1, 1)), cv::Scalar(255, 255, 255), 10);
-
-    outputs.get<cv::Mat>("output") = drawn_image;
-
+      cv::line(draw_image, cv::Point2f(points_2d(i, 0), points_2d(i, 1)),
+               cv::Point2f(points_2d(i + 1, 0), points_2d(i + 1, 1)), cv::Scalar(0, 255, 0), 10);
     return 0;
   }
-private:
-  cv::Mat P_;
-  float offset_x_;
-  float offset_y_;
-  float radius_;
+  float radius;
 };
 
-ECTO_CELL(projector, FiducialWarper, "FiducialWarper", "Figures out the calibration of the projector.");
+
+struct ImageWarper
+{
+  typedef std::vector<cv::Point2f> points_t;
+  static void declare_params(tendrils& p)
+  {
+    p.declare<float>("scale","scale in meters.",0.5);
+  }
+
+  static void declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
+  {
+    inputs.declare<cv::Mat>("image","An input image to draw rectified.");
+  }
+
+  void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
+  {
+    params.at("scale") >> scale_;
+  }
+
+  /** Get the 2d keypoints and figure out their 3D position from the depth map
+   * @param inputs
+   * @param outputs
+   * @return
+   */
+  int process(tendrils& inputs, tendrils& outputs,cv::Mat& draw_image, const cv::Mat_<float>& R, const cv::Mat_<float>& T, const cv::Mat_<float>& P,int offset_x,int offset_y)
+  {
+    cv::Mat image;
+    inputs.at("image") >> image;
+    float scale = std::max(scale_/image.size().width,scale_/image.size().height);
+
+    cv::Mat_<float> H = calcH(R,T,P,scale,-image.size().width/2,image.size().height/2);
+    cv::warpPerspective(image,draw_image,H,draw_image.size());
+    return 0;
+  }
+  float scale_;
+};
+
+ECTO_CELL(projector, Warper<FiducialWarper>, "FiducialWarper", "Figures out the calibration of the projector.");
+ECTO_CELL(projector, Warper<ImageWarper>, "ImageWarper", "Figures out the calibration of the projector.");
+

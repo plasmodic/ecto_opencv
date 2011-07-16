@@ -31,10 +31,10 @@ def do_projector():
     options = parse_options()
 
     # define the input
-    subs = dict(image=ImageSub(topic_name='camera/rgb/image_color', queue_size=0),
-                depth=ImageSub(topic_name='camera/depth/image', queue_size=0),
-                depth_info=CameraInfoSub(topic_name='camera/depth/camera_info', queue_size=0),
-                image_info=CameraInfoSub(topic_name='camera/rgb/camera_info', queue_size=0),
+    subs = dict(image=ImageSub(topic_name='camera/rgb/image_color', queue_size=1),
+                depth=ImageSub(topic_name='camera/depth/image', queue_size=1),
+                #depth_info=CameraInfoSub(topic_name='camera/depth/camera_info', queue_size=0),
+                #image_info=CameraInfoSub(topic_name='camera/rgb/camera_info', queue_size=0),
              )
 
     sync = ecto_ros.Synchronizer('Synchronizator', subs=subs)
@@ -97,13 +97,14 @@ def do_projector():
                   ]
     elif case == 2:
         # Deal with the warping
-        warper = projector.FiducialWarper(projection_file='projector_calibration.yml', offset_x=0,offset_y=0,radius=0.40)
+        warper = projector.ImageWarper(projection_file='projector_calibration.yml', offset_x=0,offset_y=0)
         pose_from_plane = projector.PlaneFitter()
         pose_draw = calib.PoseDrawer('Plane Pose Draw')
         graph += [im2mat_depth["image"] >> pose_from_plane['depth'],
                   camera_info['K'] >> pose_from_plane['K'],
                   pose_from_plane['R', 'T'] >> warper['R', 'T'],
-                  im2mat_rgb["image"] >> pose_draw['image'],
+                  im2mat_rgb["image"] >> (pose_draw['image'],),
+                  highgui.imread(image_file='lena.jpg')["image"] >> (warper['image'],),
                   camera_info['K'] >> pose_draw['K'],
                   pose_from_plane['R', 'T'] >> pose_draw['R', 'T'],
                   pose_draw['output'] >> highgui.imshow("pose", name="pose", waitKey= -1, strand=s1)[:],
@@ -113,9 +114,9 @@ def do_projector():
     plasm.connect(graph)
 
     # display DEBUG data if needed
-    if DEBUG:
-        print plasm.viz()
-        ecto.view_plasm(plasm)
+    #if DEBUG:
+    #    print plasm.viz()
+    #    ecto.view_plasm(plasm)
 
     # execute the pipeline
     sched = ecto.schedulers.Singlethreaded(plasm)

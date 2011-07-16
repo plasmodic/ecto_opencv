@@ -142,36 +142,46 @@ int sign(T f) {
         return -1;
 }
 
-void solveRT(const cv::Mat_<float>& plane,cv::Mat_<float>& R, cv::Mat_<float>& T)
-{
-  float a = plane(0), b = plane(1), c = plane(2), d = plane(3);
-  float z = -d/c;
-  cv::Mat_<float> normal = (cv::Mat_<float>(3,1) << a,b,c);
-  normal = normal/cv::norm(normal);
-  if(normal(2) > 0)
-    normal = -normal;
-  T = (cv::Mat_<float>(3,1) << 0,0,z);
-  //construct an ortho normal basis.
-  cv::Mat_<float> Vx =(cv::Mat_<float>(3,1) << 1, 0, 0); //unit x vector.
-  Vx = Vx - Vx.dot(normal) * normal;
-  cv::Mat_<float> Vy =(cv::Mat_<float>(3,1) << 0, 1, 0);
-  Vy = Vy - Vy.dot(normal) * normal;
-  Vx = Vx/cv::norm(Vx);
-  Vy = Vy/cv::norm(Vy);
-  cv::Mat_<float> Vz = Vx.cross(Vy);
-  //std::cout << normal.dot(Vz) << std::endl;
-  cv::Mat_<float> B = (cv::Mat_<float>(3,3) <<  Vx(0),Vx(1),Vx(2),
-                                                Vy(0),Vy(1),Vy(2),
-                                                Vz(0),Vz(1),Vz(2));
-  // eye(3) = R * B;
-  // BT * RT = eye(3)
-  // std::cout << "B = " << B << std::endl;
-  cv::solve(B,cv::Mat_<float>::eye(3,3),R);
-  cv::SVD svd(R.t());
-  cv::Mat_<float> diag = (cv::Mat_<float>(3,3) << sign(svd.w.at<float>(0)),0,0,0,(-1),0,0,0,sign(svd.w.at<float>(2)));
-  R = svd.u * diag * svd.vt;
-  //std::cout << "R*RT = " << R * R.t() << std::endl;
-}
+
+  void
+  solveRT(cv::Mat_<float> plane, cv::Mat_<float>& R, cv::Mat_<float>& T)
+  {
+    float /*a = plane(0), b = plane(1),*/ c = plane(2), d = plane(3);
+    float z = -d / c;
+    cv::Mat_<float> normal = plane.colRange(0,3).t();
+    normal = normal / cv::norm(normal);
+    T = (cv::Mat_<float>(3, 1) << 0, 0, z);
+    //construct an ortho normal basis.
+    cv::Mat_<float> X = (cv::Mat_<float>(3, 1) << 1, 0, 0); //unit x vector.
+    cv::Mat_<float> Vx = X - X.dot(normal) * normal;
+    cv::Mat_<float> Y = (cv::Mat_<float>(3, 1) << 0, 1, 0);
+    cv::Mat_<float> Vy = (cv::Mat_<float>(3, 1) << 0, -1, 0);//make y go up.
+    Vy = Vy - Vy.dot(normal) * normal;
+    Vx = Vx / cv::norm(Vx);
+    Vy = Vy / cv::norm(Vy);
+
+    cv::Mat_<float> Z = (cv::Mat_<float>(3, 1) << 0, 0, 1);
+    cv::Mat_<float> Vz = Vx.cross(Vy);//construct a right handed basis. Z = X cross Y
+
+    //Build up correlation matrix
+    cv::Mat_<float> C = cv::Mat_<float>::zeros(3, 3);
+    C += Vx * X.t();
+    C += Vy * Y.t();
+    C += Vz * Z.t();
+
+    //solve for R using svd
+    cv::SVD svd(C);
+
+    //sgn of the determinant
+    int s = sign(cv::determinant(svd.u * svd.vt));
+
+    cv::Mat_<float> diagm = cv::Mat_<float>::eye(3, 3);
+    //create a matrix with all ones but the lower right corner = S
+    diagm(2, 2) = s;
+
+    //according to the paper TM = U * diag(1,1,s) * V^T
+    R = svd.u * diagm * svd.vt;
+  }
 using ecto::tendrils;
 
 struct PlaneFitter
