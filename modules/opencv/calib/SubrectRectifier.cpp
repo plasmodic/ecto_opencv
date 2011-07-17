@@ -14,8 +14,8 @@ struct SubrectRectifier
     p.declare<float>("xsize_world", "x size of extracted rectangle in world meters", 0.1);
     p.declare<float>("ysize_world", "y size of extracted rectangle in world meters", 0.1);
 
-    p.declare<int>("xsize_pixels", "x size of extracted image in pixels", 250);
-    p.declare<int>("ysize_pixels", "y size of extracted image in pixels", 250);
+    p.declare<unsigned>("xsize_pixels", "x size of extracted image in pixels", 250);
+    p.declare<unsigned>("ysize_pixels", "y size of extracted image in pixels", 250);
 
     p.declare<float>("xoffset", "x offset from input pose in world meters", 0.0);
     p.declare<float>("yoffset", "y offset from input pose in world meters", 0.0);
@@ -40,6 +40,9 @@ struct SubrectRectifier
     
     xsize_world = p.at("xsize_world");
     ysize_world = p.at("ysize_world");
+
+    xsize_pixels = p.at("xsize_pixels");
+    ysize_pixels = p.at("ysize_pixels");
 
     output = o.at("output");
 
@@ -96,9 +99,9 @@ struct SubrectRectifier
     in.get<cv::Mat>("R").convertTo(R,CV_64F);
     in.get<cv::Mat>("T").convertTo(T,CV_64F);
 
-    std::cout << "K:" << K << "\n";
-    std::cout << "R:" << R << "\n";
-    std::cout << "T:" << T << "\n";
+    //std::cout << "K:" << K << "\n";
+    //std::cout << "R:" << R << "\n";
+    //std::cout << "T:" << T << "\n";
 
     image = in.get<cv::Mat> ("image");
     image.copyTo(*output);
@@ -113,15 +116,27 @@ struct SubrectRectifier
     projectPoints(Mat(worldcorners), R, T, K, Mat(4, 1, CV_64FC1, Scalar(0)), imagecorners);
     Scalar white(255,255,255);
 
-    line(*output, imagecorners[0], imagecorners[1], white);
-    line(*output, imagecorners[1], imagecorners[2], white);
-    line(*output, imagecorners[2], imagecorners[3], white);
-    line(*output, imagecorners[3], imagecorners[0], white);
+    //line(*output, imagecorners[0], imagecorners[1], white);
+    //line(*output, imagecorners[1], imagecorners[2], white);
+    //line(*output, imagecorners[2], imagecorners[3], white);
+    //line(*output, imagecorners[3], imagecorners[0], white);
+
+    vector<Point2f> dstcorners;
+    dstcorners.push_back(Point2f(0, 0));
+    dstcorners.push_back(Point2f(*xsize_pixels, 0));
+    dstcorners.push_back(Point2f(*xsize_pixels, *ysize_pixels));
+    dstcorners.push_back(Point2f(0, *ysize_pixels));
+
+    cv::Mat H = findHomography(cv::Mat(imagecorners), cv::Mat(dstcorners));
+    std::cout << "H: " << H << "\n";
+
+    warpPerspective(image, *output, H, Size(*xsize_pixels, *ysize_pixels));
 
     return 0;
   }
 
   ecto::spore<float> xoffset, yoffset, zoffset, xsize_world, ysize_world;
+  ecto::spore<unsigned> xsize_pixels, ysize_pixels;
   ecto::spore<cv::Mat> output;
 };
 ECTO_CELL(calib, SubrectRectifier, "SubrectRectifier", "Pull a trapezoid out of an image and recitfy");
