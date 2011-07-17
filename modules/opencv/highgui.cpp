@@ -339,6 +339,8 @@ struct imshow
   bool auto_size_;
   ecto::spore<bool> full_screen_;
 };
+ECTO_THREAD_UNSAFE(imshow);
+
 
 struct FPSDrawer
 {
@@ -424,6 +426,7 @@ struct ImageSaver
   int count;
   ecto::spore<std::string> prefix;
 };
+
 BOOST_PYTHON_MODULE(highgui)
 {
   ecto::wrap<VideoCapture>("VideoCapture",
