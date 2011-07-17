@@ -52,11 +52,14 @@ struct Scale
   }
   int process(const tendrils& inputs, tendrils& outputs)
   {
+    assert(false && "Scale doesn't appear to actually scale anything");
     outputs.get<cv::Mat> ("output") = inputs.get<cv::Mat> ("input");//, , flag_);
     return 0;
   }
   float factor;
 };
+
+
 struct ChannelSplitter
 {
   static void declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
@@ -304,6 +307,43 @@ struct AbsNormalized
   }
 };
 
+struct Translate
+{
+  static void declare_params(tendrils& params)
+  {
+    params.declare<double>("x", "x translation", 0.0);
+    params.declare<double>("y", "y translation", 0.0);
+    params.declare<double>("z", "z translation", 0.0);
+  }
+
+  static void declare_io(const tendrils& params, tendrils& in, tendrils& out)
+  {
+    in.declare<cv::Mat> ("in", "3x1 translation vector.");
+    out.declare<cv::Mat> ("out", "3x1 Translation vector (itself translated).");
+  }
+
+  cv::Mat offset;
+
+  void configure(const tendrils& params, tendrils& in, tendrils& out)
+  {
+    static double t[3] = { params.get<double>("x"), params.get<double>("y"), params.get<double>("z") };
+
+    offset = cv::Mat(3, 1, CV_64F, t);
+    std::cout << "IN CONFIGURE OFFSET IS" << offset << "\n";
+  }
+
+  int process(const tendrils& in, tendrils& out)
+  {
+    cv::Mat tmp = in.get<cv::Mat>("in").clone();
+    std::cout << "MAT IS " << tmp << "\n";
+    std::cout << "OFFSET IS " << offset << "\n";
+    tmp += offset;
+    out.get<cv::Mat>("out") = tmp;
+    return 0;
+  }
+};
+
+
 BOOST_PYTHON_MODULE(imgproc)
 {
   ecto::wrap<AbsNormalized>("AbsNormalized");
@@ -317,5 +357,5 @@ BOOST_PYTHON_MODULE(imgproc)
   ecto::wrap<KMeansGradient>("KMeansGradient", "Takes x and y derivatives and runs kmeans in 2d vectorspace.");
   ecto::wrap<GaussianBlur>("GaussianBlur","Given an image, blurs it.");
   ecto::wrap<BitwiseNot>("BitwiseNot","Given an image, bitwise nots it.");
-
+  ecto::wrap<Translate>("Translate", "Translate a 3x1 vector by another 3x1 vector");
 }

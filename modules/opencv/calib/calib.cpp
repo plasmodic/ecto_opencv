@@ -167,6 +167,8 @@ struct PatternDetector
   object_pts_t ideal_pts_;
 };
 
+ECTO_CELL(calib, PatternDetector, "PatternDetector", "Detect chessboards, circles, acircles");
+
 static const char* POINTS = "points_%04d";
 static const char* IDEAL = "ideal_%04d";
 static const char* FOUND = "found_%04d";
@@ -225,6 +227,9 @@ struct GatherPoints
   int N;
 };
 
+ECTO_CELL(calib, GatherPoints, "GatherPoints", "Gather points found by multiple patterns.");
+
+
 struct PatternDrawer
 {
   static void declare_params(tendrils& params)
@@ -261,6 +266,7 @@ struct PatternDrawer
   }
   cv::Size grid_size_;
 };
+ECTO_CELL(calib, PatternDrawer, "PatternDrawer", "draw pattern");
 
 
 struct CameraCalibrator
@@ -363,6 +369,11 @@ struct CameraCalibrator
   Camera camera_;
   std::string camera_output_file_;
 };
+ECTO_CELL(calib, CameraCalibrator, "CameraCalibrator",                                
+          "Accumulates observed points and ideal 3d points, and runs "
+          "opencv calibration routines after some number of "
+          "satisfactorily unique observations.");
+
 
 struct CameraIntrinsics
 {
@@ -392,6 +403,11 @@ struct CameraIntrinsics
   }
   Camera camera;
 };
+
+ECTO_CELL(calib, CameraIntrinsics, "CameraIntrinsics",
+          "This reads a camera calibration file and puts the results on the outputs.");
+
+
 
 struct FiducialPoseFinder
 {
@@ -426,6 +442,7 @@ struct FiducialPoseFinder
     return 0;
   }
 };
+ECTO_CELL(calib, FiducialPoseFinder,"FiducialPoseFinder", "Find fiducial pose");
 
 struct PoseDrawer
 {
@@ -496,6 +513,8 @@ struct PoseDrawer
     return 0;
   }
 };
+ECTO_CELL(calib, PoseDrawer,"PoseDrawer", "Draw pose");
+
 
 struct PingPongDetector
 {
@@ -563,6 +582,8 @@ struct PingPongDetector
   ecto::spore<double> dp, minDist, param1, param2, minRad, maxRad;
 
 };
+ECTO_CELL(calib, PingPongDetector, "PingPongDetector",
+          "Detect 40 mm ping pong balls.");
 
 struct CircleDrawer
 {
@@ -602,23 +623,5 @@ struct CircleDrawer
   ecto::spore<std::vector<cv::Vec3f> > circles_;
 
 };
-ECTO_INSTANTIATE_REGISTRY(calib)
+ECTO_CELL(calib, CircleDrawer, "CircleDrawer", "Draw circles...");
 
-BOOST_PYTHON_MODULE(calib)
-{
-  ecto::wrap<PatternDetector>("PatternDetector");
-  ecto::wrap<PatternDrawer>("PatternDrawer");
-  ecto::wrap<CameraCalibrator>("CameraCalibrator",
-                               "Accumulates observed points and ideal 3d points, and runs "
-                                 "opencv calibration routines after some number of "
-                                 "satisfactorily unique observations.");
-  ecto::wrap<CameraIntrinsics>("CameraIntrinsics",
-                               "This reads a camera calibration file and puts the results on the outputs.");
-  ecto::wrap<FiducialPoseFinder>("FiducialPoseFinder");
-  ecto::wrap<PoseDrawer>("PoseDrawer");
-  ecto::wrap<PingPongDetector>("PingPongDetector",
-                               "Detect 40 mm ping pong balls.");
-  ecto::wrap<CircleDrawer>("CircleDrawer", "Draw circles...");
-  ecto::wrap<GatherPoints>("GatherPoints", "Gather points found by multiple patterns.");
-  ECTO_REGISTER(calib);
-}

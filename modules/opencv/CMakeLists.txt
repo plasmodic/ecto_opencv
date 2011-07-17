@@ -1,8 +1,6 @@
 project(opencv)
 
-ectomodule(calib calib.cpp planar.cpp)
-link_ecto(calib ${OpenCV_LIBS})
-install_ecto_module(calib)
+add_subdirectory(calib)
 
 ectomodule(highgui highgui.cpp)
 link_ecto(highgui ${OpenCV_LIBS})

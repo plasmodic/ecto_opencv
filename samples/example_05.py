@@ -27,14 +27,14 @@ circle_display = highgui.imshow('Pattern show',
                                 strand=display_strand)
 
 plasm.connect(video_cap['image'] >> circle_drawer['input'],
-               circle_drawer['out'] >> checker_drawer['input'],
-               checker_drawer['out'] >> fps['image'],
-               fps['image'] >> circle_display['input'],
-               video_cap['image'] >> rgb2gray['input'],
-               rgb2gray['out'] >> (circle_detector['input'], checker_detector['input']),
-               circle_detector['out', 'found'] >> circle_drawer['points', 'found'],
-               checker_detector['out', 'found'] >> checker_drawer['points', 'found'],
-            )
+              circle_drawer['out'] >> checker_drawer['input'],
+              checker_drawer['out'] >> fps['image'],
+              fps['image'] >> circle_display['input'],
+              video_cap['image'] >> rgb2gray['input'],
+              rgb2gray['out'] >> (circle_detector['input'], checker_detector['input']),
+              circle_detector['out', 'found'] >> circle_drawer['points', 'found'],
+              checker_detector['out', 'found'] >> checker_drawer['points', 'found'],
+              )
 
 ecto.view_plasm(plasm)
 sched.execute()
