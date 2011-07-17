@@ -6,12 +6,14 @@ from ecto_opencv import highgui, calib, imgproc
 class PoseFromFiducial(ecto.BlackBox):
     def __init__(self, plasm,rows,cols,pattern_type,square_size,debug=True):
         ecto.BlackBox.__init__(self, plasm)
+        if debug:
+            print self.__class__, "enabling debug nodes"
         self.video_cap = ecto.Passthrough('Image Input')
         self.rgb2gray = imgproc.cvtColor('rgb -> gray', flag=7)
         self.circle_detector = calib.PatternDetector('Dot Detector',
-                                                rows=rows, cols=cols, 
-                                                pattern_type=pattern_type,
-                                                square_size=square_size)
+                                                     rows=rows, cols=cols, 
+                                                     pattern_type=pattern_type,
+                                                     square_size=square_size)
         self.pose_calc = calib.FiducialPoseFinder('Pose Calc')
         self.camera_info = calib.CameraIntrinsics('Camera Info', 
                                                   camera_file="camera.yml")
