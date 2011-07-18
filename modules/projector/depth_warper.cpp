@@ -86,9 +86,9 @@ struct DepthWarper
 
     int width = 640, height = 480;
     cv::Mat_<float> x = cv::Mat_<float>(1, width), y = cv::Mat_<float>(height, 1);
-    for (unsigned int i = 0; i < width; ++i)
+    for (int i = 0; i < width; ++i)
       x(0, i) = i;
-    for (unsigned int i = 0; i < height; ++i)
+    for (int i = 0; i < height; ++i)
       y(i, 0) = i;
     x = cv::repeat(x, height, 1);
     y = cv::repeat(y, 1, width);
