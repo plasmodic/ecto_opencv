@@ -66,7 +66,7 @@ cv::FeatureDetector* createDetector(const std::string& feature_type, const boost
     orb_params.n_levels_ = params.get<int>("octaves");
     orb_params.scale_factor_ = params.get<float>("scale_factor");
 
-    return new cv::OrbFeatureDetector(params.get<unsigned int>("n_features"), orb_params);
+    return new cv::OrbFeatureDetector(params.get<int>("n_features"), orb_params);
   }
   else
     assert(0);
@@ -88,7 +88,7 @@ FeatureDescriptorFinder* FeatureDescriptorFinder::create(const std::string &json
   {
     cv::ORB::CommonParams orb_params;
     orb_params.scale_factor_ = params.get<float>("feature_params.scale_factor", orb_params.scale_factor_);
-    orb_params.n_levels_ = params.get<unsigned int>("feature_params.n_levels", orb_params.n_levels_);
+    orb_params.n_levels_ = params.get<int>("feature_params.n_levels", orb_params.n_levels_);
     return new OrbFeatureDescriptor(orb_params, params.get<unsigned int>("feature_params.n_features"));
   }
   else if (combination_type == "SIFT")
@@ -343,7 +343,5 @@ private:
   boost::shared_ptr<FeatureDescriptorFinder> feature_descriptor_;
 };
 
-void wrap_FeatureDescriptor()
-{
-  ecto::wrap<FeatureDescriptor>("FeatureDescriptor", "Compute features and descriptors for an image.");
-}
+ECTO_CELL(features2d, FeatureDescriptor, "FeatureDescriptor",
+		"Compute features and descriptors for an image.");

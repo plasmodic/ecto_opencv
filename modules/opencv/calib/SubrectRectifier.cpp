@@ -128,10 +128,7 @@ struct SubrectRectifier
     dstcorners.push_back(Point2f(0, *ysize_pixels));
 
     cv::Mat H = findHomography(cv::Mat(imagecorners), cv::Mat(dstcorners));
-    std::cout << "H: " << H << "\n";
-
     warpPerspective(image, *output, H, Size(*xsize_pixels, *ysize_pixels));
-
     return 0;
   }
 

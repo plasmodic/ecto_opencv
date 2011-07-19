@@ -42,6 +42,7 @@ struct ORB
   static void declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
   {
     feature_extractor_interface::declare_io(inputs,outputs);
+    inputs.declare<std::vector<cv::KeyPoint> > ("kpts", "Optional kpts.");
   }
 
   void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
@@ -52,13 +53,16 @@ struct ORB
     orb = cv::ORB(params.get<int> ("n_features"), orb_params);
   }
 
-  int process(const tendrils& inputs, tendrils& outputs)
+  int process(tendrils& inputs, tendrils& outputs)
   {
+    std::vector<cv::KeyPoint> kpts;
+    inputs.at("kpts") >> kpts;
     cv::Mat image = inputs.get<cv::Mat> ("image");
     cv::Mat mask = inputs.get<cv::Mat> ("mask");
-    std::vector<cv::KeyPoint>& kpts = outputs.get<std::vector<cv::KeyPoint> > ("kpts");
-    cv::Mat& descriptors = outputs.get<cv::Mat> ("descriptors");
-    orb(image, mask, kpts, descriptors);
+    cv::Mat desc;
+    orb(image,mask,kpts,desc,!kpts.empty());//use the provided kpts if they were given.
+		outputs["kpts"] << kpts;
+		outputs["descriptors"] << desc;
     return 0;
   }
 
@@ -89,9 +93,10 @@ struct FAST
   {
     cv::Mat in = inputs.get<cv::Mat> ("image");
     cv::Mat mask = inputs.get<cv::Mat> ("mask");
-    std::vector<cv::KeyPoint>& kpts = outputs.get<std::vector<cv::KeyPoint> > ("out");
+    std::vector<cv::KeyPoint> kpts;
     cv::FastFeatureDetector fd(thresh_, true);
     fd.detect(in, kpts, mask);
+    outputs["kpts"] << kpts;
     return 0;
   }
 
@@ -117,15 +122,11 @@ struct DrawKeypoints
   }
 };
 
-void wrap_FeatureDescriptor();
 
-BOOST_PYTHON_MODULE(features2d)
-{
-  namespace bp = boost::python;
-  ecto::wrap<ORB>("ORB",
-      "An ORB detector. Takes a image and a mask, and computes keypoints and descriptors(32 byte binary).");
-  ecto::wrap<FAST>("FAST", "Computes fast keypoints given an image, and mask.");
-  ecto::wrap<DrawKeypoints>("DrawKeypoints");
+ECTO_CELL(features2d, ORB, "ORB",
+		"An ORB detector. Takes a image and a mask, and computes keypoints and descriptors(32 byte binary).");
+ECTO_CELL(features2d, FAST, "FAST",
+		"Computes fast keypoints given an image, and mask.");
 
-  wrap_FeatureDescriptor();
-}
+ECTO_CELL(features2d, DrawKeypoints, "DrawKeypoints",
+				"Draws keypoints.");

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8)
 set(CMAKE_BUILD_TYPE "Release" CACHE STRING "The build type.")
 project(ecto_opencv)
 
-add_definitions("-fno-strict-aliasing -Wall -Wl,--no-undefined")
+add_definitions("-Werror -fno-strict-aliasing -Wall -Wl,--no-undefined")
 
 #set the default path for built libraries to the "ecto_opencv" directory
 set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/ecto_opencv)
