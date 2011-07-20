@@ -39,6 +39,6 @@ if __name__ == "__main__":
         print plasm.viz()
         ecto.view_plasm(plasm)
     sched = ecto.schedulers.Threadpool(plasm)
-    sched.execute(nthreads)
+    sched.execute()
     #TODO seperate call to print stats.
 
