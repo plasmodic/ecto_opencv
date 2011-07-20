@@ -32,5 +32,5 @@ if debug:
     ecto.view_plasm(plasm)
 
 sched = ecto.schedulers.Threadpool(plasm)
-sched.execute(nthreads=8)
+sched.execute()
 
