@@ -1,5 +1,7 @@
 #!/usr/bin/env python
+#
 # Simple vid cap
+#
 import ecto
 from ecto_opencv import highgui, calib, imgproc
 
