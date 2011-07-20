@@ -22,8 +22,7 @@ class PoseFromFiducial(ecto.BlackBox):
             self.fps = highgui.FPSDrawer()
             self.circle_drawer = calib.PatternDrawer('Circle Draw',
                                                      rows=rows, cols=cols)
-            self.circle_display = highgui.imshow('Pattern show',
-                                                 name='Pattern', 
+            self.circle_display = highgui.imshow(name='Pattern', 
                                                  waitKey=2, autoSize=True)
             self.pose_draw = calib.PoseDrawer('Pose Draw')
 
@@ -63,7 +62,7 @@ if "__main__" == __name__:
   import sys
   
   plasm = ecto.Plasm()
-  sched = ecto.schedulers.Singlethreaded(plasm)
+  sched = ecto.schedulers.Threadpool(plasm)
 
   #lil bit of debug On/Off
   debug = True
@@ -73,18 +72,20 @@ if "__main__" == __name__:
   #add our black box to the plasm.
   pose_from_fiducial = PoseFromFiducial(plasm,
                                         rows=5, cols=3, 
-                                        pattern_type="acircles",
+                                        pattern_type=calib.ASYMMETRIC_CIRCLES_GRID,
                                         square_size=0.04, debug=debug)
+
   pff2 =  PoseFromFiducial(plasm, rows=5, cols=3, 
-                                  pattern_type="acircles",
-                                  square_size=0.04, debug=debug)
+                           pattern_type=calib.ASYMMETRIC_CIRCLES_GRID,
+                           square_size=0.04, debug=debug)
 
   video_cap = highgui.VideoCapture(video_device=0)
   invert = imgproc.BitwiseNot()
   
-  plasm.connect(video_cap['image'] >> (invert[:],),
+  plasm.connect(video_cap['image'] >> (pose_from_fiducial['image'], invert['input']),
                 invert[:] >> pff2['image']
                 )
                 
   ecto.view_plasm(plasm)
   sched.execute()
+
