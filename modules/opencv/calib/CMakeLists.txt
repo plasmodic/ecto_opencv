@@ -3,6 +3,7 @@ ectomodule(calib module.cpp
   calib.cpp 
   PlanarSegmentation.cpp 
   PatternDrawer.cpp
+  PatternDetector.cpp
   CircleDrawer.cpp
   SubrectRectifier.cpp
   )
