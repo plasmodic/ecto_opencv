@@ -48,48 +48,6 @@ struct SubrectRectifier
 
   }
 
-  static void draw(cv::Mat& drawImage, const cv::Mat& K, const cv::Mat& R,
-                   const cv::Mat T)
-  {
-    /*
-    using namespace cv;
-
-    if (R.empty() || T.empty())
-      return;
-    Point3f z(0, 0, 0.25);
-    Point3f x(0.25, 0, 0);
-    Point3f y(0, 0.25, 0);
-    Point3f o(0, 0, 0);
-    vector<Point3f> op(4);
-    op[1] = x, op[2] = y, op[3] = z, op[0] = o;
-    vector<Point2f> ip;
-    projectPoints(Mat(op), R, T, K, Mat(4, 1, CV_64FC1, Scalar(0)), ip);
-
-    vector<Scalar> c(4); //colors
-    c[0] = Scalar(255, 255, 255);
-    c[1] = Scalar(255, 0, 0);//x
-    c[2] = Scalar(0, 255, 0);//y
-    c[3] = Scalar(0, 0, 255);//z
-    line(drawImage, ip[0], ip[1], c[1]);
-    line(drawImage, ip[0], ip[2], c[2]);
-    line(drawImage, ip[0], ip[3], c[3]);
-    string scaleText = "scale 0.25 meters";
-    int baseline = 0;
-    Size sz = getTextSize(scaleText, CV_FONT_HERSHEY_SIMPLEX, 1, 1, &baseline);
-    Point box_origin(10, drawImage.size().height - 10);
-    rectangle(drawImage, box_origin + Point(0,5),
-              box_origin + Point(sz.width, -sz.height - 5), Scalar::all(0),
-              -1);
-    putText(drawImage, scaleText, box_origin, CV_FONT_HERSHEY_SIMPLEX, 1.0,
-            c[0], 1, CV_AA, false);
-    putText(drawImage, "Z", ip[3], CV_FONT_HERSHEY_SIMPLEX, 1.0, c[3], 1,
-            CV_AA, false);
-    putText(drawImage, "Y", ip[2], CV_FONT_HERSHEY_SIMPLEX, 1.0, c[2], 1,
-            CV_AA, false);
-    putText(drawImage, "X", ip[1], CV_FONT_HERSHEY_SIMPLEX, 1.0, c[1], 1,
-            CV_AA, false);
-    */
-  }
   int process(const tendrils& in, tendrils& out)
   {
     using namespace cv;
@@ -103,14 +61,21 @@ struct SubrectRectifier
     //std::cout << "R:" << R << "\n";
     //std::cout << "T:" << T << "\n";
 
+    if (R.rows == 0 || R.cols == 0 || T.rows == 0 || T.cols == 0)
+      {
+        *output = cvCreateMat(*xsize_pixels, *ysize_pixels, image.type());
+        return 0;
+      }
+
     image = in.get<cv::Mat> ("image");
+
     image.copyTo(*output);
 
     vector<Point3f> worldcorners;
-    worldcorners.push_back(Point3f(*xoffset, *yoffset, *zoffset));
-    worldcorners.push_back(Point3f(*xoffset + *xsize_world, *yoffset, *zoffset));
-    worldcorners.push_back(Point3f(*xoffset + *xsize_world, *yoffset + *ysize_world, *zoffset));
     worldcorners.push_back(Point3f(*xoffset, *yoffset + *ysize_world, *zoffset));
+    worldcorners.push_back(Point3f(*xoffset + *xsize_world, *yoffset + *ysize_world, *zoffset));
+    worldcorners.push_back(Point3f(*xoffset + *xsize_world, *yoffset, *zoffset));
+    worldcorners.push_back(Point3f(*xoffset, *yoffset, *zoffset));
 
     vector<Point2f> imagecorners;
     projectPoints(Mat(worldcorners), R, T, K, Mat(4, 1, CV_64FC1, Scalar(0)), imagecorners);
