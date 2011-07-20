@@ -10,12 +10,8 @@
 namespace fs = boost::filesystem;
 using ecto::tendrils;
 
-struct Camera
+namespace calib
 {
-  cv::Mat K, D;
-  cv::Size image_size;
-};
-
 void readOpenCVCalibration(Camera& camera, const std::string& calibfile)
 {
   cv::FileStorage fs(calibfile, cv::FileStorage::READ);
@@ -43,11 +39,14 @@ void writeOpenCVCalibration(const Camera& camera, const std::string& calibfile)
   fs << "image_width" << camera.image_size.width;
   fs << "image_height" << camera.image_size.height;
 }
-
+}
+using namespace calib;
 static const char* POINTS = "points_%04d";
 static const char* IDEAL = "ideal_%04d";
 static const char* FOUND = "found_%04d";
 
+namespace calib
+{
 struct GatherPoints
 {
   typedef std::vector<cv::Point3f> object_pts_t;
@@ -102,10 +101,11 @@ struct GatherPoints
   }
   int N;
 };
-
+}
 ECTO_CELL(calib, GatherPoints, "GatherPoints", "Gather points found by multiple patterns.");
 
-
+namespace calib
+{
 struct CameraCalibrator
 {
   typedef std::vector<cv::Point3f> object_pts_t;
@@ -206,12 +206,14 @@ struct CameraCalibrator
   Camera camera_;
   std::string camera_output_file_;
 };
+}
 ECTO_CELL(calib, CameraCalibrator, "CameraCalibrator",                                
           "Accumulates observed points and ideal 3d points, and runs "
           "opencv calibration routines after some number of "
           "satisfactorily unique observations.");
 
-
+namespace calib
+{
 struct CameraIntrinsics
 {
   static void declare_params(tendrils& params)
@@ -240,12 +242,14 @@ struct CameraIntrinsics
   }
   Camera camera;
 };
+}
 
 ECTO_CELL(calib, CameraIntrinsics, "CameraIntrinsics",
           "This reads a camera calibration file and puts the results on the outputs.");
 
 
-
+namespace calib
+{
 struct FiducialPoseFinder
 {
   typedef std::vector<cv::Point3f> object_pts_t;
@@ -279,8 +283,10 @@ struct FiducialPoseFinder
     return 0;
   }
 };
+}
 ECTO_CELL(calib, FiducialPoseFinder,"FiducialPoseFinder", "Find fiducial pose");
-
+namespace calib
+{
 struct PoseDrawer
 {
   static void draw(cv::Mat& drawImage, const cv::Mat& K, const cv::Mat& R,
@@ -350,9 +356,11 @@ struct PoseDrawer
     return 0;
   }
 };
+}
 ECTO_CELL(calib, PoseDrawer,"PoseDrawer", "Draw pose");
 
-
+namespace calib
+{
 struct PingPongDetector
 {
   static void declare_params(tendrils& p)
@@ -419,5 +427,6 @@ struct PingPongDetector
   ecto::spore<double> dp, minDist, param1, param2, minRad, maxRad;
 
 };
+}
 ECTO_CELL(calib, PingPongDetector, "PingPongDetector",
           "Detect 40 mm ping pong balls.");

@@ -5,7 +5,9 @@
 #include <opencv2/calib3d/calib3d.hpp>
 
 using ecto::tendrils;
-
+using namespace calib;
+namespace calib
+{
 struct PatternDetector
 {
   typedef std::vector<cv::Point3f> object_pts_t;
@@ -104,6 +106,6 @@ struct PatternDetector
   Pattern pattern_;
   object_pts_t ideal_pts_;
 };
-
+}
 ECTO_CELL(calib, PatternDetector, "PatternDetector", "Detect chessboards, circles, acircles");
 

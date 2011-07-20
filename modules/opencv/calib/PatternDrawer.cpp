@@ -3,7 +3,8 @@
 #include <opencv2/calib3d/calib3d.hpp>
 
 using ecto::tendrils;
-
+namespace calib
+{
 struct PatternDrawer
 {
   static void declare_params(tendrils& params)
@@ -41,5 +42,6 @@ struct PatternDrawer
   }
   cv::Size grid_size_;
 };
-ECTO_CELL(calib, PatternDrawer, "PatternDrawer", "draw pattern");
+}
+ECTO_CELL(calib, calib::PatternDrawer, "PatternDrawer", "draw pattern");
 

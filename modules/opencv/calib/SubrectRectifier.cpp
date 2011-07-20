@@ -6,7 +6,8 @@
 #include <boost/filesystem.hpp>
 
 using namespace ecto;
-
+namespace calib
+{
 struct SubrectRectifier
 {
   static void declare_params(tendrils& p)
@@ -101,5 +102,6 @@ struct SubrectRectifier
   ecto::spore<unsigned> xsize_pixels, ysize_pixels;
   ecto::spore<cv::Mat> output;
 };
-ECTO_CELL(calib, SubrectRectifier, "SubrectRectifier", "Pull a trapezoid out of an image and recitfy");
+}
+ECTO_CELL(calib, calib::SubrectRectifier, "SubrectRectifier", "Pull a trapezoid out of an image and rectify");
 

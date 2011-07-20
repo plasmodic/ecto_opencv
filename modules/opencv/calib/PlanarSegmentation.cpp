@@ -4,7 +4,8 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <ecto/registry.hpp>
 using ecto::tendrils;
-
+namespace calib
+{
 struct PlanarSegmentation
 {
   static void
@@ -138,8 +139,8 @@ struct PlanarSegmentation
   cv::Mat_<uint8_t> box_mask;
 
 };
-
-ECTO_CELL(calib, PlanarSegmentation, "PlanarSegmentation",
+}
+ECTO_CELL(calib, calib::PlanarSegmentation, "PlanarSegmentation",
           "Given a pose, "
           "assuming it describes the center of the object coordinate system and "
           "lies on a plane, segment the object from the plane")

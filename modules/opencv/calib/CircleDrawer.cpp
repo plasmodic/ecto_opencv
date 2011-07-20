@@ -4,7 +4,8 @@
 
 using ecto::tendrils;
 
-
+namespace calib
+{
 struct CircleDrawer
 {
   static void declare_io(const tendrils& params, tendrils& in, tendrils& out)
@@ -44,5 +45,7 @@ struct CircleDrawer
   ecto::spore<std::vector<cv::Vec3f> > circles_;
 
 };
-ECTO_CELL(calib, CircleDrawer, "CircleDrawer", "Draw circles...");
+}
+
+ECTO_CELL(calib, calib::CircleDrawer, "CircleDrawer", "Draw circles...");
 

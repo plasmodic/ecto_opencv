@@ -1,6 +1,6 @@
 #include <ecto/ecto.hpp>
 #include "calib.hpp"
-
+using namespace calib;
 namespace bp = boost::python;
 ECTO_DEFINE_MODULE(calib)
 {
