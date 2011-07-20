@@ -12,9 +12,10 @@ fps = highgui.FPSDrawer()
 
 rgb2gray = imgproc.cvtColor('rgb -> gray', flag=7)
 
-circle_detector = calib.PatternDetector(rows=7, cols=3, 
-                                        pattern_type="acircles", square_size=0.03)
-circle_drawer = calib.PatternDrawer(rows=7, cols=3)
+circle_detector = calib.PatternDetector(rows=5, cols=3, 
+                                        pattern_type=calib.ASYMMETRIC_CIRCLES_GRID, 
+                                        square_size=0.04)
+circle_drawer = calib.PatternDrawer(rows=5, cols=3)
 circle_display = highgui.imshow('Pattern show',name='Pattern',waitKey=2,maximize=True)
 
 pose_calc = calib.FiducialPoseFinder('Pose Calc')

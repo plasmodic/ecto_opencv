@@ -11,7 +11,7 @@ debug = True
 
 plasm = ecto.Plasm()
 
-video = highgui.VideoCapture(video_device=0)
+video = highgui.VideoCapture("MyVidCapNode", video_device=0)
 rgb2gray = imgproc.cvtColor (flag=7)
 gaussian = imgproc.GaussianBlur(sigma=2.0)
 circle_drawer = calib.CircleDrawer()
@@ -31,6 +31,6 @@ if debug:
     print plasm.viz()
     ecto.view_plasm(plasm)
 
-sched = ecto.schedulers.Threadpool(plasm)
-sched.execute(nthreads=8)
+sched = ecto.schedulers.Singlethreaded(plasm)
+sched.execute()
 
