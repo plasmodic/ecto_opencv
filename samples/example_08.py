@@ -4,7 +4,7 @@ import ecto
 from ecto_opencv import highgui, calib, imgproc
 
 class PoseFromFiducial(ecto.BlackBox):
-    def __init__(self, plasm,rows,cols,pattern_type,square_size,debug=True):
+    def __init__(self, plasm,rows,cols,pattern_type,square_size,imshow_name, debug=True):
         ecto.BlackBox.__init__(self, plasm)
         if debug:
             print self.__class__, "enabling debug nodes"
@@ -22,7 +22,7 @@ class PoseFromFiducial(ecto.BlackBox):
             self.fps = highgui.FPSDrawer()
             self.circle_drawer = calib.PatternDrawer('Circle Draw',
                                                      rows=rows, cols=cols)
-            self.circle_display = highgui.imshow(name='Pattern', 
+            self.circle_display = highgui.imshow(name=imshow_name, 
                                                  waitKey=2, autoSize=True)
             self.pose_draw = calib.PoseDrawer('Pose Draw')
 
@@ -73,11 +73,12 @@ if "__main__" == __name__:
   pose_from_fiducial = PoseFromFiducial(plasm,
                                         rows=5, cols=3, 
                                         pattern_type=calib.ASYMMETRIC_CIRCLES_GRID,
-                                        square_size=0.04, debug=debug)
+                                        square_size=0.04, imshow_name='normal view',
+                                        debug=debug)
 
   pff2 =  PoseFromFiducial(plasm, rows=5, cols=3, 
                            pattern_type=calib.ASYMMETRIC_CIRCLES_GRID,
-                           square_size=0.04, debug=debug)
+                           square_size=0.04, imshow_name='inverted view', debug=debug)
 
   video_cap = highgui.VideoCapture(video_device=0)
   invert = imgproc.BitwiseNot()
