@@ -22,16 +22,17 @@ namespace imgproc
     void
     configure(tendrils& params, tendrils& inputs, tendrils& outputs)
     {
-      x_ = params.get<int>("x");
-      y_ = params.get<int>("y");
-      input = inputs.at("input");
-      output = outputs.at("output");
+      params["x"] >> x_;
+      params["y"] >> y_;
+      input = inputs["input"];
+      output = outputs["input"];
     }
     int
-    process(const tendrils& inputs, tendrils& outputs)
+    process(tendrils& /*inputs*/, tendrils& /*outputs*/)
     {
       cv::Mat out;
-      cv::Sobel(input.read(), *output, CV_32F, x_, y_);
+      cv::Sobel(*input, out, CV_32F, x_, y_);
+      *output = out;
       return ecto::OK;
     }
     int x_, y_;
