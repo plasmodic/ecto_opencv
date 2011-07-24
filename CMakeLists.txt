@@ -5,6 +5,10 @@ project(ecto_opencv)
 add_definitions("-Werror -fno-strict-aliasing -Wall -Wl,--no-undefined")
 
 #set the default path for built libraries to the "ecto_opencv" directory
+if (NOT CMAKE_LIBRARY_OUTPUT_DIRECTORY)
+  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+endif()
+
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/ecto_opencv)
 
 configure_file(python/__init__.py.in 
