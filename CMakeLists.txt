@@ -5,10 +5,10 @@ project(ecto_opencv)
 add_definitions("-Werror -fno-strict-aliasing -Wall -Wl,--no-undefined")
 
 #set the default path for built libraries to the "ecto_opencv" directory
-set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/ecto_opencv)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/ecto_opencv)
 
 configure_file(python/__init__.py.in 
-  ${LIBRARY_OUTPUT_PATH}/__init__.py
+  ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/__init__.py
   @ONLY)
 
 
@@ -19,7 +19,7 @@ find_package(OpenCV 2.3.1 EXACT REQUIRED)
 find_package(ecto 0.1.0 REQUIRED)
 find_package(Boost COMPONENTS system filesystem serialization REQUIRED)
 
-ecto_python_env_gen(${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/python)
+ecto_python_env_gen(${CMAKE_LIBRARY_OUTPUT_DIRECTORY} ${CMAKE_CURRENT_SOURCE_DIR}/python)
 set_ecto_install_package_name(ecto_opencv)
 
 install(FILES ${LIBRARY_OUTPUT_PATH}/__init__.py
