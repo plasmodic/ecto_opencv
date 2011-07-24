@@ -5,7 +5,7 @@ from ecto_opencv import highgui, calib, imgproc
 from example_08 import PoseFromFiducial
 #lil bit of ros
 PKG = 'ecto_ros' # this package name
-import roslib; roslib.load_manifest(PKG)
+# import roslib; roslib.load_manifest(PKG)
 import ecto_ros, ecto_sensor_msgs, ecto_geometry_msgs
 import sys
 if "__main__" == __name__:
@@ -22,7 +22,8 @@ if "__main__" == __name__:
   #add our black box to the plasm.
   pose_from_fiducial = PoseFromFiducial(plasm,
                                         rows=5, cols=3, 
-                                        pattern_type="acircles",
+                                        pattern_type=calib.ASYMMETRIC_CIRCLES_GRID,
+                                        imshow_name="feh",
                                         square_size=0.04, debug=debug)
 
   circle_drawer = calib.PatternDrawer('Circle Draw',
