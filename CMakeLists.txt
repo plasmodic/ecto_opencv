@@ -23,7 +23,7 @@ find_package(OpenCV 2.3.1 EXACT REQUIRED)
 find_package(ecto 0.1.0 REQUIRED)
 find_package(Boost COMPONENTS system filesystem serialization REQUIRED)
 
-ecto_python_env_gen(${CMAKE_LIBRARY_OUTPUT_DIRECTORY} ${CMAKE_CURRENT_SOURCE_DIR}/python)
+ecto_python_env_gen(${CMAKE_BINARY_DIR}/lib ${CMAKE_CURRENT_SOURCE_DIR}/python)
 set_ecto_install_package_name(ecto_opencv)
 
 install(FILES ${LIBRARY_OUTPUT_PATH}/__init__.py
