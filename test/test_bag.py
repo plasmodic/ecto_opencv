@@ -27,7 +27,7 @@ def do_ecto():
     
     plasm = ecto.Plasm()
     plasm.connect(graph)
-    ecto.view_plasm(plasm)
+    #ecto.view_plasm(plasm)
     
     sched = ecto.schedulers.Singlethreaded(plasm)
     sched.execute()
