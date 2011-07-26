@@ -1,4 +1,4 @@
-#!/bin/python
+#!/usr/bin/env python
 import ecto
 from ecto_opencv import imgproc, highgui, features2d
 import time
