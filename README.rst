@@ -21,16 +21,7 @@ Dependencies
  - python
  - boost
  - ecto https://github.com/plasmodic/ecto
- - opencv2.3 https://code.ros.org/svn/opencv/branches/2.3/opencv       
- - pcl 1.0 (non ros version, standalone)
-      
-      http://www.pointclouds.org/downloads/linux.html
-      
-      Quoted here for convenience::
-        
-        sudo add-apt-repository ppa:v-launchpad-jochen-sprickerhof-de/pcl
-        sudo apt-get update
-        sudo apt-get install libpcl-dev
+ - opencv2.3 ros version       
 
 Style
 -----------------------------------------------
