@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 2.8)
 project(ecto_opencv)
-message(STATUS "--- ${PROJECT_NAME} ---")
 
 set(CMAKE_BUILD_TYPE "Release" CACHE STRING "The build type.")
 add_definitions("-Werror -fno-strict-aliasing -Wall -Wl,--no-undefined")
