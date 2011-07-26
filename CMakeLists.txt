@@ -30,4 +30,8 @@ install(FILES ${LIBRARY_OUTPUT_PATH}/__init__.py
   )
 
 add_subdirectory(modules)
-
+option(BUILD_TEST "Build tests" ON)
+if(BUILD_TEST)
+  enable_testing()
+  add_subdirectory(test)
+endif()
