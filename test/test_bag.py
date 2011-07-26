@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import ecto
 import ecto_ros, ecto_sensor_msgs
-from ecto_opencv import highgui
 import sys
 
 ImageBagger = ecto_sensor_msgs.Bagger_Image
@@ -20,9 +19,7 @@ def do_ecto():
     im2mat_depth = ecto_ros.Image2Mat()
     graph = [
                 bagreader["image"] >> im2mat_rgb["image"],
-                im2mat_rgb["image"] >> highgui.imshow("rgb show", name="rgb", waitKey=5)[:],
                 bagreader["depth"] >> im2mat_depth["image"],
-                im2mat_depth["image"] >> highgui.imshow("depth show", name="depth", waitKey= -1)[:]
             ]
     
     plasm = ecto.Plasm()
