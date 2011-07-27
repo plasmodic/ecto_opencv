@@ -26,7 +26,7 @@ struct CircleDrawer
 
   int process(const tendrils& in, tendrils& out)
   {
-    const std::vector<cv::Vec3f>& circles = circles_.read();
+    const std::vector<cv::Vec3f>& circles = *circles_;
     *draw_image_ = image_->clone();
 
     for (size_t i = 0; i < circles.size(); i++)

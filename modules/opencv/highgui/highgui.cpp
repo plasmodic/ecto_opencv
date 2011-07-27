@@ -291,7 +291,7 @@ struct imshow
       return 0;
       //throw std::logic_error("empty image!");
     }
-    if(full_screen_.read())
+    if(*full_screen_)
     {
       cv::namedWindow(window_name_, CV_WINDOW_KEEPRATIO);
       cv::setWindowProperty(window_name_,CV_WND_PROP_FULLSCREEN,true);
