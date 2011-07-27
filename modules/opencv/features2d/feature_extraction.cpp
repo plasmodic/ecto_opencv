@@ -25,7 +25,8 @@
  * @param params the property tree to parse for parameters
  * @return
  */
-cv::FeatureDetector* createDetector(const std::string& feature_type, const boost::property_tree::ptree & params)
+cv::FeatureDetector*
+createDetector(const std::string& feature_type, const boost::property_tree::ptree & params)
 {
   if (feature_type == "FAST")
   {
@@ -73,7 +74,8 @@ cv::FeatureDetector* createDetector(const std::string& feature_type, const boost
   return 0;
 }
 
-FeatureDescriptorFinder* FeatureDescriptorFinder::create(const std::string &json_params)
+FeatureDescriptorFinder*
+FeatureDescriptorFinder::create(const std::string &json_params)
 {
 // First, parse the JSON string
   boost::property_tree::ptree params;
@@ -146,13 +148,17 @@ FeatureDescriptorFinder* FeatureDescriptorFinder::create(const std::string &json
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 MultiscaleExtractor::MultiscaleExtractor(const cv::Ptr<cv::FeatureDetector>& d,
-                                         const cv::Ptr<cv::DescriptorExtractor>& e, int n_octaves) :
-    detector_(d), extractor_(e), n_octaves_(n_octaves)
+                                         const cv::Ptr<cv::DescriptorExtractor>& e, int n_octaves)
+    :
+      detector_(d),
+      extractor_(e),
+      n_octaves_(n_octaves)
 {
 }
 
-void MultiscaleExtractor::detect_and_extract(const cv::Mat & image_in, const cv::Mat & mask_in,
-                                             std::vector<cv::KeyPoint> & keypoints_out, cv::Mat &descriptors_out) const
+void
+MultiscaleExtractor::DetectAndExtract(const cv::Mat & image_in, const cv::Mat & mask_in,
+                                      std::vector<cv::KeyPoint> & keypoints_out, cv::Mat &descriptors_out) const
 {
   int octaves = n_octaves_;
   cv::Mat image = image_in.clone();
@@ -202,8 +208,9 @@ OrbFeatureDescriptor::OrbFeatureDescriptor(cv::ORB::CommonParams params, int n_d
   orb_ = cv::ORB(n_desired_features, params);
 }
 
-void OrbFeatureDescriptor::detect_and_extract(const cv::Mat & image, const cv::Mat & mask,
-                                              std::vector<cv::KeyPoint> & keypoints, cv::Mat &descriptors) const
+void
+OrbFeatureDescriptor::DetectAndExtract(const cv::Mat & image, const cv::Mat & mask,
+                                       std::vector<cv::KeyPoint> & keypoints, cv::Mat &descriptors) const
 {
   orb_(image, mask, keypoints, descriptors);
 }
@@ -217,8 +224,9 @@ SiftFeatureDescriptor::SiftFeatureDescriptor(cv::SIFT::CommonParams common_param
   sift_ = cv::SIFT(common_params, detector_params, descriptor_params);
 }
 
-void SiftFeatureDescriptor::detect_and_extract(const cv::Mat & image, const cv::Mat & mask,
-                                               std::vector<cv::KeyPoint> & keypoints, cv::Mat &descriptors) const
+void
+SiftFeatureDescriptor::DetectAndExtract(const cv::Mat & image, const cv::Mat & mask,
+                                        std::vector<cv::KeyPoint> & keypoints, cv::Mat &descriptors) const
 {
   sift_(image, mask, keypoints, descriptors);
 }
@@ -226,13 +234,16 @@ void SiftFeatureDescriptor::detect_and_extract(const cv::Mat & image, const cv::
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 SequentialExtractor::SequentialExtractor(const cv::Ptr<cv::FeatureDetector>& d,
-                                         const cv::Ptr<cv::DescriptorExtractor>& e) :
-    detector_(d), extractor_(e)
+                                         const cv::Ptr<cv::DescriptorExtractor>& e)
+    :
+      detector_(d),
+      extractor_(e)
 {
 
 }
-void SequentialExtractor::detect_and_extract(const cv::Mat & image, const cv::Mat & mask,
-                                             std::vector<cv::KeyPoint> & keypoints, cv::Mat &descriptors) const
+void
+SequentialExtractor::DetectAndExtract(const cv::Mat & image, const cv::Mat & mask,
+                                      std::vector<cv::KeyPoint> & keypoints, cv::Mat &descriptors) const
 {
   detector_->detect(image, keypoints, mask);
   extractor_->compute(image, keypoints, descriptors);
@@ -240,13 +251,15 @@ void SequentialExtractor::detect_and_extract(const cv::Mat & image, const cv::Ma
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-FileExtractor::FileExtractor(const std::string& f2dname) :
-    f2dname_(f2dname)
+FileExtractor::FileExtractor(const std::string& f2dname)
+    :
+      f2dname_(f2dname)
 {
 
 }
-void FileExtractor::detect_and_extract(const cv::Mat & image, const cv::Mat & mask,
-                                       std::vector<cv::KeyPoint> & keypoints, cv::Mat &descriptors) const
+void
+FileExtractor::DetectAndExtract(const cv::Mat & image, const cv::Mat & mask, std::vector<cv::KeyPoint> & keypoints,
+                                cv::Mat &descriptors) const
 {
   cv::FileStorage fs(f2dname_, cv::FileStorage::READ);
   cv::read(fs["keypoints"], keypoints);
@@ -256,7 +269,8 @@ void FileExtractor::detect_and_extract(const cv::Mat & image, const cv::Mat & ma
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void KeyPointsToPoints(const std::vector<cv::KeyPoint>& keypts, std::vector<cv::Point2f>& pts)
+void
+KeyPointsToPoints(const std::vector<cv::KeyPoint>& keypts, std::vector<cv::Point2f>& pts)
 {
   pts.clear();
   pts.reserve(keypts.size());
@@ -266,7 +280,8 @@ void KeyPointsToPoints(const std::vector<cv::KeyPoint>& keypts, std::vector<cv::
   }
 }
 
-void PointsToKeyPoints(const std::vector<cv::Point2f>& pts, std::vector<cv::KeyPoint>& kpts)
+void
+PointsToKeyPoints(const std::vector<cv::Point2f>& pts, std::vector<cv::KeyPoint>& kpts)
 {
   kpts.clear();
   kpts.reserve(pts.size());
@@ -278,23 +293,44 @@ void PointsToKeyPoints(const std::vector<cv::Point2f>& pts, std::vector<cv::KeyP
 
 struct FeatureDescriptor
 {
-  static void declare_params(ecto::tendrils& p)
+  static void
+  declare_params(ecto::tendrils& p)
   {
-    p.declare<std::string>("json_params", "The parameters of the feature/descriptor in JSON format.", "");
+    /*      cv::SIFT::CommonParams common_params;
+     common_params.angleMode = params.get<float>("feature_params.angleMode");
+     common_params.firstOctave = params.get<float>("feature_params.firstOctave");
+     common_params.nOctaveLayers = params.get<float>("feature_params.nOctavesLayers");
+     common_params.nOctaves = params.get<float>("feature_params.nOctaves");
+
+     //TODO make parameters explicit
+     cv::SIFT::DetectorParams detector_params;
+     cv::SIFT::DescriptorParams descriptor_params;
+     return new SiftFeatureDescriptor(common_params, detector_params, descriptor_params);
+     }*/
+
+    cv::ORB::CommonParams orb_params;
+    std::stringstream json_comments;
+    json_comments << "The parameters of the feature/descriptor in JSON format.\n"
+                  << "e.g.: {combination: ORB, feature: {scale_factor: " << orb_params.scale_factor_ << ", n_levels: "
+                  << orb_params.n_levels_ << ", n_features: 1000}}\n";
+
+    p.declare<std::string>("json_params", json_comments.str());
     p.declare<std::string>("param_file",
-                           "The path of the file containing YAML parameters for feature/descriptor extraction.", "");
+                           "The path of the file containing JSON parameters for feature/descriptor extraction.", "");
   }
 
-  static void declare_io(const ecto::tendrils& params, ecto::tendrils& inputs, ecto::tendrils& outputs)
+  static void
+  declare_io(const ecto::tendrils& params, ecto::tendrils& inputs, ecto::tendrils& outputs)
   {
     inputs.declare<cv::Mat>("image", "The image to find features/descriptors on.");
     inputs.declare<cv::Mat>("mask", "The mask to apply to the image.");
     outputs.declare<std::vector<cv::KeyPoint> >("keypoints", "The found keypoints.");
     outputs.declare<cv::Mat>("descriptors", "The matching descriptors.");
-    outputs.declare<std::string>("params", "A YAML string that describes the parameters.");
+    outputs.declare<std::string>("params", "A JSON string that describes the parameters.");
   }
 
-  void configure(ecto::tendrils& params, ecto::tendrils& inputs, ecto::tendrils& outputs)
+  void
+  configure(ecto::tendrils& params, ecto::tendrils& inputs, ecto::tendrils& outputs)
   {
     // First, try to get the parameter from the string
     json_params_ = params.get<std::string>("json_params");
@@ -325,7 +361,8 @@ struct FeatureDescriptor
     feature_descriptor_ = boost::shared_ptr<FeatureDescriptorFinder>(FeatureDescriptorFinder::create(json_params_));
   }
 
-  int process(const ecto::tendrils& inputs, ecto::tendrils& outputs)
+  int
+  process(const ecto::tendrils& inputs, ecto::tendrils& outputs)
   {
     const cv::Mat &image = inputs.get<cv::Mat>("image");
     const cv::Mat &mask = inputs.get<cv::Mat>("mask");
@@ -333,7 +370,7 @@ struct FeatureDescriptor
     std::vector<cv::KeyPoint>& keypoints = outputs.get<std::vector<cv::KeyPoint> >("keypoints");
     cv::Mat& descriptors = outputs.get<cv::Mat>("descriptors");
 
-    feature_descriptor_->detect_and_extract(image, mask, keypoints, descriptors);
+    feature_descriptor_->DetectAndExtract(image, mask, keypoints, descriptors);
 
     return 0;
   }
@@ -343,5 +380,4 @@ private:
   boost::shared_ptr<FeatureDescriptorFinder> feature_descriptor_;
 };
 
-ECTO_CELL(features2d, FeatureDescriptor, "FeatureDescriptor",
-		"Compute features and descriptors for an image.");
+ECTO_CELL(features2d, FeatureDescriptor, "FeatureDescriptor", "Compute features and descriptors for an image.");
