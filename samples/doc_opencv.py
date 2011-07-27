@@ -1,4 +1,4 @@
-#!/bin/python
+#!/usr/bin/env python
 import ecto
 #import ecto_opencv.cv_bp as opencv
 from ecto_opencv import highgui, calib, imgproc, features2d
