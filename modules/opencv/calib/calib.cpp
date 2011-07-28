@@ -416,9 +416,9 @@ struct PingPongDetector
 
   int process(const tendrils& in, tendrils& out)
   {
-    cv::Mat image = image_.read();
-    cv::HoughCircles(image, *circles_, CV_HOUGH_GRADIENT, dp.read(), minDist.read(),
-                     param1.read(), param2.read(), minRad.read(), maxRad.read());
+    cv::Mat image = *image_;
+    cv::HoughCircles(image, *circles_, CV_HOUGH_GRADIENT, *dp, *minDist,
+                     *param1, *param2,*minRad, *maxRad);
     return 0;
   }
 
