@@ -28,8 +28,6 @@ namespace calib
       float fy = K.at<float>(1, 1);
       float cx = K.at<float>(0, 2);
       float cy = K.at<float>(1, 2);
-      std::cout << "K=" << K << std::endl;
-      // std::cout << fx << " "<< fy << std::endl;
       // Create 3D points in one go.
       cv::Size depth_size = depth.size();
       for (int v = 0; v < depth_size.height; v++)
@@ -43,7 +41,6 @@ namespace calib
         }
       }
       points3d = points; //return Nx3 matrix
-     // std::cout << points3d << std::endl;
     }
 
     typedef std::vector<cv::Point2f> points_t;
