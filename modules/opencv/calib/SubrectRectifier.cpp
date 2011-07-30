@@ -35,17 +35,17 @@ struct SubrectRectifier
 
   void configure(tendrils& p, tendrils& inputs, tendrils& o)
   {
-    xoffset = p.at("xoffset");
-    yoffset = p.at("yoffset");
-    zoffset = p.at("zoffset");
+    xoffset = p["xoffset"];
+    yoffset = p["yoffset"];
+    zoffset = p["zoffset"];
     
-    xsize_world = p.at("xsize_world");
-    ysize_world = p.at("ysize_world");
+    xsize_world = p["xsize_world"];
+    ysize_world = p["ysize_world"];
 
-    xsize_pixels = p.at("xsize_pixels");
-    ysize_pixels = p.at("ysize_pixels");
+    xsize_pixels = p["xsize_pixels"];
+    ysize_pixels = p["ysize_pixels"];
 
-    output = o.at("output");
+    output = o["output"];
 
   }
 

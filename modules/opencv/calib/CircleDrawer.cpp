@@ -19,9 +19,9 @@ struct CircleDrawer
 
   void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
   {
-    image_ = inputs.at("image");
-    circles_ = inputs.at("circles");
-    draw_image_ = outputs.at("image");
+    image_ = inputs["image"];
+    circles_ = inputs["circles"];
+    draw_image_ = outputs["image"];
   }
 
   int process(const tendrils& in, tendrils& out)

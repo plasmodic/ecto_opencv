@@ -279,7 +279,7 @@ struct imshow
     window_name_ = params.get<std::string> ("name");
     waitkey_ = params.get<int> ("waitKey");
     auto_size_ = params.get<bool> ("autoSize");
-    full_screen_ = params.at("maximize");
+    full_screen_ = params["maximize"];
   }
 
   int process(const tendrils& inputs, tendrils& outputs)
@@ -407,7 +407,7 @@ struct ImageSaver
   }
   void configure(tendrils&p,tendrils&in,tendrils&o)
   {
-    prefix = p.at("filename");
+    prefix = p["filename"];
   }
   int process(tendrils& in, tendrils& out)
   {

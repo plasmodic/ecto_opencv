@@ -56,7 +56,7 @@ struct ORB
   int process(tendrils& inputs, tendrils& outputs)
   {
     std::vector<cv::KeyPoint> kpts;
-    inputs.at("kpts") >> kpts;
+    inputs["kpts"] >> kpts;
     cv::Mat image = inputs.get<cv::Mat> ("image");
     cv::Mat mask = inputs.get<cv::Mat> ("mask");
     cv::Mat desc;

@@ -60,7 +60,7 @@ struct GatherPoints
   static void declare_io(const tendrils& params, tendrils& in, tendrils& out)
   {
     int N;
-    params.at("N") >> N;
+    params["N"] >> N;
     for(int i =0; i < N; i++)
     {
       in.declare<observation_pts_t> (boost::str(boost::format(POINTS)%i), "Image points");
@@ -404,14 +404,14 @@ struct PingPongDetector
 
   void configure(tendrils& p, tendrils& inputs, tendrils& outputs)
   {
-    image_ = inputs.at("image");
-    circles_ = outputs.at("circles");
-    dp = p.at("dp");
-    minDist = p.at("minDist");
-    param1 = p.at("param1");
-    param2 = p.at("param2");
-    minRad = p.at("minRadius");
-    maxRad = p.at("maxRadius");
+    image_ = inputs["image"];
+    circles_ = outputs["circles"];
+    dp = p["dp"];
+    minDist = p["minDist"];
+    param1 = p["param1"];
+    param2 = p["param2"];
+    minRad = p["minRadius"];
+    maxRad = p["maxRadius"];
   }
 
   int process(const tendrils& in, tendrils& out)

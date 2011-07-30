@@ -35,7 +35,7 @@ if "__main__" == __name__:
   rgb2bgr = imgproc.cvtColor('rgb -> bgr')
   pose_gen = ecto_ros.RT2PoseStamped('R,T -> PoseStamped',frame_id='/openni_rgb_optical_frame')
   pose_pub = ecto_geometry_msgs.Publisher_PoseStamped('Pose Pub',topic_name='dot_pose')
-  plasm.connect(sub_rgb["output"]>>im2mat_rgb["image"],
+  plasm.connect(sub_rgb["output"] >> im2mat_rgb["image"],
                 im2mat_rgb["image"] >> rgb2bgr[:],
                 rgb2bgr[:] >> pose_from_fiducial['image'],
                 pose_from_fiducial["R","T"] >> pose_gen["R","T"],

@@ -1260,7 +1260,7 @@ static float endy [3][16] =
          maxlevel = params.get<int> ("maxlevel");
          reset(); //clears then sets: ctree.set(threshold, fract_thresh_incr, maxlevel);
        }
-     params.at("trigger_save")->set_callback<bool>(boost::bind(&TrainColorTempl::trigger_cb,this,_1));
+     params["trigger_save"]->set_callback<bool>(boost::bind(&TrainColorTempl::trigger_cb,this,_1));
    }
 
    int process(const tendrils& inputs, tendrils& outputs)

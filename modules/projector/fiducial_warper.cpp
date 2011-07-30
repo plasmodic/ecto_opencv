@@ -238,7 +238,7 @@ struct ImageWarper
 
   void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
   {
-    params.at("scale") >> scale_;
+    params["scale"] >> scale_;
   }
 
   /** Get the 2d keypoints and figure out their 3D position from the depth map
@@ -249,7 +249,7 @@ struct ImageWarper
   int process(tendrils& inputs, tendrils& outputs,cv::Mat& draw_image, const cv::Mat_<float>& R, const cv::Mat_<float>& T, const cv::Mat_<float>& P,int offset_x,int offset_y)
   {
     cv::Mat image;
-    inputs.at("image") >> image;
+    inputs["image"] >> image;
     float scale = std::max(scale_/image.size().width,scale_/image.size().height);
 
     cv::Mat_<float> H = calcH(R,T,P,scale,-image.size().width/2,image.size().height/2);
