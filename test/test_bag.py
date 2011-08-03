@@ -17,7 +17,9 @@ def do_ecto():
         print stderr
         sys.exit(-1)
     result = yaml.load(stdout)
-    counts = {info['topic']:info['messages'] for info in result}
+    counts = {}
+    for info in result:
+        counts[info['topic']] = info['messages']
     #test that the counts are the same.
     assert counts['/camera/rgb/image_color'] == counts['/camera/depth/image']
     assert counts['/camera/rgb/image_color'] != 0
