@@ -1,25 +1,30 @@
 #!/usr/bin/env python
-import ecto
-import ecto_ros, ecto_sensor_msgs
-import sys
-import subprocess
-import yaml
+import ecto, ecto_ros, ecto_sensor_msgs
+import sys, subprocess, yaml, os
 
 ImageBagger = ecto_sensor_msgs.Bagger_Image
 CameraInfoBagger = ecto_sensor_msgs.Bagger_CameraInfo
 
 def do_ecto():
     bagname = sys.argv[1]
-    proc = subprocess.Popen(['rosbag','info','-k','topics','-y',bagname],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+    print "Bagname:", bagname
+    assert 'ROS_ROOT' in os.environ
+    cmd = [os.environ['ROS_ROOT'] + '/bin/rosbag','info','-k','topics','-y', bagname]
+    print "CMD:", ' '.join(cmd)
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stdout,stderr = proc.communicate()
+
     #should exit without error
     if len(stderr) != 0:
+        print "ERROR from rosbag"
         print stderr
         sys.exit(-1)
+    print "STDOUT:", stdout
     result = yaml.load(stdout)
     counts = {}
     for info in result:
         counts[info['topic']] = info['messages']
+
     #test that the counts are the same.
     assert counts['/camera/rgb/image_color'] == counts['/camera/depth/image']
     assert counts['/camera/rgb/image_color'] != 0
