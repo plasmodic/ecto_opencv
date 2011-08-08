@@ -427,7 +427,7 @@ struct ImageSaver
   ecto::spore<std::string> prefix;
 };
 
-BOOST_PYTHON_MODULE(highgui)
+ECTO_DEFINE_MODULE(highgui)
 {
   ecto::wrap<VideoCapture>("VideoCapture",
                            "Use to capture video from a camera or video file.");
