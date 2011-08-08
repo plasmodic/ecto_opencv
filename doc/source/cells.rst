@@ -1,7 +1,7 @@
 .. _ecto_opencv:
 
 ecto_opencv Cells
-===========
+=================
 
 These are all of the cells available in ecto_opencv. The different modules roughly
 mirror the modules in opencv.
