@@ -14,3 +14,6 @@ Cells
    cells/lazer
    cells/line_mod
    cells/imgproc
+   cells/features2d
+   cells/projector
+
