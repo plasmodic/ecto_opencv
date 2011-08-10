@@ -957,7 +957,7 @@ static float endy [3][16] =
 //      skipy = params.get<int> ("skipy");
 //    }
 //
-//    int process(const tendrils& inputs, tendrils& outputs)
+//    int process(const tendrils& inputs,const tendrils& outputs)
 //    {
 //      const Mat &image = inputs.get<cv::Mat> ("image");
 //      const Mat &mask = inputs.get<cv::Mat> ("mask");
