@@ -32,7 +32,7 @@ struct ImageReader
     outputs.declare<int> ("frame_number", "The number of frames captured.", 0);
   }
 
-  void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
+  void configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
   {
     path = params.get<std::string> ("path");
     ext = params.get<std::string> ("ext");
@@ -61,7 +61,7 @@ struct ImageReader
     }
   }
 
-  int process(const tendrils& inputs, tendrils& outputs)
+  int process(const tendrils& inputs, const tendrils& outputs)
   {
     if (images.empty())
       return 1;
@@ -93,7 +93,7 @@ struct imread
     outputs.declare<cv::Mat> ("image", "The image in full color.", cv::Mat());
   }
 
-  void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
+  void configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
   {
     std::string file;
     params["image_file"] >> file;
@@ -129,7 +129,7 @@ struct OpenNICapture
     outputs.declare<cv::Mat> ("K", "The camera intrinsic matrix.");
   }
 
-  void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
+  void configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
   {
     int mode = params.get<int> ("video_mode");
     capture = cv::VideoCapture(CV_CAP_OPENNI);
@@ -167,7 +167,7 @@ struct OpenNICapture
     std::cout << K << std::endl;
   }
 
-  int process(const tendrils& inputs, tendrils& outputs)
+  int process(const tendrils& inputs, const tendrils& outputs)
   {
     if (!capture.grab())
     {
@@ -207,7 +207,7 @@ struct VideoCapture
     declare_video_device_outputs(outputs);
   }
 
-  void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
+  void configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
   {
     video_device = params.get<int> ("video_device");
     video_file = params.get<std::string> ("video_file");
@@ -236,7 +236,7 @@ struct VideoCapture
     }
   }
 
-  int process(const tendrils& inputs, tendrils& outputs)
+  int process(const tendrils& inputs, const tendrils& outputs)
   {
     open_video_device();
     cv::Mat image;
@@ -274,7 +274,7 @@ struct imshow
     outputs.declare<int> ("out", "Character pressed.");
   }
 
-  void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
+  void configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
   {
     window_name_ = params.get<std::string> ("name");
     waitkey_ = params.get<int> ("waitKey");
@@ -282,7 +282,7 @@ struct imshow
     full_screen_ = params["maximize"];
   }
 
-  int process(const tendrils& inputs, tendrils& outputs)
+  int process(const tendrils& inputs, const tendrils& outputs)
   {
     cv::Mat image = inputs.get<cv::Mat> ("input");
     if (image.empty())
@@ -363,7 +363,7 @@ struct FPSDrawer
                           "The image with fps drawn on it.");
   }
   FPSDrawer() :count(),freq(){}
-  int process(const tendrils& in, tendrils& out)
+  int process(const tendrils& in, const tendrils& out)
   {
     pt::ptime now = pt::microsec_clock::universal_time();
 
@@ -405,11 +405,11 @@ struct ImageSaver
                              "'s' to save.",
                              0);
   }
-  void configure(tendrils&p,tendrils&in,tendrils&o)
+  void configure(const tendrils&p,const tendrils&in,const tendrils&o)
   {
     prefix = p["filename"];
   }
-  int process(tendrils& in, tendrils& out)
+  int process(const tendrils& in, const tendrils& out)
   {
     int trigger;
     in["trigger"] >> trigger;

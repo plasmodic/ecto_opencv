@@ -45,7 +45,7 @@ struct ORB
     inputs.declare<std::vector<cv::KeyPoint> > ("kpts", "Optional kpts.");
   }
 
-  void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
+  void configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
   {
     orb_params.first_level_ = 0;
     orb_params.n_levels_ = params.get<int> ("n_levels");
@@ -53,7 +53,7 @@ struct ORB
     orb = cv::ORB(params.get<int> ("n_features"), orb_params);
   }
 
-  int process(tendrils& inputs, tendrils& outputs)
+  int process(const tendrils& inputs, const tendrils& outputs)
   {
     std::vector<cv::KeyPoint> kpts;
     inputs["kpts"] >> kpts;
@@ -84,12 +84,12 @@ struct FAST
     feature_detector_interface::declare_io(inputs,outputs);
   }
 
-  void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
+  void configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
   {
     thresh_ = params.get<int> ("thresh");
   }
 
-  int process(const tendrils& inputs, tendrils& outputs)
+  int process(const tendrils& inputs, const tendrils& outputs)
   {
     cv::Mat in = inputs.get<cv::Mat> ("image");
     cv::Mat mask = inputs.get<cv::Mat> ("mask");
@@ -112,7 +112,7 @@ struct DrawKeypoints
     outputs.declare<cv::Mat> ("output", "The output image.");
   }
 
-  int process(const tendrils& inputs, tendrils& outputs)
+  int process(const tendrils& inputs, const tendrils& outputs)
   {
     cv::Mat image = inputs.get<cv::Mat> ("input");
     const std::vector<cv::KeyPoint>& kpts_in = inputs.get<std::vector<cv::KeyPoint> > ("kpts");

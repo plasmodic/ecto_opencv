@@ -120,7 +120,7 @@ struct Calibrator
     outputs.declare<cv::Mat>("P", "The 3x4 projection matrix");
   }
 
-  void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
+  void configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
   {
   }
 
@@ -129,7 +129,7 @@ struct Calibrator
    * @param outputs
    * @return
    */
-  int process(tendrils& inputs, tendrils& outputs)
+  int process(const tendrils& inputs, const tendrils& outputs)
   {
     bool found;
     int trigger;

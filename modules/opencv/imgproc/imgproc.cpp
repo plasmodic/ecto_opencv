@@ -18,11 +18,11 @@ struct Scale
     inputs.declare<cv::Mat> ("input", "An image");
     outputs.declare<cv::Mat> ("output", "The scaled result.");
   }
-  void configure(tendrils& p, tendrils& inputs, tendrils& outputs)
+  void configure(const tendrils& p, const tendrils& inputs, const tendrils& outputs)
   {
     factor = p.get<float> ("factor");
   }
-  int process(const tendrils& inputs, tendrils& outputs)
+  int process(const tendrils& inputs, const tendrils& outputs)
   {
     assert(false && "Scale doesn't appear to actually scale anything");
     outputs.get<cv::Mat> ("output") = inputs.get<cv::Mat> ("input");//, , flag_);
@@ -42,7 +42,7 @@ struct ChannelSplitter
     outputs.declare<cv::Mat> ("out_1", "Channel 1.");
     outputs.declare<cv::Mat> ("out_2", "Channel 2.");
   }
-  int process(const tendrils& inputs, tendrils& outputs)
+  int process(const tendrils& inputs, const tendrils& outputs)
   {
     const cv::Mat& in = inputs.get<cv::Mat> ("input");
     if (in.channels() == 3)
@@ -82,12 +82,12 @@ struct GaussianBlur
     outputs.declare<cv::Mat> ("out", "blurred image");
   }
 
-  void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
+  void configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
   {
     kernel_ = params.get<int> ("kernel");
     sigma_ = params.get<double>("sigma");
   }
-  int process(const tendrils& inputs, tendrils& outputs)
+  int process(const tendrils& inputs, const tendrils& outputs)
   {
     cv::GaussianBlur(inputs.get<cv::Mat> ("input"), outputs.get<cv::Mat> ("out"), cv::Size(kernel_,kernel_),sigma_);
     return 0;
@@ -117,12 +117,12 @@ struct Scharr
     outputs.declare<cv::Mat> ("out", "scharr image");
   }
 
-  void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
+  void configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
   {
     x_ = params.get<int> ("x");
     y_ = params.get<int> ("y");
   }
-  int process(const tendrils& inputs, tendrils& outputs)
+  int process(const tendrils& inputs, const tendrils& outputs)
   {
     cv::Scharr(inputs.get<cv::Mat> ("input"), outputs.get<cv::Mat> ("out"), CV_32F, x_, y_);
     return 0;
@@ -143,7 +143,7 @@ struct CartToPolar
     outputs.declare<cv::Mat>("magnitude","The magnitude image.");
   }
 
-  int process(const tendrils& inputs, tendrils& outputs)
+  int process(const tendrils& inputs, const tendrils& outputs)
   {
     cv::Mat x = inputs.get<cv::Mat> ("x"),y = inputs.get<cv::Mat>("y");
     cv::Mat& angle = outputs.get<cv::Mat> ("angle");
@@ -165,7 +165,7 @@ struct KMeansGradient
     outputs.declare<cv::Mat>("magnitude","The magnitude image.");
   }
 
-  int process(const tendrils& inputs, tendrils& outputs)
+  int process(const tendrils& inputs, const tendrils& outputs)
   {
     cv::Mat x = inputs.get<cv::Mat> ("x"),y = inputs.get<cv::Mat>("y");
     cv::Mat gradient_[] = {x,y};
@@ -192,7 +192,7 @@ struct Adder
     inputs.declare<T> ("b", "to add to a");
     outputs.declare<T> ("out", "a + b");
   }
-  int process(const tendrils& inputs, tendrils& outputs)
+  int process(const tendrils& inputs, const tendrils& outputs)
   {
     cv::Mat out =  inputs.get<T> ("a") + inputs.get<T> ("b");
     outputs["out"] << out;
@@ -209,7 +209,7 @@ struct BitwiseAnd
     inputs.declare<cv::Mat> ("b", "to and to a");
     outputs.declare<cv::Mat> ("out", "a + b");
   }
-  int process(const tendrils& inputs, tendrils& outputs)
+  int process(const tendrils& inputs, const tendrils& outputs)
   {
     cv::Mat a =inputs.get<cv::Mat>("a"),b = inputs.get<cv::Mat>("b");
 
@@ -229,7 +229,7 @@ struct BitwiseNot
     inputs.declare<cv::Mat> ("input", "Image to not.").required(true);
     outputs.declare<cv::Mat> ("out", "!input");
   }
-  int process(tendrils& in, tendrils& out)
+  int process(const tendrils& in, const tendrils& out)
   {
     cv::Mat input, output;
     in["input"] >> input;
@@ -248,7 +248,7 @@ struct AbsNormalized
     inputs.declare<cv::Mat> ("input", "image.");
     outputs.declare<cv::Mat> ("out", "absolute and normalized");
   }
-  int process(const tendrils& inputs, tendrils& outputs)
+  int process(const tendrils& inputs, const tendrils& outputs)
   {
     cv::Mat m = inputs.get<cv::Mat> ("input");
     //grab a reference
@@ -276,7 +276,7 @@ struct Translate
 
   cv::Mat offset;
 
-  void configure(const tendrils& params, tendrils& in, tendrils& out)
+  void configure(const tendrils& params, const tendrils& in, const tendrils& out)
   {
     static double t[3] = { params.get<double>("x"), params.get<double>("y"), params.get<double>("z") };
 
@@ -284,7 +284,7 @@ struct Translate
     std::cout << "IN CONFIGURE OFFSET IS" << offset << "\n";
   }
 
-  int process(const tendrils& in, tendrils& out)
+  int process(const tendrils& in, const tendrils& out)
   {
     cv::Mat tmp = in.get<cv::Mat>("in").clone();
     std::cout << "MAT IS " << tmp << "\n";

@@ -17,14 +17,14 @@ struct CircleDrawer
 
   }
 
-  void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
+  void configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
   {
     image_ = inputs["image"];
     circles_ = inputs["circles"];
     draw_image_ = outputs["image"];
   }
 
-  int process(const tendrils& in, tendrils& out)
+  int process(const tendrils& in, const tendrils& out)
   {
     const std::vector<cv::Vec3f>& circles = *circles_;
     *draw_image_ = image_->clone();

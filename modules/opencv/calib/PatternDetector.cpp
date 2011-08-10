@@ -63,7 +63,7 @@ struct PatternDetector
     out.declare<bool> ("found", "Whether or not a pattern was found...");
   }
 
-  void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
+  void configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
   {
     grid_size_ = cv::Size(params.get<int> ("cols"), params.get<int> ("rows"));
     pattern_ = params.get<Pattern> ("pattern_type");
@@ -76,7 +76,7 @@ struct PatternDetector
 
   }
 
-  int process(const tendrils& in, tendrils& out)
+  int process(const tendrils& in, const tendrils& out)
   {
     const cv::Mat& inm = in.get<cv::Mat> ("input");
     std::vector<cv::Point2f>& outv = out.get<std::vector<cv::Point2f> > ("out");

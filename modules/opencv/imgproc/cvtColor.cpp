@@ -25,13 +25,13 @@ namespace imgproc
     }
 
     void
-    configure(tendrils& p, tendrils& inputs, tendrils& outputs)
+    configure(const tendrils& p, const tendrils& inputs, const tendrils& outputs)
     {
       flag_ = p.get<int>("flag");
     }
 
     int
-    process(const tendrils& inputs, tendrils& outputs)
+    process(const tendrils& inputs, const tendrils& outputs)
     {
       cv::cvtColor(inputs.get<cv::Mat>("input"), outputs.get<cv::Mat>("out"), flag_);
       return 0;

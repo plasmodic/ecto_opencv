@@ -34,7 +34,7 @@ struct PlanarSegmentation
       "0 otherwise.");
   }
   void
-  configure(tendrils& p, tendrils& inputs, tendrils& outputs)
+  configure(const tendrils& p, const tendrils& inputs, const tendrils& outputs)
   {
     z_crop = p.get<float> ("z_crop");
     x_crop = p.get<float> ("x_crop");
@@ -60,7 +60,7 @@ struct PlanarSegmentation
   }
 
   int
-  process(const tendrils& in, tendrils& out)
+  process(const tendrils& in, const tendrils& out)
   {
     cv::Mat R, T, K, depth;
     in.get<cv::Mat> ("R").convertTo(R, CV_64F);

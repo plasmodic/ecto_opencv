@@ -72,11 +72,11 @@ struct GatherPoints
     out.declare<bool> ("found", "Found some points.");
 
   }
-  void configure(tendrils& params, tendrils& in, tendrils& out)
+  void configure(const tendrils& params, const tendrils& in, const tendrils& out)
    {
     params["N"] >> N;
    }
-  int process(tendrils& in,tendrils& out)
+  int process(const tendrils& in,const tendrils& out)
   {
     object_pts_t obj_pts;
     observation_pts_t observe_pts;
@@ -131,7 +131,7 @@ struct CameraCalibrator
     out.declare<bool> ("calibrated", "Done calibration", false);
   }
 
-  void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
+  void configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
   {
     n_obs_ = params.get<int> ("n_obs");
     camera_output_file_ = params.get<std::string> ("output_file_name");
@@ -152,7 +152,7 @@ struct CameraCalibrator
     }
     return norm;
   }
-  int process(const tendrils& in, tendrils& out)
+  int process(const tendrils& in, const tendrils& out)
   {
     const observation_pts_t& points_in = in.get<observation_pts_t> ("points");
     const object_pts_t& board_pts = in.get<object_pts_t> ("ideal");
@@ -230,11 +230,11 @@ struct CameraIntrinsics
     out.declare<std::string> ("camera_model",
                               "The camera model. e.g pinhole,...", "pinhole");
   }
-  void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
+  void configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
   {
     readOpenCVCalibration(camera, params.get<std::string> ("camera_file"));
   }
-  int process(const tendrils& in, tendrils& out)
+  int process(const tendrils& in, const tendrils& out)
   {
     out.get<cv::Mat> ("K") = camera.K;
     out.get<cv::Size> ("image_size") = camera.image_size;
@@ -266,7 +266,7 @@ struct FiducialPoseFinder
     out.declare<cv::Mat> ("T", "3x1 Translation vector.");
   }
 
-  int process(const tendrils& in, tendrils& out)
+  int process(const tendrils& in, const tendrils& out)
   {
     if (!in.get<bool> ("found"))
       return 0;
@@ -341,7 +341,7 @@ struct PoseDrawer
                           "The pose of the fiducial, drawn on an image");
   }
 
-  int process(const tendrils& in, tendrils& out)
+  int process(const tendrils& in, const tendrils& out)
   {
     cv::Mat K, R, T, image;
     in.get<cv::Mat>("K").convertTo(K,CV_64F);
@@ -402,7 +402,7 @@ struct PingPongDetector
 
   }
 
-  void configure(tendrils& p, tendrils& inputs, tendrils& outputs)
+  void configure(const tendrils& p, const tendrils& inputs, const tendrils& outputs)
   {
     image_ = inputs["image"];
     circles_ = outputs["circles"];
@@ -414,7 +414,7 @@ struct PingPongDetector
     maxRad = p["maxRadius"];
   }
 
-  int process(const tendrils& in, tendrils& out)
+  int process(const tendrils& in, const tendrils& out)
   {
     cv::Mat image = *image_;
     cv::HoughCircles(image, *circles_, CV_HOUGH_GRADIENT, *dp, *minDist,

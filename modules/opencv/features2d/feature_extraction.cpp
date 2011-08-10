@@ -291,10 +291,12 @@ PointsToKeyPoints(const std::vector<cv::Point2f>& pts, std::vector<cv::KeyPoint>
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+using ecto::tendrils;
+
 struct FeatureDescriptor
 {
   static void
-  declare_params(ecto::tendrils& p)
+  declare_params(tendrils& p)
   {
     /*      cv::SIFT::CommonParams common_params;
      common_params.angleMode = params.get<float>("feature_params.angleMode");
@@ -320,7 +322,7 @@ struct FeatureDescriptor
   }
 
   static void
-  declare_io(const ecto::tendrils& params, ecto::tendrils& inputs, ecto::tendrils& outputs)
+  declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
   {
     inputs.declare<cv::Mat>("image", "The image to find features/descriptors on.");
     inputs.declare<cv::Mat>("mask", "The mask to apply to the image.");
@@ -330,7 +332,7 @@ struct FeatureDescriptor
   }
 
   void
-  configure(ecto::tendrils& params, ecto::tendrils& inputs, ecto::tendrils& outputs)
+  configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
   {
     // First, try to get the parameter from the string
     json_params_ = params.get<std::string>("json_params");
@@ -362,7 +364,7 @@ struct FeatureDescriptor
   }
 
   int
-  process(const ecto::tendrils& inputs, ecto::tendrils& outputs)
+  process(const tendrils& inputs, const tendrils& outputs)
   {
     const cv::Mat &image = inputs.get<cv::Mat>("image");
     const cv::Mat &mask = inputs.get<cv::Mat>("mask");

@@ -20,7 +20,7 @@ namespace imgproc
       outputs.declare<cv::Mat>("out", "sobel image");
     }
     void
-    configure(tendrils& params, tendrils& inputs, tendrils& outputs)
+    configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
     {
       params["x"] >> x_;
       params["y"] >> y_;
@@ -28,7 +28,7 @@ namespace imgproc
       output = outputs["input"];
     }
     int
-    process(tendrils& /*inputs*/, tendrils& /*outputs*/)
+    process(const tendrils& /*inputs*/, const tendrils& /*outputs*/)
     {
       cv::Mat out;
       cv::Sobel(*input, out, CV_32F, x_, y_);

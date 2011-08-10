@@ -23,7 +23,7 @@ struct Matcher
     outputs.declare<matches_t>("matches", "The descriptor matches.");
   }
   int
-  process(tendrils&inputs, tendrils& outputs)
+  process(const tendrils& inputs, const tendrils& outputs)
   {
     cv::Mat train,test;
     inputs["train"] >> train;

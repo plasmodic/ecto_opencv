@@ -127,7 +127,7 @@ struct Warper
     Cell::declare_io(params,inputs,outputs);
   }
 
-  void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
+  void configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
   {
     readOpenCVCalibration(P_, params.get<std::string>("projection_file"));
     params["offset_x"] >> offset_x_;
@@ -142,7 +142,7 @@ struct Warper
    * @param outputs
    * @return
    */
-  int process(tendrils& inputs, tendrils& outputs)
+  int process(const tendrils& inputs, const tendrils& outputs)
   {
     bool found;
     inputs["found"] >> found;
@@ -179,7 +179,7 @@ struct FiducialWarper
   {
   }
 
-  void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
+  void configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
   {
     radius = params.get<float>("radius");
   }
@@ -189,7 +189,10 @@ struct FiducialWarper
    * @param outputs
    * @return
    */
-  int process(tendrils& inputs, tendrils& outputs,cv::Mat& draw_image, const cv::Mat_<float>& R, const cv::Mat_<float>& T, const cv::Mat_<float>& P,int offset_x,int offset_y)
+  int process(const tendrils& inputs, const tendrils& outputs, 
+              cv::Mat& draw_image, 
+              const cv::Mat_<float>& R, const cv::Mat_<float>& T, const cv::Mat_<float>& P,
+              int offset_x, int offset_y)
   {
     std::vector<cv::Point3f> points_3d_vec;
     // Buld a circle
@@ -236,7 +239,7 @@ struct ImageWarper
     inputs.declare<cv::Mat>("image","An input image to draw rectified.");
   }
 
-  void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
+  void configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
   {
     params["scale"] >> scale_;
   }
@@ -246,7 +249,10 @@ struct ImageWarper
    * @param outputs
    * @return
    */
-  int process(tendrils& inputs, tendrils& outputs,cv::Mat& draw_image, const cv::Mat_<float>& R, const cv::Mat_<float>& T, const cv::Mat_<float>& P,int offset_x,int offset_y)
+  int process(const tendrils& inputs, const tendrils& outputs,
+              cv::Mat& draw_image, 
+              const cv::Mat_<float>& R, const cv::Mat_<float>& T, const cv::Mat_<float>& P,
+              int offset_x, int offset_y)
   {
     cv::Mat image;
     inputs["image"] >> image;

@@ -258,13 +258,13 @@ namespace line_mod
        outputs.declare<cv::Mat> ("output", "A binarized color image.");
      }
 
-     void configure(tendrils& params, tendrils& in, tendrils& out)
+     void configure(const tendrils& params, const tendrils& in, const tendrils& out)
      {
        gsize = params.get<int> ("gsize");
        gsig = params.get<double> ("gsig");
      }
 
-     int process(const tendrils& inputs, tendrils& outputs)
+     int process(const tendrils& inputs, const tendrils& outputs)
      {
        cv::Mat image = inputs.get<cv::Mat> ("image");
        cv::Mat mask = inputs.get<cv::Mat> ("mask");
@@ -827,14 +827,14 @@ static float endy [3][16] =
       outputs.declare<ColorTempl> ("colortempl","A color template of type ColorTempl.");
     }
 
-    void configure(tendrils& params, tendrils& in, tendrils& out)
+    void configure(const tendrils& params, const tendrils& in, const tendrils& out)
     {
       skipx = params.get<int> ("skipx");
       skipy = params.get<int> ("skipy");
       hist_type = params.get<int> ("hist_type");
     }
 
-    int process(const tendrils& inputs, tendrils& outputs)
+    int process(const tendrils& inputs, const tendrils& outputs)
     {
 //      std::cout << __PRETTY_FUNCTION__ << std::endl;
       const Mat &colorord = inputs.get<cv::Mat> ("colorord");
@@ -1248,7 +1248,7 @@ static float endy [3][16] =
      oar << ctree;
    }
 
-   void configure(tendrils& params, tendrils& in, tendrils& out)
+   void configure(const tendrils& params, const tendrils& in, const tendrils& out)
    {
      acceptance_threshold = params.get<float> ("acceptance_threshold");
      if(!ctree.coutstats())
@@ -1263,7 +1263,7 @@ static float endy [3][16] =
      params["trigger_save"]->set_callback<bool>(boost::bind(&TrainColorTempl::trigger_cb,this,_1));
    }
 
-   int process(const tendrils& inputs, tendrils& outputs)
+   int process(const tendrils& inputs, const tendrils& outputs)
    {
      const ColorTempl &ct = inputs.get<ColorTempl> ("colortempl");
      add_a_template(ct);
@@ -1303,7 +1303,7 @@ static float endy [3][16] =
      outputs.declare<float> ("score", "The matching score to the input ColorTempls");
    }
 
-   void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
+   void configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
    {
      filename = params.get<string> ("filename");
      ifstream is(filename.c_str());
@@ -1314,7 +1314,7 @@ static float endy [3][16] =
        throw std::runtime_error("ERROR: ctree in TestColorTempl.configure is of size zero.");
    }
 
-   int process(const tendrils& inputs, tendrils& outputs)
+   int process(const tendrils& inputs, const tendrils& outputs)
    {
      const ColorTempl &ct = inputs.get<ColorTempl> ("colortempl");
      test(ct,outputs.get<float> ("score"));
@@ -1435,7 +1435,7 @@ static float endy [3][16] =
       out.declare<cv::Mat> ("output",
                             "A psychodelic looking image for debugging the color idealization");
     }
-    int process(const tendrils& in, tendrils& out)
+    int process(const tendrils& in, const tendrils& out)
     {
       idealize_colors(in.get<cv::Mat> ("input"), out.get<cv::Mat> ("output"));
       return 0;

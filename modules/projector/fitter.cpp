@@ -204,7 +204,7 @@ namespace projector
     }
 
     void
-    configure(tendrils& params, tendrils& inputs, tendrils& outputs)
+    configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
     {
     }
 
@@ -214,7 +214,7 @@ namespace projector
      * @return
      */
     int
-    process(tendrils& inputs, tendrils& outputs)
+    process(const tendrils& inputs, const tendrils& outputs)
     {
       cv::Mat K, depth;
       inputs["K"] >> K;

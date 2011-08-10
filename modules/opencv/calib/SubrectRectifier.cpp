@@ -33,7 +33,7 @@ struct SubrectRectifier
     out.declare<cv::Mat> ("output", "Output extracted rectified rectangle");
   }
 
-  void configure(tendrils& p, tendrils& inputs, tendrils& o)
+  void configure(const tendrils& p, const tendrils& inputs, const tendrils& o)
   {
     xoffset = p["xoffset"];
     yoffset = p["yoffset"];
@@ -49,7 +49,7 @@ struct SubrectRectifier
 
   }
 
-  int process(const tendrils& in, tendrils& out)
+  int process(const tendrils& in, const tendrils& out)
   {
     using namespace cv;
 

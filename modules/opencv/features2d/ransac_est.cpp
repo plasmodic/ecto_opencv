@@ -61,7 +61,7 @@ struct MatchRefinement
   };
 
   int
-  process(tendrils&inputs, tendrils& outputs)
+  process(const tendrils&inputs, const tendrils& outputs)
   {
     kpts_t train,test;
     matches_t matches;

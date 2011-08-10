@@ -68,7 +68,7 @@ struct DepthWarper
     outputs.declare<cv::Mat>("output", "The depth image");
   }
 
-  void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
+  void configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
   {
     readOpenCVCalibration(P_, params.get<std::string>("projection_file"));
   }
@@ -78,7 +78,7 @@ struct DepthWarper
    * @param outputs
    * @return
    */
-  int process(tendrils& inputs, tendrils& outputs)
+  int process(const tendrils& inputs, const tendrils& outputs)
   {
     cv::Mat depth, K;
     inputs.get<cv::Mat>("depth").convertTo(depth, CV_32F);

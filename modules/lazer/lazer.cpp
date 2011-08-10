@@ -39,14 +39,14 @@ struct ScanLineDrawer
     }
   }
 
-  void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
+  void configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
   {
     scan_idx_ = 0;//params.get<float> ("scan_idx");
     auto_scan_ = params.get<bool> ("auto_scan");
   }
 
   int process(const tendrils& inputs,
-      tendrils& outputs)
+              const tendrils& outputs)
   {
     const cv::Mat& in = inputs.get<cv::Mat> ("in");
     cv::Mat& out = outputs.get<cv::Mat> ("out");

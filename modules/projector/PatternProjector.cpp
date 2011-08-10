@@ -64,7 +64,7 @@ struct PatternProjector
     out.declare<pts2d_t> ("points", "The pattern points in pixels.");
   }
 
-  void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
+  void configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
   {
     cv::Size grid_size_,image_size_;
     pts3d_t  points_;

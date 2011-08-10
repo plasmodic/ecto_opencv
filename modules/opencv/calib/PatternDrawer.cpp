@@ -22,12 +22,12 @@ struct PatternDrawer
     out.declare<cv::Mat> ("out", "Pattern Image");
   }
 
-  void configure(tendrils& params, tendrils& inputs, tendrils& outputs)
+  void configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
   {
     grid_size_ = cv::Size(params.get<int> ("cols"), params.get<int> ("rows"));
   }
 
-  int process(const tendrils& in, tendrils& out)
+  int process(const tendrils& in, const tendrils& out)
   {
     const cv::Mat& image = in.get<cv::Mat> ("input");
     const std::vector<cv::Point2f>& points =
