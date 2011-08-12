@@ -3,7 +3,7 @@ PKG = 'ecto_projector'
 import roslib; #roslib.load_manifest(PKG)
 import ecto
 from ecto_opencv import highgui, calib, imgproc, projector
-import ecto_ros, ecto_sensor_msgs
+import ecto_ros, ecto_sensor_msgs, ecto_geometry_msgs
 from ecto_opencv import highgui
 from optparse import OptionParser
 import sys
@@ -62,27 +62,36 @@ def do_projector():
     video_display = highgui.imshow('pattern',
                                     name='video_cap', waitKey=2, maximize=False, autoSize=True)
     # Deal with the warping
-    warper = projector.ImageWarper(projection_file='projector_calibration.yml', offset_x=0,offset_y=0)
+    warper = projector.ImageWarper(projection_file='projector_calibration.yml', offset_x=0,offset_y=0,scale=1)
     
     pose_from_plane = ecto.If("throttled plane fitter",cell=projector.PlaneFitter())
     
-    truer = ecto.TrueEveryN(n=60,count=60)
+    truer = ecto.TrueEveryN(n=120)
 
     graph += [im2mat_depth["image"] >> pose_from_plane['depth'],
               truer['flag'] >> pose_from_plane['__test__'],
               camera_info['K'] >> pose_from_plane['K'],
               pose_from_plane['R', 'T'] >> warper['R', 'T'],
-              projector.ButtonProjector()["button_image"] >>
+              projector.ButtonProjector(radius=int(.10 * 480)/2,image_width=640,image_height=480)["button_image"] >>
                   (warper['image'],
                   highgui.imshow("raw_buttons",name="raw_buttons",waitKey=-1)[:],
                   ),
               warper['output'] >> highgui.imshow("warped image", name="warped", waitKey= -1,)[:],
               ]
 
+
+    #pose publishing    
+    pose_gen = ecto_ros.RT2PoseStamped('R,T -> PoseStamped',frame_id='/camera_rgb_optical_frame')
+    pose_pub = ecto_geometry_msgs.Publisher_PoseStamped('Pose Pub',topic_name='dot_pose')
+    graph += [  
+                pose_from_plane["R","T"] >> pose_gen["R","T"],
+                pose_gen['pose'] >> pose_pub[:]
+            ]
+
     plasm.connect(graph)
 
     # display DEBUG data if needed
-    if DEBUG:
+    if False:
     #    print plasm.viz()
         ecto.view_plasm(plasm)
 
