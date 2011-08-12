@@ -31,10 +31,10 @@ def do_projector():
     options = parse_options()
 
     # define the input
-    subs = dict(image=ImageSub(topic_name='camera/rgb/image_color', queue_size=1),
-                depth=ImageSub(topic_name='camera/depth/image', queue_size=1),
-                #depth_info=CameraInfoSub(topic_name='camera/depth/camera_info', queue_size=0),
-                #image_info=CameraInfoSub(topic_name='camera/rgb/camera_info', queue_size=0),
+    subs = dict(image=ImageSub(topic_name='/camera/rgb/image_color', queue_size=0),
+                #image_info=CameraInfoSub(topic_name='/camera/rgb/camera_info', queue_size=0),
+                depth=ImageSub(topic_name='/camera/depth_registered/image', queue_size=0),
+                #depth_info=CameraInfoSub(topic_name='/camera/depth_registered/camera_info', queue_size=0
              )
 
     sync = ecto_ros.Synchronizer('Synchronizator', subs=subs)
@@ -73,7 +73,7 @@ def do_projector():
         offset_x = -.25
         pose_from_fiducial = PoseFromFiducial(plasm,
                                         rows=5, cols=3,
-                                        pattern_type="acircles",
+                                        pattern_type=calib.ASYMMETRIC_CIRCLES_GRID,
                                         square_size=0.04,
                                         offset_x=offset_x,
                                         debug=DEBUG)
