@@ -30,11 +30,11 @@ def do_projector():
     options = parse_options()
 
     # define the input
-    subs = dict(image=ImageSub(topic_name='camera/rgb/image_color', queue_size=0),
-                depth=ImageSub(topic_name='camera/depth/image', queue_size=0),
-                depth_info=CameraInfoSub(topic_name='camera/depth/camera_info', queue_size=0),
-                image_info=CameraInfoSub(topic_name='camera/rgb/camera_info', queue_size=0),
-             )
+    subs = dict(image=ImageSub(topic_name='/camera/rgb/image_color', queue_size=0),
+                image_info=CameraInfoSub(topic_name='/camera/rgb/camera_info', queue_size=0),
+                depth=ImageSub(topic_name='/camera/depth_registered/image', queue_size=0),
+                depth_info=CameraInfoSub(topic_name='/camera/depth_registered/camera_info', queue_size=0),
+                )
 
     sync = ecto_ros.Synchronizer('Synchronizator', subs=subs)
 
@@ -48,7 +48,7 @@ def do_projector():
     pattern_draw = projector.PatternProjector()
     circle_detector = calib.PatternDetector('Dot Detector',
                                                 rows=5, cols=3,
-                                                pattern_type="acircles",
+                                                pattern_type=calib.ASYMMETRIC_CIRCLES_GRID,
                                                 square_size=0.04)
     circle_drawer = calib.PatternDrawer('Circle Draw',
                                                      rows=5, cols=3)
@@ -89,9 +89,9 @@ def do_projector():
     plasm.connect(graph)
 
     # display DEBUG data if needed
-    if DEBUG:
-        print plasm.viz()
-        ecto.view_plasm(plasm)
+    #if DEBUG:
+    #    print plasm.viz()
+    #    ecto.view_plasm(plasm)
 
     # execute the pipeline
     sched = ecto.schedulers.Singlethreaded(plasm)
