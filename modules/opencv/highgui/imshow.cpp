@@ -100,4 +100,4 @@ namespace ecto_opencv
   };
 }
 ECTO_THREAD_UNSAFE(ecto_opencv::imshow);
-ECTO_CELL(ecto_opencv, ecto_opencv::imshow, "imshow", "Read images from a directory.");
+ECTO_CELL(highgui, ecto_opencv::imshow, "imshow", "Read images from a directory.");

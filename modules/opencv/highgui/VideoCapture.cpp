@@ -76,4 +76,4 @@ namespace ecto_opencv
 
   };
 }
-ECTO_CELL(ecto_opencv, ecto_opencv::VideoCapture, "VideoCapture", "Read images from a directory.");
+ECTO_CELL(highgui, ecto_opencv::VideoCapture, "VideoCapture", "Read images from a directory.");

@@ -39,4 +39,4 @@ namespace ecto_opencv
 
   };
 }
-ECTO_CELL(ecto_opencv, ecto_opencv::imread, "imread", "Reads a single image, const cell.");
+ECTO_CELL(highgui, ecto_opencv::imread, "imread", "Reads a single image, const cell.");

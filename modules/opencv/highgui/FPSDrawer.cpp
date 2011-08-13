@@ -65,4 +65,4 @@ namespace ecto_opencv
     double freq;
   };
 }
-ECTO_CELL(ecto_opencv, ecto_opencv::FPSDrawer, "FPSDrawer", "Draw the Hz on an image.");
+ECTO_CELL(highgui, ecto_opencv::FPSDrawer, "FPSDrawer", "Draw the Hz on an image.");

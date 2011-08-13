@@ -87,4 +87,4 @@ namespace ecto_opencv
     cv::Mat K;
   };
 }
-ECTO_CELL(ecto_opencv, ecto_opencv::OpenNICapture, "OpenNICapture", "Read images from a directory.");
+ECTO_CELL(highgui, ecto_opencv::OpenNICapture, "OpenNICapture", "Read images from a directory.");

@@ -56,4 +56,4 @@ namespace ecto_opencv
     ecto::spore<std::string> prefix;
   };
 }
-ECTO_CELL(ecto_opencv, ecto_opencv::ImageSaver, "ImageSaver", "An file saver for images.");
+ECTO_CELL(highgui, ecto_opencv::ImageSaver, "ImageSaver", "An file saver for images.");
