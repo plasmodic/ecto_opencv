@@ -27,6 +27,7 @@ struct ButtonProjector
   declare_io(const tendrils& params, tendrils& in, tendrils& out)
   {
     out.declare<cv::Mat>("button_image", "An image.");
+    out.declare<cv::Mat>("mask", "A mask for the button.");
     out.declare<pts2d_t>("points", "The button centroids.");
   }
 

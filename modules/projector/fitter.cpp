@@ -200,7 +200,7 @@ namespace projector
       outputs.declare<cv::Mat>("R", "The output R vec");
       outputs.declare<cv::Mat>("T", "The output T vec");
       outputs.declare<bool>("found", "Found a plane", true);
-
+      outputs.declare<std::vector<float> >("plane","Plane model coefficients.", std::vector<float>(4,0));
     }
 
     void
@@ -228,6 +228,7 @@ namespace projector
       cv::Mat plane;
       //std::cout <<"points: " << points3d.t() << std::endl;
       solvePlane(points3d, plane);
+      std::cout << "plane="<< plane << std::endl;
       //std::cout << "Plane = " << plane << std::endl;
       cv::Mat_<float> R, T;
       solveRT(plane, R, T);
@@ -235,6 +236,14 @@ namespace projector
       //std::cout << "T = " << T << std::endl;
       outputs["R"] << cv::Mat(R);
       outputs["T"] << cv::Mat(T);
+
+      std::vector<float> plane_vec(4,0);
+      plane_vec[0] = plane.at<float>(0);
+      plane_vec[1] = plane.at<float>(1);
+      plane_vec[2] = plane.at<float>(2);
+      plane_vec[3] = plane.at<float>(3);
+      outputs["plane"] << plane_vec;
+
       return 0;
     }
   };

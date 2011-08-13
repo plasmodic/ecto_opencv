@@ -6,6 +6,7 @@ from ecto_opencv import highgui
 import sys
 
 ImageSub = ecto_sensor_msgs.Subscriber_Image
+PointCloud2Sub = ecto_sensor_msgs.Subscriber_PointCloud2
 CameraInfoSub = ecto_sensor_msgs.Subscriber_CameraInfo
 
 DEBUG = True
@@ -15,6 +16,7 @@ subs = dict(image=ImageSub(topic_name='/camera/rgb/image_color', queue_size=0),
             #image_info=CameraInfoSub(topic_name='/camera/rgb/camera_info', queue_size=0),
             depth=ImageSub(topic_name='/camera/depth_registered/image', queue_size=0),
             #depth_info=CameraInfoSub(topic_name='/camera/depth_registered/camera_info', queue_size=0
+            points=PointCloud2Sub(topic_name='/camera/depth_registered/points', queue_size=0)
          )
 
 sync = ecto_ros.Synchronizer('Synchronizator', subs=subs)
