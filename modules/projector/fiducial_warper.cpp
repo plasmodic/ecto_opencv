@@ -66,17 +66,28 @@ calcH(const cv::Mat_<float>& R, const cv::Mat_<float>& T, const cv::Mat_<float>&
 }
 
 cv::Mat_<float>
-calcH_projector_to_camera(const cv::Mat_<float>& P, const cv::Mat_<float>& K)
+calcH(const cv::Mat_<float>& R, const cv::Mat_<float>& T, const cv::Mat_<float>& P, const cv::Mat_<float>& K)
 {
-  cv::Mat_<float> Pinv = P.inv(cv::DECOMP_SVD);
-  std::cout << "Pinv = " << Pinv << std::endl;
-  std::cout << "K = " << K << std::endl;
-  cv::Mat_<float> IO = (cv::Mat_<float>(3, 4) << 1, 0, 0, 0, //
-  0, 1, 0, 0, //
-  0, 0, 1, 0 //
-      );
-  return (K *IO) * Pinv;
+  cv::Mat_<float> H, A = (cv::Mat_<float>(4, 3) << R(0, 0), R(0, 1), T(0), //
+  R(1, 0), R(1, 1), T(1), //
+  R(2, 0), R(2, 1), T(2), //
+  0, 0, 1);
+  H = P * A * K;
+  return H;
 }
+
+//cv::Mat_<float>
+//calcH_projector_to_camera(const cv::Mat_<float>& P, const cv::Mat_<float>& K)
+//{
+//  cv::Mat_<float> Pinv = P.inv(cv::DECOMP_SVD);
+//  std::cout << "Pinv = " << Pinv << std::endl;
+//  std::cout << "K = " << K << std::endl;
+//  cv::Mat_<float> IO = (cv::Mat_<float>(3, 4) << 1, 0, 0, 0, //
+//  0, 1, 0, 0, //
+//  0, 0, 1, 0 //
+//      );
+//  return (K * IO) * Pinv;
+//}
 
 template<typename Cell>
 struct Warper
@@ -96,8 +107,8 @@ struct Warper
   static void
   declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
   {
-    inputs.declare<cv::Mat>("R", "The original 2D pattern");
-    inputs.declare<cv::Mat>("T", "The points we want to 3d-fy (an aternative to the keypoints)");
+    inputs.declare<cv::Mat>("R", "The original 2D pattern").required(true);
+    inputs.declare<cv::Mat>("T", "The points we want to 3d-fy (an aternative to the keypoints)").required(true);
     inputs.declare<bool>("found", "The calibration matrix", true);
     outputs.declare<cv::Mat>("output", "The depth image");
     Cell::declare_io(params, inputs, outputs);
@@ -279,9 +290,7 @@ struct CameraWarper
     inputs["image"] >> image;
     cv::Mat K;
     inputs["K"] >> K;
-    std::cout << "K=" << K << "\nP=" << P << std::endl;
-    cv::Mat_<float> H = calcH_projector_to_camera(P,K);
-//    cv::Mat_<float> H = calcH_projector_to_camera(P, K);
+    cv::Mat_<float> H = calcH(P, K, R, T);
     cv::warpPerspective(image, draw_image, H, draw_image.size());
     return 0;
   }

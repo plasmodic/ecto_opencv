@@ -14,9 +14,9 @@ DEBUG = True
 # define the input
 subs = dict(image=ImageSub(topic_name='/camera/rgb/image_color', queue_size=0),
             #image_info=CameraInfoSub(topic_name='/camera/rgb/camera_info', queue_size=0),
-            depth=ImageSub(topic_name='/camera/depth_registered/image', queue_size=0),
+            depth=ImageSub(topic_name='/camera/depth/image', queue_size=0),
             #depth_info=CameraInfoSub(topic_name='/camera/depth_registered/camera_info', queue_size=0
-            points=PointCloud2Sub(topic_name='/camera/depth_registered/points', queue_size=0)
+            #points=PointCloud2Sub(topic_name='/camera/depth_registered/points', queue_size=0)
          )
 
 sync = ecto_ros.Synchronizer('Synchronizator', subs=subs)
@@ -49,15 +49,15 @@ warper_kinect = projector.CameraWarper(projection_file='projector_calibration.ym
 
 pose_from_plane = ecto.If("throttled plane fitter", cell=projector.PlaneFitter())
 
-truer = ecto.TrueEveryN(n=120)
+truer = ecto.TrueEveryN(n=1)
 button = projector.ButtonProjector(radius=int(.10 * 480) / 2, image_width=640, image_height=480)
 depthTo3d = calib.DepthTo3d()
 
 graph += [im2mat_depth["image"] >> pose_from_plane['depth'],
           truer['flag'] >> pose_from_plane['__test__'],
           camera_info['K'] >> pose_from_plane['K'],
-          pose_from_plane['R', 'T'] >> warper['R', 'T'],
-           button["button_image"]>> 
+          pose_from_plane['R', 'T'] >> (warper['R', 'T'],warper_kinect['R','T']),
+           button["button_image"] >> 
               (warper['image'],
               highgui.imshow("raw_buttons", name="raw_buttons", waitKey= -1)[:],
               ),
