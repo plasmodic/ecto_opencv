@@ -49,33 +49,57 @@
 #include "common.h"
 
 using ecto::tendrils;
+//void function()
+//{
+//  Point3f z(0, 0, 0.25);
+//      Point3f x(0.25, 0, 0);
+//      Point3f y(0, 0.25, 0);
+//      Point3f o(0, 0, 0);
+//      vector<Point3f> op(4);
+//      op[1] = x, op[2] = y, op[3] = z, op[0] = o;
+//      vector<Point2f> ip;
+//      projectPoints(Mat(op), R, T, K, Mat(4, 1, CV_64FC1, Scalar(0)), ip);
+//
+//  std::vector<cv::Scalar> c(4); //colors
+//  c[0] = cv::Scalar(255, 255, 255);
+//  c[1] = cv::Scalar(255, 0, 0);//x
+//  c[2] = cv::Scalar(0, 255, 0);//y
+//  c[3] = cv::Scalar(0, 0, 255);//z
+//  cv::line(drawImage, ip[0], ip[1], c[1]);
+//  cv::line(drawImage, ip[0], ip[2], c[2]);
+//  cv::line(drawImage, ip[0], ip[3], c[3]);
+//  std::string scaleText = "scale 0.25 meters";
+//  int baseline = 0;
+//  Size sz = getTextSize(scaleText, CV_FONT_HERSHEY_SIMPLEX, 1, 1, &baseline);
+//  Point box_origin(10, drawImage.size().height - 10);
+//  rectangle(drawImage, box_origin + Point(0,5),
+//            box_origin + Point(sz.width, -sz.height - 5), Scalar::all(0),
+//            -1);
+//  putText(drawImage, scaleText, box_origin, CV_FONT_HERSHEY_SIMPLEX, 1.0,
+//          c[0], 1, CV_AA, false);
+//  putText(drawImage, "Z", ip[3], CV_FONT_HERSHEY_SIMPLEX, 1.0, c[3], 1,
+//          CV_AA, false);
+//  putText(drawImage, "Y", ip[2], CV_FONT_HERSHEY_SIMPLEX, 1.0, c[2], 1,
+//          CV_AA, false);
+//  putText(drawImage, "X", ip[1], CV_FONT_HERSHEY_SIMPLEX, 1.0, c[1], 1,
+//          CV_AA, false);
+//}
 
 cv::Mat_<float>
 calcH(const cv::Mat_<float>& R, const cv::Mat_<float>& T, const cv::Mat_<float>& P, float scale, float cx, float cy)
 {
-  cv::Mat_<float> H, A = (cv::Mat_<float>(4, 3) << R(0, 0), R(0, 1), T(0), //
-  R(1, 0), R(1, 1), T(1), //
-  R(2, 0), R(2, 1), T(2), //
-  0, 0, 1);
+  std::cout << P << std::endl;
+  cv::Mat_<float> H, A = (
+      cv::Mat_<float>(4,3) << R(0, 0), R(0, 1), T(0),
+      R(1, 0), R(1, 1), T(1),
+      R(2, 0), R(2, 1), T(2),
+      0, 0, 1);
   cv::Mat_<float> offset = (cv::Mat_<float>(3, 3) << 1, 0, cx, 0, -1, cy, 0, 0, 1);
   H = P * A;
   cv::Mat_<float> SR = H.colRange(0, 2);
   SR *= scale;
   H = H * offset;
   return H;
-}
-
-cv::Mat_<float>
-calcH_projector_to_camera(const cv::Mat_<float>& P, const cv::Mat_<float>& K)
-{
-  cv::Mat_<float> Pinv = P.inv(cv::DECOMP_SVD);
-  std::cout << "Pinv = " << Pinv << std::endl;
-  std::cout << "K = " << K << std::endl;
-  cv::Mat_<float> IO = (cv::Mat_<float>(3, 4) << 1, 0, 0, 0, //
-  0, 1, 0, 0, //
-  0, 0, 1, 0 //
-      );
-  return (K *IO) * Pinv;
 }
 
 template<typename Cell>
@@ -240,48 +264,8 @@ struct ImageWarper
     cv::Mat image;
     inputs["image"] >> image;
     float scale = std::max(scale_ / image.size().width, scale_ / image.size().height);
+
     cv::Mat_<float> H = calcH(R, T, P, scale, -image.size().width / 2, image.size().height / 2);
-    cv::warpPerspective(image, draw_image, H, draw_image.size());
-    return 0;
-  }
-  float scale_;
-};
-
-struct CameraWarper
-{
-  typedef std::vector<cv::Point2f> points_t;
-  static void
-  declare_params(tendrils& p)
-  {
-  }
-
-  static void
-  declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
-  {
-    inputs.declare<cv::Mat>("image", "An input image to draw rectified.").required(true);
-    inputs.declare<cv::Mat>("K", "Camera matrix.").required(true);
-  }
-
-  void
-  configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
-  {
-  }
-  /** Get the 2d keypoints and figure out their 3D position from the depth map
-   * @param inputs
-   * @param outputs
-   * @return
-   */
-  int
-  process(const tendrils& inputs, const tendrils& outputs, cv::Mat& draw_image, const cv::Mat_<float>& R,
-          const cv::Mat_<float>& T, const cv::Mat_<float>& P, int offset_x, int offset_y)
-  {
-    cv::Mat image;
-    inputs["image"] >> image;
-    cv::Mat K;
-    inputs["K"] >> K;
-    std::cout << "K=" << K << "\nP=" << P << std::endl;
-    cv::Mat_<float> H = calcH_projector_to_camera(P,K);
-//    cv::Mat_<float> H = calcH_projector_to_camera(P, K);
     cv::warpPerspective(image, draw_image, H, draw_image.size());
     return 0;
   }
@@ -290,4 +274,4 @@ struct CameraWarper
 
 ECTO_CELL(projector, Warper<FiducialWarper>, "FiducialWarper", "Figures out the calibration of the projector.");
 ECTO_CELL(projector, Warper<ImageWarper>, "ImageWarper", "Figures out the calibration of the projector.");
-ECTO_CELL(projector, Warper<CameraWarper>, "CameraWarper", "Warps from projector space to camera space");
+

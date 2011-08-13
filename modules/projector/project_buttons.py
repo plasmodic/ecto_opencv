@@ -45,21 +45,25 @@ video_display = highgui.imshow('pattern',
                                 name='video_cap', waitKey=2, maximize=False, autoSize=True)
 # Deal with the warping
 warper = projector.ImageWarper(projection_file='projector_calibration.yml', offset_x=0, offset_y=0, scale=1)
+warper_kinect = projector.CameraWarper(projection_file='projector_calibration.yml')
 
 pose_from_plane = ecto.If("throttled plane fitter", cell=projector.PlaneFitter())
 
 truer = ecto.TrueEveryN(n=120)
-
+button = projector.ButtonProjector(radius=int(.10 * 480) / 2, image_width=640, image_height=480)
 depthTo3d = calib.DepthTo3d()
 
 graph += [im2mat_depth["image"] >> pose_from_plane['depth'],
           truer['flag'] >> pose_from_plane['__test__'],
           camera_info['K'] >> pose_from_plane['K'],
           pose_from_plane['R', 'T'] >> warper['R', 'T'],
-          projector.ButtonProjector(radius=int(.10 * 480) / 2, image_width=640, image_height=480)["button_image"] >> 
+           button["button_image"]>> 
               (warper['image'],
               highgui.imshow("raw_buttons", name="raw_buttons", waitKey= -1)[:],
               ),
+          button['mask'] >> warper_kinect['image'],
+          camera_info['K'] >> warper_kinect['K'],
+          warper_kinect['output'] >> highgui.imshow("warped mask", name="warped mask", waitKey= -1,)[:],
           warper['output'] >> highgui.imshow("warped image", name="warped", waitKey= -1,)[:],
           ]
 

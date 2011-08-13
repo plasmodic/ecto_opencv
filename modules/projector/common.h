@@ -35,17 +35,22 @@
 
 #include <opencv2/core/core.hpp>
 
-inline void readOpenCVCalibration(cv::Mat &P, const std::string& P_file)
+inline void
+readOpenCVCalibration(cv::Mat &P, const std::string& P_file)
 {
   cv::FileStorage fs(P_file, cv::FileStorage::READ);
   if (!fs.isOpened())
     throw std::runtime_error("Could not open " + P_file + " for read.");
   cv::read(fs["P"], P, cv::Mat());
   if (P.empty())
-    throw std::runtime_error("The camera_matrix could not be read from the file");
+  {
+      throw std::runtime_error("The P field could not be read from the file");
+  }
+
 }
 
-inline void writeOpenCVCalibration(const cv::Mat &P, const std::string& P_file)
+inline void
+writeOpenCVCalibration(const cv::Mat &P, const std::string& P_file)
 {
   cv::FileStorage fs(P_file, cv::FileStorage::WRITE);
   if (!fs.isOpened())
@@ -56,7 +61,6 @@ inline void writeOpenCVCalibration(const cv::Mat &P, const std::string& P_file)
 
 namespace projector
 {
-void
-depth23d(const cv::Mat& K, const cv::Mat& depth, cv::Mat& points3d, const cv::Rect& roi)
-;
+  void
+  depth23d(const cv::Mat& K, const cv::Mat& depth, cv::Mat& points3d, const cv::Rect& roi);
 }

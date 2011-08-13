@@ -17,7 +17,8 @@ struct ButtonProjector
   static void
   declare_params(tendrils& params)
   {
-    params.declare<int>("buttons", "Number of buttons", 3);
+    params.declare<int>("x", "Button x position.", 640 / 2);
+    params.declare<int>("y", "Button y position.", 480 / 2);
     params.declare<int>("radius", "Radius in pixels of the button.", 50);
     params.declare<int>("image_width", "The width of image", 640);
     params.declare<int>("image_height", "The height of image", 480);
@@ -38,39 +39,30 @@ struct ButtonProjector
     params["image_width"] >> image_size.width;
     params["image_height"] >> image_size.height;
     cv::Mat image_out = cv::Mat::zeros(image_size, CV_8UC3);
+    cv::Mat mask = cv::Mat::zeros(image_size, CV_8UC1);
+
     pts2d_t points_out;
-    int buttons;
-    params["buttons"] >> buttons;
+
+    int button_x, button_y;
+    params["x"] >> button_x;
+    params["y"] >> button_y;
+
     int radius;
     params["radius"] >> radius;
 
-    int center_x = image_size.width / 2;
 
-    int half_buttons = buttons / 2;
-    int half_way = image_size.height / 2;
-    int spacing_y = radius;
-
-    int min_y = half_way - (2 * radius + spacing_y) * (half_buttons);
-    int max_y = half_way - (2 * radius + spacing_y) * (half_buttons - buttons + 1);
-
-    cv::Point tl = cv::Point(center_x - 2 * radius, min_y - 2 * radius);
-    cv::Point tr = cv::Point(center_x + 2 * radius, min_y - 2 * radius);
-    cv::Point br = cv::Point(center_x + 2 * radius, max_y + 2 * radius);
-    cv::Point bl = cv::Point(center_x - 2 * radius, max_y + 2 * radius);
+    cv::Point tl = cv::Point(button_x - radius, button_y - radius);
+    cv::Point br = cv::Point(button_x + radius, button_y + radius);
 
     cv::Scalar box_color(255, 0, 0);
     cv::rectangle(image_out, tl, br, box_color, -1, 8);
-    for (int i = 0; i < buttons; i++)
-    {
-      cv::Point p;
-      p.x = center_x;
-      p.y = half_way - (2 * radius + spacing_y) * (half_buttons - i);
-      cv::circle(image_out, p, radius, cv::Scalar::all(255), -1, 8);
-      points_out.push_back(p);
-    }
+    cv::circle(image_out, cv::Point(button_x,button_y), radius, cv::Scalar::all(255), -1, 8);
+    cv::circle(mask, cv::Point(button_x,button_y), radius, cv::Scalar::all(255), -1, 8);
 
     outputs["button_image"] << image_out;
     outputs["points"] << points_out;
+    outputs["mask"] << mask;
+
   }
 
 };
