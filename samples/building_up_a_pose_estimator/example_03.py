@@ -17,23 +17,12 @@ video_display = highgui.imshow('imshow',
 
 rgb2gray = imgproc.cvtColor('rgb -> gray', flag=7)
 
-#
-#  See the Pattern type in ipython for info on the pattern_type argument
-#
-#
-#In [10]: ecto_opencv.calib.Pattern.values
-#Out[10]: 
-#{0: ecto_opencv.calib.Pattern.CHESSBOARD,
-# 1: ecto_opencv.calib.Pattern.CIRCLES_GRID,
-# 2: ecto_opencv.calib.Pattern.ASYMMETRIC_CIRCLES_GRID}
-#
-#
-
-circle_detector = calib.PatternDetector(rows=5, cols=3, 
-                                        pattern_type=calib.ASYMMETRIC_CIRCLES_GRID, 
+circle_detector = calib.PatternDetector(rows=5, cols=3,
+                                        pattern_type=calib.ASYMMETRIC_CIRCLES_GRID,
                                         square_size=0.04)
+
 circle_drawer = calib.PatternDrawer(rows=5, cols=3)
-circle_display = highgui.imshow('Pattern show',name='Pattern',waitKey=-1,maximize=False)
+circle_display = highgui.imshow('Pattern show', name='Pattern', waitKey= -1, maximize=False)
 
 plasm.connect(video_cap['image'] >> rgb2gray['input'],
               video_cap['image'] >> (circle_drawer['input'],
@@ -42,7 +31,7 @@ plasm.connect(video_cap['image'] >> rgb2gray['input'],
               circle_drawer['out'] >> fps['image'],
               
               rgb2gray['out'] >> circle_detector['input'],
-              circle_detector['out','found'] >> circle_drawer['points','found'],
+              circle_detector['out', 'found'] >> circle_drawer['points', 'found'],
               )
 
 

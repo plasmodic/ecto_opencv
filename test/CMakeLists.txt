@@ -1,3 +1,4 @@
+#testing macros
 macro(pytest pyfile)
   string(REPLACE ";" " " args "${ARGN}")
   add_test(opencv_${pyfile}
@@ -16,3 +17,6 @@ endmacro()
 
 data_download(T01 t01.bag)
 pytest(test_bag ${T01} )
+
+pytest(test_import)
+pytest(doc_opencv)

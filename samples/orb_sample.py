@@ -1,40 +1,24 @@
 #!/usr/bin/env python
 import ecto
 from ecto_opencv import imgproc, highgui, features2d
-import time
-#import orb as imgproc
-
-debug = False
-#debug = True
 
 plasm = ecto.Plasm()
 
 video = highgui.VideoCapture(video_device=0)
 orb_m = features2d.ORB(n_features=2500)
 draw_kpts = features2d.DrawKeypoints()
-imshow = highgui.imshow(name="ORB", waitKey=2, autoSize=True)
-rgb2gray = imgproc.cvtColor (flag=7)
+orb_display = highgui.imshow('orb display', name="ORB", waitKey=5, autoSize=True)
+rgb2gray = imgproc.cvtColor (flag=imgproc.CV_RGB2GRAY)
+fps = highgui.FPSDrawer()
 
-plasm.connect(video, "image", rgb2gray , "input")
-plasm.connect(rgb2gray, "out", orb_m, "image")
-plasm.connect(orb_m, "kpts", draw_kpts, "kpts")
-plasm.connect(video, "image", draw_kpts, "input")
-plasm.connect(draw_kpts, "output", imshow, "input")
+plasm.connect(video["image"] >> rgb2gray ["input"],
+                rgb2gray["out"] >> orb_m["image"],
+                orb_m["kpts"] >> draw_kpts["kpts"],
+                video["image"] >> draw_kpts["input"],
+                draw_kpts["output"] >> fps[:],
+                fps[:] >> orb_display["input"],
+              )
 
-if debug:
-    print plasm.viz()
-    ecto.view_plasm(plasm)
-
-prev = time.time()
-count = 0
-
-while(imshow.outputs.out != 27):
-    plasm.execute(1)
-    now = time.time()
-    if(count == 200):
-        print "%f fps" % (1 / ((now - prev) / count))
-        prev = now
-        count = 0
-    count += 1
-    
-
+if __name__ == '__main__':
+    sched = ecto.schedulers.Singlethreaded(plasm)
+    sched.execute()

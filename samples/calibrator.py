@@ -24,16 +24,12 @@ def calibration(rows,cols,square_size,pattern_type,n_obs,video):
     plasm.connect(circle_detector, "ideal", camera_calibrator,"ideal")
     plasm.connect(circle_detector, "out", camera_calibrator,"points")
     plasm.connect(circle_detector, "found", camera_calibrator, "found")
+    return plasm
     
-    print plasm.viz()
-    ecto.view_plasm(plasm)
-    
-    while(pattern_show.outputs.out != 27 and camera_calibrator.outputs.calibrated == False):
-        plasm.execute(1)
 
-if __name__ == "__main__":
+
+if __name__ == '__main__':
     use_kinect = True
-
     video = None
     if not use_kinect :
         video = highgui.VideoCapture(video_device=0)
@@ -41,3 +37,5 @@ if __name__ == "__main__":
         video = highgui.OpenNICapture(video_mode=opencv.CV_CAP_OPENNI_VGA_30HZ)
         
     calibration(rows=7,cols=3,square_size=0.03,pattern_type="acircles",n_obs=50,video=video)
+    sched = ecto.schedulers.Singlethreaded(plasm)
+    sched.execute()
