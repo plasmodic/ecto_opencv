@@ -8,4 +8,4 @@ ecto opencv is a collection of cells that perception researchers may or may not 
    
    samples/index.rst
    cells/index.rst
-
+   writing_opencv_cells.rst

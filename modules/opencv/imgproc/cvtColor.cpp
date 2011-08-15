@@ -1,44 +1,43 @@
 #include <ecto/ecto.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+#include "imgproc.h"
 #include <iostream>
 
 using ecto::tendrils;
 namespace imgproc
 {
-  struct cvtColor
+  struct cvtColor_
   {
     static void
     declare_params(ecto::tendrils& p)
     {
-      std::stringstream ss;
-      ss << "Convert an image's color using opencv, possible flags are:\n" << " RGB2GRAY = " << CV_RGB2GRAY << "\n"
-         << " RGB2BGR = " << CV_RGB2BGR << "\n" << " RGB2LAB = " << CV_RGB2Lab << "\n" << " BGR2LAB = " << CV_BGR2Lab
-         << "\n" << " GRAY2RGB = " << CV_GRAY2RGB;
-      p.declare<int>("flag", ss.str(), CV_RGB2BGR);
+      p.declare<Conversion>("flag", "Convertion type.", RGB2GRAY);
     }
 
     static void
-    declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
+    declare_io(const tendrils& p, tendrils& i, tendrils& o)
     {
-      inputs.declare<cv::Mat>("input", "Color image.");
-      outputs.declare<cv::Mat>("out", "input as a Gray image.");
     }
 
     void
-    configure(const tendrils& p, const tendrils& inputs, const tendrils& outputs)
+    configure(const tendrils& p, const tendrils& i, const tendrils& o)
     {
-      flag_ = p.get<int>("flag");
+      flag_ = p["flag"];
     }
 
     int
-    process(const tendrils& inputs, const tendrils& outputs)
+    process(const tendrils&, const tendrils&, const cv::Mat& input, cv::Mat& output)
     {
-      cv::cvtColor(inputs.get<cv::Mat>("input"), outputs.get<cv::Mat>("out"), flag_);
-      return 0;
+      cv::cvtColor(input, output, *flag_);
+      return ecto::OK;
     }
+    ecto::spore<Conversion> flag_;
+  };
 
-    int flag_;
+  //for pretty typeness.
+  struct cvtColor: Filter_<cvtColor_>
+  {
   };
 }
 
-ECTO_CELL(imgproc, imgproc::cvtColor, "cvtColor", "Convert the color of a cv::Mat");
+ECTO_CELL(imgproc, imgproc::cvtColor, "cvtColor", "Convert the color of a cv::Mat.");

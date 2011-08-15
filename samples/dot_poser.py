@@ -10,7 +10,7 @@ cols = 3
 square_size = 0.03 # in meters
 
 pattern_show = highgui.imshow('Display', name="pattern", waitKey=10, autoSize=True)
-rgb2gray = imgproc.cvtColor('RGB -> Gray', flag=imgproc.CV_RGB2GRAY)
+rgb2gray = imgproc.cvtColor('RGB -> Gray', flag=imgproc.Conversion.RGB2GRAY)
 video = highgui.VideoCapture(video_device=0)
 circle_detector = calib.PatternDetector(rows=rows, cols=cols,
                                         pattern_type=calib.ASYMMETRIC_CIRCLES_GRID,
