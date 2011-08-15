@@ -1,9 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 project(ecto_opencv)
 
-set(CMAKE_BUILD_TYPE "Release" CACHE STRING "The build type.")
-add_definitions("-Werror -fno-strict-aliasing -Wall -Wl,--no-undefined")
-
 #use the cmake cache, to -DOpenCV_dir=<path_to_build_of_opencv>
 #  svn co https://code.ros.org/svn/opencv/trunk
 #  and cmake that baby
