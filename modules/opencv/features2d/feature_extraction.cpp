@@ -30,7 +30,7 @@ createDetector(const std::string& feature_type, const boost::property_tree::ptre
 {
   if (feature_type == "FAST")
   {
-    return new cv::FastFeatureDetector(params.get<float>("threshold"), true);
+    return new cv::FastFeatureDetector(int(params.get<float>("threshold")), true);
   }
   else if (feature_type == "STAR")
   {
@@ -95,11 +95,12 @@ FeatureDescriptorFinder::create(const std::string &json_params)
   }
   else if (combination_type == "SIFT")
   {
+    //why are these not ints FIXME
     cv::SIFT::CommonParams common_params;
-    common_params.angleMode = params.get<float>("feature_params.angleMode");
-    common_params.firstOctave = params.get<float>("feature_params.firstOctave");
-    common_params.nOctaveLayers = params.get<float>("feature_params.nOctavesLayers");
-    common_params.nOctaves = params.get<float>("feature_params.nOctaves");
+    common_params.angleMode = int(params.get<float>("feature_params.angleMode"));
+    common_params.firstOctave = int(params.get<float>("feature_params.firstOctave"));
+    common_params.nOctaveLayers = int(params.get<float>("feature_params.nOctavesLayers"));
+    common_params.nOctaves = int(params.get<float>("feature_params.nOctaves"));
 
     //TODO make parameters explicit
     cv::SIFT::DetectorParams detector_params;
@@ -186,7 +187,7 @@ MultiscaleExtractor::DetectAndExtract(const cv::Mat & image_in, const cv::Mat & 
       scale_x = image.cols / (image.cols / scale_factor);
       scale_y = image.rows / (image.rows / scale_factor);
 
-      cv::Size n_size(image.cols / scale_factor, image.rows / scale_factor);
+      cv::Size n_size(int(image.cols / scale_factor),int(image.rows / scale_factor));
       cv::resize(image, image, n_size);
       if (!mask.empty())
         resize(mask, mask, n_size);
