@@ -413,7 +413,7 @@ namespace calib
     process(const tendrils& in, const tendrils& out)
     {
       cv::Mat image = *image_;
-      cv::HoughCircles(image, *circles_, CV_HOUGH_GRADIENT, *dp, *minDist, *param1, *param2, *minRad, *maxRad);
+      cv::HoughCircles(image, *circles_, CV_HOUGH_GRADIENT, *dp, *minDist, *param1, *param2, int(*minRad), int(*maxRad));
       return 0;
     }
 
