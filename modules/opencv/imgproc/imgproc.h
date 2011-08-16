@@ -149,7 +149,7 @@ namespace imgproc
     T*
     thiz()
     {
-      return (T*)(this);
+      return &t;
     }
 
     static void
@@ -180,5 +180,6 @@ namespace imgproc
       return thiz()->process(i, o, const_cast<const cv::Mat&>(*input_), *output_);
     }
     ecto::spore<cv::Mat> input_, output_;
+    T t;
   };
 }

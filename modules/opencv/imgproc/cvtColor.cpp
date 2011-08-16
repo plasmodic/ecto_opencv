@@ -22,13 +22,15 @@ namespace imgproc
     void
     configure(const tendrils& p, const tendrils& i, const tendrils& o)
     {
+      SHOW()
       flag_ = p["flag"];
     }
 
     int
     process(const tendrils&, const tendrils&, const cv::Mat& input, cv::Mat& output)
     {
-      cv::cvtColor(input, output, *flag_);
+      int flag = *flag_;
+      cv::cvtColor(input, output, flag);
       return ecto::OK;
     }
     ecto::spore<Conversion> flag_;
