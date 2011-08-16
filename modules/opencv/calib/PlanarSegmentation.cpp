@@ -36,10 +36,10 @@ struct PlanarSegmentation
   void
   configure(const tendrils& p, const tendrils& inputs, const tendrils& outputs)
   {
-    z_crop = p.get<float> ("z_crop");
-    x_crop = p.get<float> ("x_crop");
-    y_crop = p.get<float> ("y_crop");
-    z_min = p.get<float> ("z_min");
+    z_crop = p["z_crop"];
+    x_crop = p["x_crop"];
+    y_crop = p["y_crop"];
+    z_min = p["z_min"];
 
   }
 
@@ -50,7 +50,7 @@ struct PlanarSegmentation
     cv::Vec3d z(0, 0, 1);
     //std::cout << cv::Mat(O) << std::endl;
     cv::Mat N_ = R * cv::Mat(z);
-    cv::Mat O_ = T + N_ * z_min;
+    cv::Mat O_ = T + N_ * (*z_min);
     O = O_;
     N = N_;
     //compute the offset from vector from the normal.
@@ -67,29 +67,28 @@ struct PlanarSegmentation
     in.get<cv::Mat> ("T").convertTo(T, CV_64F);
     in.get<cv::Mat> ("K").convertTo(K, CV_64F);
     depth = in.get<cv::Mat> ("depth");
-    cv::Mat& mask = out.get<cv::Mat> ("mask");
-
+    cv::Mat mask;
     if (!depth.empty())
     {
-      mask.create(depth.size(), CV_8UC1);
-      mask = cv::Scalar(0);
+      mask = cv::Mat::zeros(depth.size(), CV_8UC1);
     }
     else
-      return 0;
+      return  ecto::OK;
+
     if (R.empty() || T.empty() || K.empty()) return 0;
 
     box_mask.create(depth.size());
     box_mask.setTo(cv::Scalar(0));
 
     std::vector<cv::Point3f> box(8);
-    box[0] = cv::Point3f(x_crop, y_crop, 0);
-    box[1] = cv::Point3f(-x_crop, y_crop, 0);
-    box[2] = cv::Point3f(-x_crop, -y_crop, 0);
-    box[3] = cv::Point3f(x_crop, -y_crop, 0);
-    box[4] = cv::Point3f(x_crop, y_crop, z_crop);
-    box[5] = cv::Point3f(-x_crop, y_crop, z_crop);
-    box[6] = cv::Point3f(-x_crop, -y_crop, z_crop);
-    box[7] = cv::Point3f(x_crop, -y_crop, z_crop);
+    box[0] = cv::Point3f(*x_crop, *y_crop, 0);
+    box[1] = cv::Point3f(-*x_crop, *y_crop, 0);
+    box[2] = cv::Point3f(-*x_crop, -*y_crop, 0);
+    box[3] = cv::Point3f(*x_crop, -*y_crop, 0);
+    box[4] = cv::Point3f(*x_crop, *y_crop, *z_crop);
+    box[5] = cv::Point3f(-*x_crop, *y_crop, *z_crop);
+    box[6] = cv::Point3f(-*x_crop, -*y_crop, *z_crop);
+    box[7] = cv::Point3f(*x_crop, -*y_crop, *z_crop);
 
     std::vector<cv::Point2f> projected, hull;
     cv::projectPoints(box, R, T, K, cv::Mat(4, 1, CV_64FC1, cv::Scalar(0)), projected);
@@ -114,6 +113,7 @@ struct PlanarSegmentation
     cv::Mat_<uint8_t>::iterator it = mask.begin<uint8_t> ();
     cv::Mat_<uint8_t>::iterator mit = box_mask.begin();
     cv::Vec3d uv(0, 0, 1);
+    float z_crop_ = *z_crop;
     for (int v = 0; v < height; v++)
     {
       uv[1] = v;
@@ -121,7 +121,7 @@ struct PlanarSegmentation
       {
         if (*mit == 0) continue;
         float_t depth = *dit;
-        float_t min_d = O(2) - z_crop, max_b = O(2) + z_crop;
+        float_t min_d = O(2) - z_crop_, max_b = O(2) + z_crop_;
         if(depth > max_b || depth < min_d)
           continue;
         uv[0] = u;
@@ -129,13 +129,14 @@ struct PlanarSegmentation
         double k = numerator / AtN(0);
         cv::Matx<double, 1, 1> X = k * (A_x.row(2) * uv);
         float_t max_d = X(0);
-        //std::cout << depth << " " << O(2) + z_crop<< " "<< X(0)<< std::endl;
+        //std::cout << depth << " " << O(2) + *z_crop<< " "<< X(0)<< std::endl;
         *it = 255 * uint8_t( depth < max_d);
       }
     }
-    return 0;
+    out["mask"] << mask;
+    return ecto::OK;
   }
-  float x_crop, y_crop, z_crop, z_min;
+  ecto::spore<float> x_crop, y_crop, z_crop, z_min;
   cv::Mat_<uint8_t> box_mask;
 
 };
