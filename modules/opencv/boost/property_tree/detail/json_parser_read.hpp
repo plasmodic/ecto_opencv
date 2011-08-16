@@ -181,14 +181,14 @@ namespace boost { namespace property_tree { namespace json_parser
                 using namespace boost::spirit::classic;
 
                 // Assertions
-                assertion<std::string> expect_object("expected object");
-                assertion<std::string> expect_eoi("expected end of input");
-                assertion<std::string> expect_objclose("expected ',' or '}'");
-                assertion<std::string> expect_arrclose("expected ',' or ']'");
-                assertion<std::string> expect_name("expected object name");
-                assertion<std::string> expect_colon("expected ':'");
-                assertion<std::string> expect_value("expected value");
-                assertion<std::string> expect_escape("invalid escape sequence");
+                boost::spirit::classic::assertion<std::string> expect_object("expected object");
+                boost::spirit::classic::assertion<std::string> expect_eoi("expected end of input");
+                boost::spirit::classic::assertion<std::string> expect_objclose("expected ',' or '}'");
+                boost::spirit::classic::assertion<std::string> expect_arrclose("expected ',' or ']'");
+                boost::spirit::classic::assertion<std::string> expect_name("expected object name");
+                boost::spirit::classic::assertion<std::string> expect_colon("expected ':'");
+                boost::spirit::classic::assertion<std::string> expect_value("expected value");
+                boost::spirit::classic::assertion<std::string> expect_escape("invalid escape sequence");
 
                 // JSON grammar rules
                 root 
