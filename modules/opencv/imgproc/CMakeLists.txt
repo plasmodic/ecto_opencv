@@ -1,6 +1,7 @@
 ectomodule(imgproc
     module.cpp
     Adder.cpp
+    BilateralFilter.cpp
     BitWiseAnd.cpp
     BitWiseNot.cpp
     CartToPolar.cpp

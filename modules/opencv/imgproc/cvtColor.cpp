@@ -22,7 +22,6 @@ namespace imgproc
     void
     configure(const tendrils& p, const tendrils& i, const tendrils& o)
     {
-      SHOW()
       flag_ = p["flag"];
     }
 
