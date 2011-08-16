@@ -1,7 +1,6 @@
 ectomodule(features2d
   module.cpp
   features2d.cpp
-  feature_extraction.cpp
   matcher.cpp
   match_draw.cpp
   ransac_est.cpp
