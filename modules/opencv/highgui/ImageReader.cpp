@@ -48,7 +48,9 @@ namespace ecto_opencv
           if (fs::is_regular_file(dir_itr->status()))
           {
             fs::path x(*dir_itr);
-            if (x.extension().size() == 0 || ext.find(x.extension()) == std::string::npos)
+            std::string x_ext(x.extension());
+            //TODO make this more fancy...
+            if (x_ext.size() == 0 || ext.find(x_ext) == std::string::npos)
               continue;
             //std::cout << x.string() << "\n";
             images.push_back(x.string());
