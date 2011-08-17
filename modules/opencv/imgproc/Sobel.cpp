@@ -25,7 +25,7 @@ namespace imgproc
       params["x"] >> x_;
       params["y"] >> y_;
       input = inputs["input"];
-      output = outputs["input"];
+      output = outputs["out"];
     }
     int
     process(const tendrils& /*inputs*/, const tendrils& /*outputs*/)
