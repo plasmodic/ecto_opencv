@@ -161,8 +161,8 @@ namespace imgproc
     static void
     declare_io(const ecto::tendrils& p, ecto::tendrils& i, ecto::tendrils& o)
     {
-      i.declare < cv::Mat > ("input", "An image.");
-      o.declare < cv::Mat > ("out", "The filtered image.");
+      i.declare<cv::Mat>("input", "An image.").required(true);
+      o.declare<cv::Mat>("out", "The filtered image.");
     }
 
     void
