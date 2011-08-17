@@ -6,8 +6,12 @@ add_definitions(-Wno-strict-aliasing)
 #  svn co https://code.ros.org/svn/opencv/trunk
 #  and cmake that baby
 find_package(OpenCV 2.3.1 EXACT REQUIRED)
+if (OpenCV_FOUND)
+  message(STATUS "OpenCV version: ${OpenCV_VERSION}")
+  message(STATUS "OpenCV headers: ${OpenCV_INCLUDE_DIRS}")
+endif()
 find_package(ecto 0.1.0 REQUIRED)
-find_package(Boost COMPONENTS system filesystem serialization REQUIRED)
+find_package(Boost COMPONENTS serialization filesystem system REQUIRED)
 
 if(NOT CMAKE_LIBRARY_OUTPUT_DIRECTORY)
   set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)

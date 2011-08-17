@@ -54,10 +54,11 @@ namespace ecto_opencv
         count = 0;
       }
       count++;
-      cv::Mat image = in.get<cv::Mat>("image");
-      cv::Mat& output = out.get<cv::Mat>("image");
+      cv::Mat image, output;
+      in["image"] >> image;
       image.copyTo(output);
       draw(output, freq);
+      out["image"] << output;
       return 0;
     }
     pt::ptime prev;
