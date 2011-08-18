@@ -7,6 +7,7 @@ ectomodule(highgui
     imshow.cpp
     OpenNICapture.cpp
     VideoCapture.cpp
+    VideoWriter.cpp
     )
 link_ecto(highgui ${OpenCV_LIBS})
 install_ecto_module(highgui)

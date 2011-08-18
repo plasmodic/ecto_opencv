@@ -11,6 +11,22 @@ using ecto::tendrils;
 
 namespace pt = boost::posix_time;
 namespace fs = boost::filesystem;
+namespace bp = boost::python;
+
+namespace
+{
+  struct trigger_reset
+  {
+    template<typename Value>
+    void
+    operator()(Value& x) const
+    {
+      *(x.second) = false;
+    }
+
+  };
+
+}
 namespace ecto_opencv
 {
   struct imshow
@@ -22,13 +38,35 @@ namespace ecto_opencv
       params.declare<int>("waitKey", "Number of millis to wait, -1 for not at all, 0 for infinity.", -1);
       params.declare<bool>("autoSize", "Autosize the window.", true);
       params.declare<bool>("maximize", "Fullscreen the window, takes precedence over autoSize.", false);
+      params.declare<bp::object>("triggers", "A dict of trigger keys, e.g. {'x_key':ord('x')}");
     }
 
     static void
     declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
     {
-      inputs.declare<cv::Mat>("input", "The image to show");
-      outputs.declare<int>("out", "Character pressed.");
+      inputs.declare<cv::Mat>("input", "The image to show").required(true);
+
+      outputs.declare<int>("out", "Character pressed."); //optional output.
+
+      bp::object triggers;
+      params["triggers"] >> triggers;
+      if (!triggers || triggers == bp::object())
+        return;//no user supplied triggers.
+
+      if (params.get<int>("waitKey") < 0)
+              throw std::runtime_error(
+                  "You may not have a waitKey of less than zero when you are supplying triggers."
+                  " waitKey is what captures keypress events.");
+
+      bp::list l = bp::dict(triggers).items();
+      for (int j = 0, end = bp::len(l); j < end; ++j)
+      {
+        bp::object key = l[j][0];
+        bp::object value = l[j][1];
+        int k = bp::extract<int>(value);
+        outputs.declare<bool>(bp::extract<std::string>(key),
+                              boost::str(boost::format("The '%c' key has been pressed.") % char(k)), false);
+      }
     }
 
     void
@@ -38,17 +76,35 @@ namespace ecto_opencv
       waitkey_ = params.get<int>("waitKey");
       auto_size_ = params.get<bool>("autoSize");
       full_screen_ = params["maximize"];
+      image_ = inputs["input"];
+      key_ = outputs["out"];
+
+      bp::object triggers;
+      params["triggers"] >> triggers;
+      if (!triggers || triggers == bp::object())
+        return; //no user supllied triggers.
+
+      bp::list l = bp::dict(triggers).items();
+      for (int j = 0, end = bp::len(l); j < end; ++j)
+      {
+        bp::object key = l[j][0];
+        bp::object value = l[j][1];
+        int k = bp::extract<int>(value);
+        std::string skey = bp::extract<std::string>(key);
+        std::cout << "Listening for key: " << char(k) << " on imshow:" << skey << std::endl;
+        trigger_keys_[k] = outputs[skey];
+      }
     }
 
     int
     process(const tendrils& inputs, const tendrils& outputs)
     {
-      cv::Mat image = inputs.get<cv::Mat>("input");
+      cv::Mat image = *image_;
+      std::for_each(trigger_keys_.begin(), trigger_keys_.end(), trigger_reset());
+      *key_ = 0;
       if (image.empty())
       {
-        outputs.get<int>("out") = 0;
         return 0;
-        //throw std::logic_error("empty image!");
       }
       if (*full_screen_)
       {
@@ -82,21 +138,28 @@ namespace ecto_opencv
       if (waitkey_ >= 0)
         r = 0xff & cv::waitKey(waitkey_);
 
+      *key_ = r;
+
       if (r == 27 || r == 'q' || r == 'Q')
       {
         std::cout << "QUIT!\n";
-        return 1;
+        return ecto::QUIT;
       }
       else
       {
-        outputs.get<int>("out") = r;
-        return 0;
+        std::map<int, ecto::spore<bool> >::iterator it = trigger_keys_.find(r);
+        if (it != trigger_keys_.end())
+          *(it->second) = true;
+        return ecto::OK;
       }
     }
     std::string window_name_;
     int waitkey_;
     bool auto_size_;
     ecto::spore<bool> full_screen_;
+    ecto::spore<cv::Mat> image_;
+    ecto::spore<int> key_;
+    std::map<int, ecto::spore<bool> > trigger_keys_;
   };
 }
 ECTO_THREAD_UNSAFE(ecto_opencv::imshow);
