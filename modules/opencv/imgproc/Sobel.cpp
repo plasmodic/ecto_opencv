@@ -20,12 +20,24 @@ namespace imgproc
       outputs.declare<cv::Mat>("out", "sobel image");
     }
     void
+    onvalue_change_x(int x)
+    {
+      x_ = x;
+    }
+    void
+    onvalue_change_y(int y) 
+    {
+      y_ = y;
+    }
+    void
     configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
     {
       params["x"] >> x_;
       params["y"] >> y_;
       input = inputs["input"];
-      output = outputs["input"];
+      output = outputs["out"];
+      params["x"]->set_callback<int>(boost::bind(&Sobel::onvalue_change_x, this, _1));
+      params["y"]->set_callback<int>(boost::bind(&Sobel::onvalue_change_y, this, _1));
     }
     int
     process(const tendrils& /*inputs*/, const tendrils& /*outputs*/)
