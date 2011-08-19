@@ -30,14 +30,34 @@ namespace calib
       float cy = K.at<float>(1, 2);
       // Create 3D points in one go.
       cv::Size depth_size = depth.size();
-      for (int v = 0; v < depth_size.height; v++)
+      if (depth.depth() == CV_16U)
       {
-        for (int u = 0; u < depth_size.width; u++)
+        const uint16_t* r;
+        for (int v = 0; v < depth_size.height; v++)
         {
-          float z = depth.at<uint16_t>(v, u) * 1/1000.0f;
-          *(sp_begin++) = (u - cx) * z / fx;
-          *(sp_begin++) = (v - cy) * z / fy;
-          *(sp_begin++) = z;
+          r = depth.ptr<uint16_t>(v,0);
+          for (int u = 0; u < depth_size.width; u++)
+          {
+            float z =  *(r++) * 1 / 1000.0f;
+            *(sp_begin++) = (u - cx) * z / fx;
+            *(sp_begin++) = (v - cy) * z / fy;
+            *(sp_begin++) = z;
+          }
+        }
+      }
+      else if (depth.depth() == CV_32F)
+      {
+        const float* r;
+        for (int v = 0; v < depth_size.height; v++)
+        {
+          r = depth.ptr<float>(v,0);
+          for (int u = 0; u < depth_size.width; u++)
+          {
+            float z = *(r++);
+            *(sp_begin++) = (u - cx) * z / fx;
+            *(sp_begin++) = (v - cy) * z / fy;
+            *(sp_begin++) = z;
+          }
         }
       }
       points3d = points; //return Nx3 matrix

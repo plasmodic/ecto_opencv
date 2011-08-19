@@ -40,7 +40,7 @@ namespace imgproc
         }
         else
         {
-          *out_i = 0;
+          *out_i = 10000.f;
         }
         ++out_i;
         ++begin;
