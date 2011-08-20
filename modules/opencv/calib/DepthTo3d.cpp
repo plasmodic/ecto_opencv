@@ -38,7 +38,12 @@ namespace calib
           r = depth.ptr<uint16_t>(v,0);
           for (int u = 0; u < depth_size.width; u++)
           {
-            float z =  *(r++) * 1 / 1000.0f;
+            uint16_t fpz = *(r++);
+            if (fpz == std::numeric_limits<uint16_t>::max())
+            {
+              std::cout << "fpz max:" << fpz << std::endl;
+            }
+            float z =  fpz / 1000.0f;
             *(sp_begin++) = (u - cx) * z / fx;
             *(sp_begin++) = (v - cy) * z / fy;
             *(sp_begin++) = z;
@@ -51,12 +56,21 @@ namespace calib
         for (int v = 0; v < depth_size.height; v++)
         {
           r = depth.ptr<float>(v,0);
+
           for (int u = 0; u < depth_size.width; u++)
           {
             float z = *(r++);
-            *(sp_begin++) = (u - cx) * z / fx;
-            *(sp_begin++) = (v - cy) * z / fy;
-            *(sp_begin++) = z;
+            if(std::isfinite(z))
+            {
+              *(sp_begin++) = (u - cx) * z / fx;
+              *(sp_begin++) = (v - cy) * z / fy;
+              *(sp_begin++) = z;
+            }else
+            {
+              *(sp_begin++) = z;
+              *(sp_begin++) = z;
+              *(sp_begin++) = z;
+            }
           }
         }
       }
