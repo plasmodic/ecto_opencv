@@ -19,24 +19,26 @@ namespace ecto_opencv
     draw(cv::Mat& drawImage, float freq)
     {
       using namespace cv;
-      std::string scaleText = boost::str(boost::format("%.2f Hz") % freq);
+      Size imgsize = drawImage.size();
+
+      std::string scaleText = boost::str(boost::format("%ux%u @ %.2f Hz") % imgsize.width % imgsize.height % freq);
       int baseline = 0;
       Size sz = getTextSize(scaleText, CV_FONT_HERSHEY_SIMPLEX, 1, 1, &baseline);
       rectangle(drawImage, Point(10, 30 + 5), Point(10, 30) + Point(sz.width, -sz.height - 5), Scalar::all(0), -1);
       putText(drawImage, scaleText, Point(10, 30), CV_FONT_HERSHEY_SIMPLEX, 1.0, Scalar::all(255), 1, CV_AA, false);
     }
+
     static void
     declare_io(const tendrils& params, tendrils& in, tendrils& out)
     {
       in.declare<cv::Mat>("image", "The original image to draw the pose onto.");
       out.declare<cv::Mat>("image", "The image with fps drawn on it.");
     }
+
     FPSDrawer()
-        :
-          count(),
-          freq()
-    {
-    }
+      : count(), freq()
+    { }
+    
     int
     process(const tendrils& in, const tendrils& out)
     {
