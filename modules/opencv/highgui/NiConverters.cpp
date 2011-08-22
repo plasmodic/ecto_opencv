@@ -1,6 +1,7 @@
 #include <ecto/ecto.hpp>
 
 #include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 
 #include <boost/format.hpp>
 #include <boost/filesystem.hpp>
@@ -60,7 +61,7 @@ namespace ecto_opencv
         uint8_t * data =  (uint8_t*) ((*image_buffer)->data());
         cv::Mat temp;
         cv::Mat im_wrapper_(*image_height, *image_width, type,data);
-        im_wrapper_.copyTo(temp);
+        cv::cvtColor(im_wrapper_,temp,CV_RGB2BGR);
         *image = temp;
       }
 
