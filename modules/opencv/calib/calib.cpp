@@ -121,6 +121,7 @@ namespace calib
     {
       params.declare<std::string>("output_file_name", "The name of the camera calibration file", "camera.yml");
       params.declare<int>("n_obs", "Number of observations", 50);
+      params.declare<bool>("quit_when_calibrated", "return QUIT from process once calibration done", true);
     }
 
     static void
@@ -142,6 +143,7 @@ namespace calib
       object_pts_.clear();
       norm_thresh_ = 150; //pixel values;
       calibrated_ = false;
+      quit_when_calibrated_ = params.get<bool>("quit_when_calibrated");
     }
 
     double
@@ -164,6 +166,9 @@ namespace calib
       const object_pts_t& board_pts = in.get<object_pts_t>("ideal");
       bool found = in.get<bool>("found");
       float norm = 0;
+      if (calibrated_)
+        return ecto::OK;
+
       if (found)
       {
         norm = calcDistance(points_in);
@@ -194,7 +199,8 @@ namespace calib
 
         printf("RMS error reported by calibrateCamera: %g\n", rms);
         calibrated_ = true;
-        return ecto::QUIT;
+        if (quit_when_calibrated_)
+          return ecto::QUIT;
       }
 
       out.get<float>("norm") = norm;
@@ -205,6 +211,7 @@ namespace calib
     int n_obs_;
     float norm_thresh_;
     bool calibrated_;
+    bool quit_when_calibrated_;
     std::vector<object_pts_t> object_pts_;
     std::vector<observation_pts_t> observation_pts_;
     Camera camera_;

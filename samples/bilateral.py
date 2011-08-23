@@ -12,9 +12,12 @@ video_cap = highgui.VideoCapture(video_device=0)
 fps = highgui.FPSDrawer()
 
 video_display = highgui.imshow('imshow',
-                               name='video_cap', waitKey=10)
+                                name='video_cap', waitKey=10,
+                                triggers=dict(save=ord('s')),
+                               )
 
-imgsaver = highgui.ImageSaver()
+saver = ecto.If(cell=highgui.ImageSaver("saver", filename_format='bilateral_%05d.jpg',
+                                   start=1))
 
 bl_begin = None
 bl_end = None
@@ -31,8 +34,8 @@ for i in range(1, 10):
 
 plasm.connect(video_cap['image'] >> fps['image'],
               fps['image'] >> bl_begin[:],
-              bl_end[:] >> (video_display['input'],imgsaver['image']),
-              video_display['out'] >> imgsaver['trigger'],
+              bl_end[:] >> (video_display['input'], saver['image']),
+              video_display['save'] >> saver['__test__'],
               )
 
 

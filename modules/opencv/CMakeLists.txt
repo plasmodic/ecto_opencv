@@ -1,4 +1,3 @@
-project(opencv)
 add_subdirectory(calib)
 add_subdirectory(features2d)
 add_subdirectory(imgproc)
