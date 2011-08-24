@@ -23,6 +23,12 @@ namespace ecto_opencv
 
   struct NiConverter
   {
+
+    static void
+       declare_params(tendrils& params)
+    {
+      params.declare<bool>("rescale","Convert depth to floating point and rescale.", false);
+    }
     static void
     declare_io(const tendrils& params, tendrils& i, tendrils& o)
     {
@@ -36,6 +42,7 @@ namespace ecto_opencv
 
       o.declare<cv::Mat>("image");
       o.declare<cv::Mat>("depth");
+
     }
 
     void
@@ -50,6 +57,7 @@ namespace ecto_opencv
       depth_buffer = i["depth_buffer"];
       image = o["image"];
       depth = o["depth"];
+      rescale = p["rescale"];
     }
 
     int
@@ -71,7 +79,13 @@ namespace ecto_opencv
         cv::Mat temp;
         uint16_t * data = (uint16_t*) ((*depth_buffer)->data());
         cv::Mat im_wrapper_(*depth_height, *depth_width, CV_16UC1, data);
-        im_wrapper_.copyTo(temp);
+        if(*rescale)
+        {
+          im_wrapper_.convertTo(temp, CV_32F,1/1000.);
+        }else
+        {
+          im_wrapper_.copyTo(temp);
+        }
         *depth = temp;
       }
       return ecto::OK;
@@ -82,6 +96,7 @@ namespace ecto_opencv
     ecto::spore<RgbDataConstPtr> image_buffer;
 
     ecto::spore<cv::Mat> image, depth;
+    ecto::spore<bool> rescale;
   };
 }
 ECTO_CELL(highgui, ecto_opencv::NiConverter, "NiConverter", "Read images from a directory.");

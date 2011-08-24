@@ -7,6 +7,7 @@ ectomodule(highgui
     imshow.cpp
     NiConverters.cpp
     #OpenNICapture.cpp
+    V4LCapture.cpp
     VideoCapture.cpp
     VideoWriter.cpp
     )
