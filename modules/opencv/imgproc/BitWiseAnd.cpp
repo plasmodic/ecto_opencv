@@ -20,16 +20,22 @@ namespace imgproc
     {
       cv::Mat a = inputs.get<cv::Mat>("a"), b = inputs.get<cv::Mat>("b");
 
+      if (a.empty() && b.empty())
+        throw std::runtime_error("a and b are empty");
       if (a.empty())
-        throw std::runtime_error("a is empty");
-      if (b.empty())
-        throw std::runtime_error("b is empty");
-      if (a.size() != b.size())
-        throw std::runtime_error("a.size != b.size");
-      cv::Mat output;
-      cv::bitwise_and(a, b, output);
-      outputs["out"] << output;
-      return 0;
+      {
+        outputs["out"] << b;
+      }
+      else if (b.empty())
+      {
+        outputs["out"] << a;
+      }else
+      {
+        cv::Mat output;
+        cv::bitwise_and(a, b, output);
+        outputs["out"] << output;
+      }
+      return ecto::OK;
     }
   };
 }
