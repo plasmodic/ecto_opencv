@@ -271,8 +271,11 @@ namespace calib
     int
     process(const tendrils& in, const tendrils& out)
     {
-      if (!in.get<bool>("found"))
+      if (!in.get<bool>("found")){
+        out.get<cv::Mat>("T").create(3,1,CV_64F);
+        out.get<cv::Mat>("R").create(3,3,CV_64F);
         return 0;
+      }
       const observation_pts_t& observation_points = in.get<observation_pts_t>("points");
       const object_pts_t& object_points = in.get<object_pts_t>("ideal");
       cv::Mat K = in.get<cv::Mat>("K");
