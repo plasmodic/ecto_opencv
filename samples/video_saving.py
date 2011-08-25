@@ -13,7 +13,7 @@ fps = highgui.FPSDrawer()
 video_display = highgui.imshow('imshow',
                                name='video_cap', waitKey=2)
 
-saver = highgui.VideoWriter("saver",video_file='ecto.avi',fps=15)
+saver = highgui.VideoWriter("saver", video_file='ecto.avi', fps=15)
 
 plasm.connect(video_cap['image'] >> fps['image'],
               fps['image'] >> video_display['input'],

@@ -21,6 +21,8 @@ namespace ecto_opencv
     {
       params.declare<int>("video_device", "The device ID to open.", 0);
       params.declare<std::string>("video_file", "A video file to read, leave empty to open a video device.", "");
+      params.declare<unsigned>("width", "Set width to this after opening device", 640);
+      params.declare<unsigned>("height", "Set width to this after opening device", 480);
     }
 
     static void
@@ -35,6 +37,8 @@ namespace ecto_opencv
     {
       video_device = params.get<int>("video_device");
       video_file = params.get<std::string>("video_file");
+      width = params.get<unsigned>("width");
+      height = params.get<unsigned>("height");
       capture = cv::VideoCapture();
     }
     void
@@ -55,6 +59,8 @@ namespace ecto_opencv
         if (!capture.isOpened())
           throw std::runtime_error("Could not open video device : " + video_device);
       }
+      capture.set(CV_CAP_PROP_FRAME_WIDTH, width);
+      capture.set(CV_CAP_PROP_FRAME_HEIGHT, height);
     }
 
     int
@@ -72,6 +78,7 @@ namespace ecto_opencv
     }
     cv::VideoCapture capture;
     int video_device;
+    unsigned width, height;
     std::string video_file;
 
   };
