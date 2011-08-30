@@ -69,7 +69,8 @@ namespace ecto_opencv
         uint8_t * data =  (uint8_t*) ((*image_buffer)->data());
         cv::Mat temp;
         cv::Mat im_wrapper_(*image_height, *image_width, type,data);
-        cv::cvtColor(im_wrapper_,temp,CV_RGB2BGR);
+        if(!im_wrapper_.empty())
+          cv::cvtColor(im_wrapper_,temp,CV_RGB2BGR);
         *image = temp;
       }
 

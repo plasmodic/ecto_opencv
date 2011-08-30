@@ -1,41 +1,32 @@
 #!/usr/bin/env python
 import ecto
-#import ecto_opencv.cv_bp as opencv
-from ecto_opencv import highgui,calib,imgproc, cv_bp as opencv
+from ecto_opencv.highgui import imshow, VideoCapture
+from ecto_opencv.calib import PatternDetector, PatternDrawer, CameraCalibrator, ASYMMETRIC_CIRCLES_GRID
+from ecto_opencv.imgproc import cvtColor, Conversion
 
-debug = True
+rows = 5
+cols = 3
+square_size = 0.04 #4 cm
+pattern_type = ASYMMETRIC_CIRCLES_GRID
+n_obs = 50
+calibration_file = "camera.yml"
 
-def calibration(rows,cols,square_size,pattern_type,n_obs,video):
-    plasm = ecto.Plasm()
-    pattern_show = highgui.imshow(name="pattern", waitKey=10, autoSize=True)
-    rgb2gray = imgproc.cvtColor(flag=7)
-    circle_detector = calib.PatternDetector(rows=rows, cols=cols,pattern_type=pattern_type,square_size=square_size )
-    ecto.print_module_doc(circle_detector)
-    circle_drawer = calib.PatternDrawer(rows=rows, cols=cols)
-    camera_calibrator = calib.CameraCalibrator(output_file_name="camera.yml",n_obs=n_obs)
-    
-    plasm.connect(video, "image", rgb2gray, "input")
-    plasm.connect(rgb2gray, "out", circle_detector, "input")
-    plasm.connect(video, "image", circle_drawer, "input")
-    plasm.connect(video, "image", camera_calibrator, "image")
-    plasm.connect(circle_detector, "out", circle_drawer, "points")
-    plasm.connect(circle_detector, "found", circle_drawer, "found")
-    plasm.connect(circle_drawer, "out", pattern_show, "input")
-    plasm.connect(circle_detector, "ideal", camera_calibrator,"ideal")
-    plasm.connect(circle_detector, "out", camera_calibrator,"points")
-    plasm.connect(circle_detector, "found", camera_calibrator, "found")
-    return plasm
-    
+video = VideoCapture(video_device=0)
+pattern_display = imshow(name="pattern", waitKey=10)
+rgb2gray = cvtColor(flag=Conversion.RGB2GRAY)
+circle_detector = PatternDetector(rows=rows, cols=cols,
+                                  pattern_type=pattern_type, square_size=square_size)
+camera_calibrator = CameraCalibrator(output_file_name=calibration_file, n_obs=n_obs)
+circle_drawer = PatternDrawer(rows=rows, cols=cols)
 
+plasm = ecto.Plasm()
+plasm.connect(video["image"] >> (circle_drawer["input"], camera_calibrator["image"], rgb2gray["input"]),
+              rgb2gray["out"] >> circle_detector["input"],
+              circle_drawer["out"] >> pattern_display["input"],
+              circle_detector[ "ideal", "out", "found"] >> camera_calibrator["ideal", "points", "found"],
+              circle_detector["out", "found"] >> circle_drawer["points", "found"],
+              )
 
 if __name__ == '__main__':
-    use_kinect = True
-    video = None
-    if not use_kinect :
-        video = highgui.VideoCapture(video_device=0)
-    else:
-        video = highgui.OpenNICapture(video_mode=opencv.CV_CAP_OPENNI_VGA_30HZ)
-        
-    calibration(rows=7,cols=3,square_size=0.03,pattern_type="acircles",n_obs=50,video=video)
-    sched = ecto.schedulers.Singlethreaded(plasm)
-    sched.execute()
+    from ecto.opts import doit
+    doit(plasm, description='Calibrate a camera using a dot pattern.')

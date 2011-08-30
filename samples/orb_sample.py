@@ -1,16 +1,17 @@
 #!/usr/bin/env python
 import ecto
-from ecto_opencv import imgproc, highgui, features2d
+from ecto_opencv.highgui import VideoCapture, imshow, FPSDrawer
+from ecto_opencv.features2d import ORB, DrawKeypoints
+from ecto_opencv.imgproc import cvtColor, Conversion
+
+video = VideoCapture(video_device=0)
+orb_m = ORB(n_features=2500)
+draw_kpts = DrawKeypoints()
+orb_display = imshow('orb display', name="ORB", waitKey=5, autoSize=True)
+rgb2gray = cvtColor (flag=Conversion.RGB2GRAY)
+fps = FPSDrawer()
 
 plasm = ecto.Plasm()
-
-video = highgui.VideoCapture(video_device=0)
-orb_m = features2d.ORB(n_features=2500)
-draw_kpts = features2d.DrawKeypoints()
-orb_display = highgui.imshow('orb display', name="ORB", waitKey=5, autoSize=True)
-rgb2gray = imgproc.cvtColor (flag=imgproc.Conversion.RGB2GRAY)
-fps = highgui.FPSDrawer()
-
 plasm.connect(video["image"] >> rgb2gray ["input"],
                 rgb2gray["out"] >> orb_m["image"],
                 orb_m["kpts"] >> draw_kpts["kpts"],
@@ -20,5 +21,5 @@ plasm.connect(video["image"] >> rgb2gray ["input"],
               )
 
 if __name__ == '__main__':
-    sched = ecto.schedulers.Singlethreaded(plasm)
-    sched.execute()
+    from ecto.opts import doit
+    doit(plasm, description='Computes the ORB feature and descriptor on a video stream.')

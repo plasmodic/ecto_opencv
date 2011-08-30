@@ -1,25 +1,16 @@
 #!/usr/bin/env python
-#
-# Simple vid cap
-#
 import ecto
-from ecto_opencv import highgui, calib, imgproc
+from ecto_opencv.highgui import VideoCapture, imshow, FPSDrawer
+
+video_cap = VideoCapture(video_device=0, width=640, height=480)
+fps = FPSDrawer()
+video_display = imshow(name='video_cap', waitKey=2)
 
 plasm = ecto.Plasm()
-video_cap = highgui.VideoCapture(video_device=0)
-
-fps = highgui.FPSDrawer()
-
-video_display = highgui.imshow('imshow',
-                               name='video_cap', waitKey=2)
-
 plasm.connect(video_cap['image'] >> fps['image'],
               fps['image'] >> video_display['input'],
               )
 
-
 if __name__ == '__main__':
-    ecto.view_plasm(plasm)
-    sched = ecto.schedulers.Threadpool(plasm)
-    sched.execute()
-
+    from ecto.opts import doit
+    doit(plasm, description='Capture a video from the device and display it.')
