@@ -362,8 +362,46 @@ namespace calib
       return 0;
     }
   };
+
+  struct PosesDrawer
+  {
+    static void
+    declare_io(const tendrils& params, tendrils& in, tendrils& out)
+    {
+      in.declare<cv::Mat>("K", "The camera projection matrix.");
+      in.declare<std::vector<cv::Mat> >("Rs", "3x3 Rotation matrix.");
+      in.declare<std::vector<cv::Mat> >("Ts", "3x1 Translation vector.");
+      in.declare<cv::Mat>("image", "The original image to draw the pose onto.");
+      in.declare<bool>("trigger", "Should i draw.", true);
+      out.declare<cv::Mat>("output", "The pose of the fiducial, drawn on an image");
+    }
+
+    int
+    process(const tendrils& in, const tendrils& out)
+    {
+      const cv::Mat & image = in.get<cv::Mat>("image");
+      cv::Mat & output = out.get<cv::Mat>("output");
+
+      image.copyTo(output);
+      if (in.get<bool>("trigger"))
+      {
+        std::vector<cv::Mat> Rs = in.get<std::vector<cv::Mat> >("Rs"), Ts = in.get<std::vector<cv::Mat> >("Ts");
+        cv::Mat K, R, T;
+        in.get<cv::Mat>("K").convertTo(K, CV_64F);
+
+        for (unsigned int i = 0; i < Rs.size(); ++i)
+        {
+          Rs[i].convertTo(R, CV_64F);
+          Ts[i].convertTo(T, CV_64F);
+          PoseDrawer::draw(output, K, R, T);
+        }
+      }
+      return 0;
+    }
+  };
 }
 ECTO_CELL(calib, PoseDrawer, "PoseDrawer", "Draw pose");
+ECTO_CELL(calib, PosesDrawer, "PosesDrawer", "Draw poses");
 
 namespace calib
 {
