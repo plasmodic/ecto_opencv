@@ -8,6 +8,7 @@ ectomodule(imgproc
     cvtColor.cpp
     GaussianBlur.cpp
     NanRemove.cpp
+    Quantize.cpp
     Scale.cpp
     Scharr.cpp
     Sobel.cpp

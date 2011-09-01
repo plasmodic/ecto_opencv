@@ -25,9 +25,9 @@ namespace ecto_opencv
   {
 
     static void
-       declare_params(tendrils& params)
+    declare_params(tendrils& params)
     {
-      params.declare<bool>("rescale","Convert depth to floating point and rescale.", false);
+      params.declare<bool>("rescale", "Convert depth to floating point and rescale.", false);
     }
     static void
     declare_io(const tendrils& params, tendrils& i, tendrils& o)
@@ -66,11 +66,21 @@ namespace ecto_opencv
       if (*image_buffer)
       {
         int type = CV_8UC(*image_channels);
-        uint8_t * data =  (uint8_t*) ((*image_buffer)->data());
+        uint8_t * data = (uint8_t*) ((*image_buffer)->data());
         cv::Mat temp;
-        cv::Mat im_wrapper_(*image_height, *image_width, type,data);
-        if(!im_wrapper_.empty())
-          cv::cvtColor(im_wrapper_,temp,CV_RGB2BGR);
+        cv::Mat im_wrapper_(*image_height, *image_width, type, data);
+        if (!im_wrapper_.empty() && im_wrapper_.channels() == 3)
+        {
+          cv::cvtColor(im_wrapper_, temp, CV_RGB2BGR);
+        }
+        else if (!im_wrapper_.empty() && im_wrapper_.channels() == 2)
+        {
+          cv::cvtColor(im_wrapper_,temp, CV_YUV420sp2RGB);
+        }
+        else
+        {
+          im_wrapper_.copyTo(temp);
+        }
         *image = temp;
       }
 
@@ -79,10 +89,11 @@ namespace ecto_opencv
         cv::Mat temp;
         uint16_t * data = (uint16_t*) ((*depth_buffer)->data());
         cv::Mat im_wrapper_(*depth_height, *depth_width, CV_16UC1, data);
-        if(*rescale)
+        if (*rescale)
         {
-          im_wrapper_.convertTo(temp, CV_32F,1/1000.);
-        }else
+          im_wrapper_.convertTo(temp, CV_32F, 1 / 1000.);
+        }
+        else
         {
           im_wrapper_.copyTo(temp);
         }
