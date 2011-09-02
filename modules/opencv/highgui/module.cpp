@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-
 /*
  * Software License Agreement (BSD License)
  *
@@ -46,48 +44,45 @@
 #include <boost/serialization/split_free.hpp>
 #include <boost/format.hpp>
 
+#include "highgui.h"
+
 namespace boost
 {
-namespace serialization
-{
-template<class Archive>
-  void save(Archive & ar, const cv::Mat & m, const unsigned int version)
+  namespace serialization
   {
-    int type = m.type();
-    ar & m.rows;
-    ar & m.cols;
-    ar & type;
-    const uchar * data = m.data, *end = m.dataend;
-    ar & boost::serialization::make_binary_object(const_cast<uchar*>(data), size_t(end - data));
-  }
+    template<class Archive>
+    void
+    save(Archive & ar, const cv::Mat & m, const unsigned int version)
+    {
+      int type = m.type();
+      ar & m.rows;
+      ar & m.cols;
+      ar & type;
+      const uchar * data = m.data, *end = m.dataend;
+      ar & boost::serialization::make_binary_object(const_cast<uchar*>(data), size_t(end - data));
+    }
 
-template<class Archive>
-  void load(Archive & ar, cv::Mat & m, const unsigned int version)
-  {
-    int rows, cols, type;
-    ar & rows;
-    ar & cols;
-    ar & type;
-    if (rows > 0 && cols > 0)
+    template<class Archive>
+    void
+    load(Archive & ar, cv::Mat & m, const unsigned int version)
     {
-      m.create(rows, cols, type);
-      uchar * data = m.data, *end = m.dataend;
-      ar & boost::serialization::make_binary_object(data, end - data);
+      int rows, cols, type;
+      ar & rows;
+      ar & cols;
+      ar & type;
+      if (rows > 0 && cols > 0)
+      {
+        m.create(rows, cols, type);
+        uchar * data = m.data, *end = m.dataend;
+        ar & boost::serialization::make_binary_object(data, end - data);
+      }
+      else
+      {
+        std::cout << "bad matrix" << std::endl;
+      }
     }
-    else
-    {
-      std::cout << "bad matrix" << std::endl;
-    }
-  }
-} // namespace serialization
+  } // namespace serialization
 } // namespace boost
-=======
-#include <boost/python.hpp>
-
-#include <ecto/ecto.hpp>
-
-#include "highgui.h"
->>>>>>> abea02b827179b7b27a3fffb3b8d31f463ad4be1
 
 ECTO_DEFINE_MODULE(highgui)
 {
