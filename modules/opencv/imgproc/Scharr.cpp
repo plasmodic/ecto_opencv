@@ -7,11 +7,7 @@ namespace imgproc
 {
   struct Scharr
   {
-    Scharr() :
-      x_(1), y_(1)
-    {
-
-    }
+    Scharr() { }
 
     static void declare_params(tendrils& p)
     {
@@ -27,15 +23,16 @@ namespace imgproc
 
     void configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
     {
-      x_ = params.get<int> ("x");
-      y_ = params.get<int> ("y");
+      x_ = params["x"];
+      y_ = params["y"];
     }
     int process(const tendrils& inputs, const tendrils& outputs)
     {
-      cv::Scharr(inputs.get<cv::Mat> ("input"), outputs.get<cv::Mat> ("out"), CV_32F, x_, y_);
+      cv::Scharr(inputs.get<cv::Mat> ("input"),
+                 outputs.get<cv::Mat> ("out"), CV_32F, *x_, *y_);
       return 0;
     }
-    int x_, y_;
+    ecto::spore<int> x_, y_;
   };
 }
 ECTO_CELL(imgproc, imgproc::Scharr, "Scharr", "Applies a schar operator");

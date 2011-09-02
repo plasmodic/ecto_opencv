@@ -1,17 +1,17 @@
 #!/usr/bin/env python
 import ecto
-from ecto_opencv import highgui, calib, imgproc
+from ecto_opencv.highgui import imshow, ImageReader
 import os
 
 #this will read all images on the user's Desktop
-images = highgui.ImageReader(path=os.path.expanduser("~/Desktop"))
+images = ImageReader(path=os.path.expanduser("~/Desktop"))
 
 #this is similar to a slide show... Wait for half a second
-imshow = highgui.imshow(name="image", waitKey=500, autoSize=True)
+imshow = imshow(name="image", waitKey=500, autoSize=True)
 
 plasm = ecto.Plasm()
 plasm.connect(images, "out", imshow, "input")
 
 if __name__ == '__main__':
-    sched = ecto.schedulers.Singlethreaded(plasm)
-    sched.execute()
+    from ecto.opts import doit
+    doit(plasm, description='Displays images from the user\'s Desktop.')

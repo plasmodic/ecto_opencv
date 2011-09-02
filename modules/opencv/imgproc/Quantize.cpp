@@ -5,38 +5,36 @@
 using ecto::tendrils;
 namespace imgproc
 {
-  struct Sobel
+  struct Quantize
   {
     static void
     declare_params(tendrils& p)
     {
-      p.declare<int>("x", "The derivative order in the x direction", 0);
-      p.declare<int>("y", "The derivative order in the y direction", 0);
+      p.declare<double>("factor", "Quantization factor", 10);
     }
     static void
     declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
     {
-      inputs.declare<cv::Mat>("input", "image.");
-      outputs.declare<cv::Mat>("out", "sobel image");
+      inputs.declare<cv::Mat>("image", "Input image.");
+      outputs.declare<cv::Mat>("image", "Quantized output image.");
     }
     void
     configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
     {
-      x_ = params["x"];
-      y_ = params["y"];
-      input = inputs["input"];
-      output = outputs["out"];
+      factor_ = params["factor"];
+      input = inputs["image"];
+      output = outputs["image"];
     }
     int
     process(const tendrils& /*inputs*/, const tendrils& /*outputs*/)
     {
-      cv::Mat out;
-      cv::Sobel(*input, out, CV_32F, *x_, *y_);
+      double factor = *factor_;
+      cv::Mat out = cv::Mat((*input) * (1. / factor)) * factor;
       *output = out;
       return ecto::OK;
     }
-    ecto::spore<int> x_, y_;
+    ecto::spore<double> factor_;
     ecto::spore<cv::Mat> input, output;
   };
 }
-ECTO_CELL(imgproc, imgproc::Sobel, "Sobel", "Runs the sobel operator on the image.");
+ECTO_CELL(imgproc, imgproc::Quantize, "Quantize", "Divide and multiply an image by a factor.");

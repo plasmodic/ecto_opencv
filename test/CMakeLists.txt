@@ -15,10 +15,6 @@ macro(data_download PATH_VAR DATA_FILE)
   endif()
 endmacro()
 
-#Tested by ros... depends on ros...
-#data_download(T01 t01.bag)
-#pytest(test_bag ${T01} )
-
 pytest(test_import)
 pytest(doc_opencv)
 pytest(test_image_saver)

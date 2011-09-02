@@ -5,7 +5,10 @@ ectomodule(highgui
     ImageSaver.cpp
     imread.cpp
     imshow.cpp
-    OpenNICapture.cpp
+    MatPrinter.cpp
+    NiConverters.cpp
+    #OpenNICapture.cpp
+    V4LCapture.cpp
     VideoCapture.cpp
     VideoWriter.cpp
     )

@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 
 /*
  * Software License Agreement (BSD License)
@@ -80,8 +81,21 @@ template<class Archive>
   }
 } // namespace serialization
 } // namespace boost
+=======
+#include <boost/python.hpp>
+
+#include <ecto/ecto.hpp>
+
+#include "highgui.h"
+>>>>>>> abea02b827179b7b27a3fffb3b8d31f463ad4be1
 
 ECTO_DEFINE_MODULE(highgui)
 {
-
+boost::python::enum_<ecto_opencv::Record::RecordCommands>("RecordCommands")
+    .value("START", ecto_opencv::Record::START)
+    .value("RESUME", ecto_opencv::Record::RESUME)
+    .value("PAUSE", ecto_opencv::Record::PAUSE)
+    .value("STOP", ecto_opencv::Record::STOP)
+    .export_values()
+    ;
 }

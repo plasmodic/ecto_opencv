@@ -4,10 +4,12 @@ ectomodule(imgproc
     BilateralFilter.cpp
     BitWiseAnd.cpp
     BitWiseNot.cpp
+    Canny.cpp
     CartToPolar.cpp
     cvtColor.cpp
     GaussianBlur.cpp
     NanRemove.cpp
+    Quantize.cpp
     Scale.cpp
     Scharr.cpp
     Sobel.cpp
