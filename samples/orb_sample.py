@@ -14,9 +14,9 @@ fps = FPSDrawer()
 plasm = ecto.Plasm()
 plasm.connect(video["image"] >> rgb2gray ["input"],
                 rgb2gray["out"] >> orb_m["image"],
-                orb_m["kpts"] >> draw_kpts["kpts"],
-                video["image"] >> draw_kpts["input"],
-                draw_kpts["output"] >> fps[:],
+                orb_m["keypoints"] >> draw_kpts["keypoints"],
+                video["image"] >> draw_kpts["image"],
+                draw_kpts["image"] >> fps[:],
                 fps[:] >> orb_display["input"],
               )
 
