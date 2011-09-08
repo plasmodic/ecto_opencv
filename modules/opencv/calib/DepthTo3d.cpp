@@ -48,7 +48,7 @@ namespace calib
       { (uv.col(0) - cx).mul(zs) / fx, (uv.col(1) - cy).mul(zs) / fy, zs };
       cv::Mat tmp_points;
       cv::merge(coordinates, 3, tmp_points);
-      points3d = tmp_points.reshape(1, n_points);
+      points3d = tmp_points.reshape(3, 1);
     }
 
     typedef std::vector<cv::Point2f> points_t;
@@ -63,7 +63,7 @@ namespace calib
       inputs.declare<cv::Mat>("K", "The calibration matrix").required(true);
       inputs.declare<cv::Mat>("points", "The u,v coordinates (n_points by 2").required(true);
       inputs.declare<cv::Mat>("depth", "The depth image").required(true);
-      outputs.declare<cv::Mat>("points3d", "The 3d points.");
+      outputs.declare<cv::Mat>("points3d", "The 3d points, 1 by n_points with 3 channels (x, y and z).");
     }
 
     void
@@ -138,7 +138,7 @@ namespace calib
       else
       {
         //allocate points.
-        cv::Mat_<float> points = cv::Mat_<float>(depth.size().area(), 3);
+        cv::Mat_<float> points = cv::Mat_<float>(depth.rows, depth.cols, 3);
         cv::Mat_<float>::iterator sp_begin = points.begin();
         //grab camera params
         float fx = K.at<float>(0, 0);
@@ -196,11 +196,6 @@ namespace calib
     }
 
     typedef std::vector<cv::Point2f> points_t;
-    static void
-    declare_params(tendrils& p)
-    {
-      p.declare<bool>("do_organized", "Return a width by height matrix with 3 channels").set_default_val(false);
-    }
 
     static void
     declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
@@ -208,13 +203,8 @@ namespace calib
       inputs.declare<cv::Mat>("K", "The calibration matrix").required(true);
       inputs.declare<cv::Mat>("depth", "The depth image").required(true);
       inputs.declare<cv::Mat>("mask", "The mask of the points to send back");
-      outputs.declare<cv::Mat>("points3d", "The 3d points, n by 3 cv::Mat");
-    }
-
-    void
-    configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
-    {
-      do_organized_ = params["do_organized"];
+      outputs.declare<cv::Mat>(
+          "points3d", "The 3d points, height by width (or 1 by n_points if mask) with 3 channels (x, y and z)");
     }
 
     /** Get the 2d keypoints and figure out their 3D position from the depth map
@@ -232,15 +222,10 @@ namespace calib
       K.clone().convertTo(K, CV_32F);
       cv::Mat points3d;
       depthTo3d(K, depth, mask, points3d);
-      if (do_organized_) {
-        points3d = points3d.reshape(3, depth.rows);
-      }
+
       outputs["points3d"] << points3d;
       return 0;
     }
-  private:
-    /** If true, a width by height by 3 matrix is returned */
-    ecto::spore<bool> do_organized_;
   };
 }
 using namespace calib;
