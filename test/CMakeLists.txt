@@ -18,3 +18,5 @@ endmacro()
 pytest(test_import)
 pytest(doc_opencv)
 pytest(test_image_saver)
+
+add_subdirectory(cells)
