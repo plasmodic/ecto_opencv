@@ -28,7 +28,12 @@ namespace calib
       float cy = K.at<float>(1, 2);
       cv::Mat_<float> uv;
       in_uv.convertTo(uv, CV_32F);
-
+      
+      if (uv.empty())
+      {
+        std::cerr << "Warning uv is empty!" << std::endl;
+        return;
+      }
       // Get the depth
       cv::Mat_<float> zs = cv::Mat_<float>(n_points, 1);
       if (depth.depth() == CV_16U)
