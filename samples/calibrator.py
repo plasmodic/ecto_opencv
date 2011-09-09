@@ -3,13 +3,13 @@ import ecto
 from ecto_opencv.highgui import imshow, VideoCapture
 from ecto_opencv.calib import PatternDetector, PatternDrawer, CameraCalibrator, ASYMMETRIC_CIRCLES_GRID
 from ecto_opencv.imgproc import cvtColor, Conversion
-
+import sys
 rows = 5
 cols = 3
 square_size = 0.04 #4 cm
 pattern_type = ASYMMETRIC_CIRCLES_GRID
 n_obs = 50
-calibration_file = "camera.yml"
+calibration_file = "camera_new.yml"
 
 video = VideoCapture(video_device=0)
 pattern_display = imshow(name="pattern", waitKey=10)

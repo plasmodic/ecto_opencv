@@ -185,7 +185,7 @@ namespace calib
       {
         std::cout << "Calibrating the camera, given " << n_obs_ << " observations" << std::endl;
         std::vector<cv::Mat> rvecs, tvecs;
-        int flags = CV_CALIB_FIX_ASPECT_RATIO | CV_CALIB_FIX_PRINCIPAL_POINT;
+        int flags = CV_CALIB_FIX_ASPECT_RATIO | CV_CALIB_FIX_PRINCIPAL_POINT | CV_CALIB_ZERO_TANGENT_DIST;
         camera_.image_size = in.get<cv::Mat>("image").size();
         double rms = cv::calibrateCamera(object_pts_, observation_pts_, camera_.image_size, camera_.K, camera_.D, rvecs,
                                          tvecs, flags);
@@ -221,41 +221,6 @@ namespace calib
 ECTO_CELL(calib, CameraCalibrator, "CameraCalibrator", "Accumulates observed points and ideal 3d points, and runs "
 "opencv calibration routines after some number of "
 "satisfactorily unique observations.");
-
-namespace calib
-{
-  struct CameraIntrinsics
-  {
-    static void
-    declare_params(tendrils& params)
-    {
-      params.declare<std::string>("camera_file", "The camera calibration file. Typically a .yml", "camera.yml");
-    }
-    static void
-    declare_io(const tendrils& params, tendrils& in, tendrils& out)
-    {
-      out.declare<cv::Size>("image_size", "The image size.");
-      out.declare<cv::Mat>("K", "3x3 camera intrinsic matrix.");
-      out.declare<std::string>("camera_model", "The camera model. e.g pinhole,...", "pinhole");
-    }
-    void
-    configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
-    {
-      readOpenCVCalibration(camera, params.get<std::string>("camera_file"));
-    }
-    int
-    process(const tendrils& in, const tendrils& out)
-    {
-      out.get<cv::Mat>("K") = camera.K;
-      out.get<cv::Size>("image_size") = camera.image_size;
-      return 0;
-    }
-    Camera camera;
-  };
-}
-
-ECTO_CELL(calib, CameraIntrinsics, "CameraIntrinsics",
-          "This reads a camera calibration file and puts the results on the outputs.");
 
 namespace calib
 {
