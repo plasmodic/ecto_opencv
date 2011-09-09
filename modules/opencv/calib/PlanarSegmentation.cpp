@@ -70,8 +70,9 @@ namespace calib
 
       in.get<cv::Mat>("T").convertTo(T, CV_64F);
       in.get<cv::Mat>("K").convertTo(K, CV_64F);
-      depth = in.get<cv::Mat>("depth");
+ 
       cv::Mat mask;
+      depth = in.get<cv::Mat>("depth");
       if (!depth.empty())
       {
         mask = cv::Mat::zeros(depth.size(), CV_8UC1);
@@ -81,7 +82,13 @@ namespace calib
 
       if (R.empty() || T.empty() || K.empty())
         return 0;
-
+      
+      if(depth.depth() == CV_16U)
+      {
+        cv::Mat temp;
+        depth.convertTo(temp,CV_32F, 1.0/1000);
+        depth = temp;
+      }
       double fx, fy, cx, cy;
       fx = K.at<double>(0, 0);
       fy = K.at<double>(1, 1);
