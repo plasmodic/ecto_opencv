@@ -138,8 +138,8 @@ namespace calib
       else
       {
         //allocate points.
-        cv::Mat_<float> points = cv::Mat_<float>(depth.rows, depth.cols, 3);
-        cv::Mat_<float>::iterator sp_begin = points.begin();
+        cv::Mat points = cv::Mat(depth.rows, depth.cols, CV_32FC3);
+        float * sp_begin = reinterpret_cast<float *>(points.data);
         //grab camera params
         float fx = K.at<float>(0, 0);
         float fy = K.at<float>(1, 1);
