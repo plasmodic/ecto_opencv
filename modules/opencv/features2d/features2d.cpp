@@ -7,126 +7,152 @@
 
 using ecto::tendrils;
 
+/** Interface to feature detection, reused by specific feature detectors
+ */
 struct feature_detector_interface
 {
-  static void declare_outputs(tendrils& outputs)
+  static void
+  declare_outputs(tendrils& outputs)
   {
-    outputs.declare<std::vector<cv::KeyPoint> > ("kpts", "The keypoints.");
+    outputs.declare<std::vector<cv::KeyPoint> >("keypoints", "The keypoints.");
   }
-  static void declare_io(tendrils& inputs, tendrils& outputs)
+  static void
+  declare_inputs(tendrils& inputs)
   {
-    inputs.declare<cv::Mat> ("image", "An input image.");
-    inputs.declare<cv::Mat> ("mask", "An mask, same size as image.");
-    declare_outputs(outputs);
+    inputs.declare<cv::Mat>("image", "An input image.");
+    inputs.declare<cv::Mat>("mask", "An mask, same size as image.");
   }
 };
 
-struct feature_extractor_interface
+/** Interface to descriptor extraction, reused by specific descriptor extractors
+ */
+struct descriptor_extractor_interface
 {
-  static void declare_io(tendrils& inputs, tendrils& outputs)
+  static void
+  declare_outputs(tendrils& outputs)
   {
-    feature_detector_interface::declare_io(inputs,outputs);
-    outputs.declare<cv::Mat> ("descriptors", "The descriptors per keypoints");
+    outputs.declare<cv::Mat>("descriptors", "The descriptors per keypoints");
+  }
+  static void
+  declare_inputs(tendrils& inputs)
+  {
+    inputs.declare<cv::Mat>("image", "An input image.");
+    inputs.declare<cv::Mat>("mask", "An mask, same size as image.");
+    inputs.declare<std::vector<cv::KeyPoint> >("keypoints", "The keypoints.");
   }
 };
 
+/** Cell for ORB feature detection and descriptor extraction
+ */
 struct ORB
 {
-  static void declare_params(tendrils& p)
+  static void
+  declare_params(tendrils& p)
   {
-    p.declare<int> ("n_features", "The number of desired features", 1000);
-    p.declare<int> ("n_levels", "The number of scales", 3);
-    p.declare<float> ("scale_factor", "The factor between scales", 1.2);
+    p.declare<int>("n_features", "The number of desired features", 1000);
+    p.declare<int>("n_levels", "The number of scales", 3);
+    p.declare<float>("scale_factor", "The factor between scales", 1.2);
   }
 
-  static void declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
+  static void
+  declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
   {
-    feature_extractor_interface::declare_io(inputs,outputs);
-    inputs.declare<std::vector<cv::KeyPoint> > ("kpts", "Optional kpts.");
+    descriptor_extractor_interface::declare_inputs(inputs);
+    feature_detector_interface::declare_outputs(outputs);
+    descriptor_extractor_interface::declare_outputs(outputs);
   }
 
-  void configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
+  void
+  configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
   {
-    orb_params.first_level_ = 0;
-    orb_params.n_levels_ = params.get<int> ("n_levels");
-    orb_params.scale_factor_ = params.get<float> ("scale_factor");
-    orb = cv::ORB(params.get<int> ("n_features"), orb_params);
+    orb_params_.first_level_ = 0;
+    orb_params_.n_levels_ = params.get<int>("n_levels");
+    orb_params_.scale_factor_ = params.get<float>("scale_factor");
+    orb_ = cv::ORB(params.get<int>("n_features"), orb_params_);
   }
 
-  int process(const tendrils& inputs, const tendrils& outputs)
+  int
+  process(const tendrils& inputs, const tendrils& outputs)
   {
-    std::vector<cv::KeyPoint> kpts;
-    inputs["kpts"] >> kpts;
-    cv::Mat image = inputs.get<cv::Mat> ("image");
-    cv::Mat mask = inputs.get<cv::Mat> ("mask");
+    std::vector<cv::KeyPoint> keypoints;
+    inputs["keypoints"] >> keypoints;
+    cv::Mat image = inputs.get<cv::Mat>("image");
+    cv::Mat mask = inputs.get<cv::Mat>("mask");
     cv::Mat desc;
-    orb(image,mask,kpts,desc,!kpts.empty());//use the provided kpts if they were given.
-		outputs["kpts"] << kpts;
-		outputs["descriptors"] << desc;
+    orb_(image, mask, keypoints, desc, !keypoints.empty()); //use the provided keypoints if they were given.
+    outputs["keypoints"] << keypoints;
+    outputs["descriptors"] << desc;
     return 0;
   }
 
-  cv::ORB orb;
-  cv::ORB::CommonParams orb_params;
-
+  cv::ORB orb_;
+  cv::ORB::CommonParams orb_params_;
 };
 
 struct FAST
 {
-  static void declare_params(tendrils& p)
+  static void
+  declare_params(tendrils& p)
   {
-    p.declare<int> ("thresh", "The FAST threshhold. 20 is a decent value.", 20);
+    p.declare<int>("thresh", "The FAST threshold. 20 is a decent value.", 20);
   }
 
-  static void declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
+  static void
+  declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
   {
     //use the predefined feature detector inputs, these do not depend on parameters.
-    feature_detector_interface::declare_io(inputs,outputs);
+    feature_detector_interface::declare_inputs(inputs);
+    feature_detector_interface::declare_outputs(outputs);
   }
 
-  void configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
+  void
+  configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
   {
-    thresh_ = params.get<int> ("thresh");
+    thresh_ = params.get<int>("thresh");
   }
 
-  int process(const tendrils& inputs, const tendrils& outputs)
+  int
+  process(const tendrils& inputs, const tendrils& outputs)
   {
-    cv::Mat in = inputs.get<cv::Mat> ("image");
-    cv::Mat mask = inputs.get<cv::Mat> ("mask");
-    std::vector<cv::KeyPoint> kpts;
+    cv::Mat in = inputs.get<cv::Mat>("image");
+    cv::Mat mask = inputs.get<cv::Mat>("mask");
+    std::vector<cv::KeyPoint> keypoints;
     cv::FastFeatureDetector fd(thresh_, true);
-    fd.detect(in, kpts, mask);
-    outputs["kpts"] << kpts;
+    fd.detect(in, keypoints, mask);
+    outputs["keypoints"] << keypoints;
     return 0;
   }
 
   int thresh_;
 };
 
+/** Interface to cv::drawKeypoints, to draw keypoints to an image
+ */
 struct DrawKeypoints
 {
-  static void declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
+  static void
+  declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
   {
-    inputs.declare<cv::Mat> ("input", "The input image, to draw over.");
-    inputs.declare<std::vector<cv::KeyPoint> > ("kpts", "The keypoints to draw.");
-    outputs.declare<cv::Mat> ("output", "The output image.");
+    inputs.declare<cv::Mat>("image", "The input image, to draw over.");
+    inputs.declare<std::vector<cv::KeyPoint> >("keypoints", "The keypoints to draw.");
+    outputs.declare<cv::Mat>("image", "The output image.");
   }
 
-  int process(const tendrils& inputs, const tendrils& outputs)
+  int
+  process(const tendrils& inputs, const tendrils& outputs)
   {
-    cv::Mat image = inputs.get<cv::Mat> ("input");
-    const std::vector<cv::KeyPoint>& kpts_in = inputs.get<std::vector<cv::KeyPoint> > ("kpts");
-    cv::Mat& out_image = outputs.get<cv::Mat> ("output");
-    cv::drawKeypoints(image, kpts_in, out_image);
+    cv::Mat image = inputs.get<cv::Mat>("image");
+    const std::vector<cv::KeyPoint>& keypoints_in = inputs.get<std::vector<cv::KeyPoint> >("keypoints");
+    cv::Mat& out_image = outputs.get<cv::Mat>("image");
+    cv::drawKeypoints(image, keypoints_in, out_image);
     return 0;
   }
 };
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 ECTO_CELL(features2d, ORB, "ORB",
-		"An ORB detector. Takes a image and a mask, and computes keypoints and descriptors(32 byte binary).");
-ECTO_CELL(features2d, FAST, "FAST",
-		"Computes fast keypoints given an image, and mask.");
+          "An ORB detector. Takes a image and a mask, and computes keypoints and descriptors(32 byte binary).");
+ECTO_CELL(features2d, FAST, "FAST", "Computes fast keypoints given an image, and mask.");
 
-ECTO_CELL(features2d, DrawKeypoints, "DrawKeypoints",
-				"Draws keypoints.");
+ECTO_CELL(features2d, DrawKeypoints, "DrawKeypoints", "Draws keypoints.");
