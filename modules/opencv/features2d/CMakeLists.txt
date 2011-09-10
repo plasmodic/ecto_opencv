@@ -1,6 +1,7 @@
 ectomodule(features2d
   module.cpp
   features2d.cpp
+  FAST.cpp
   matcher.cpp
   match_draw.cpp
   ransac_est.cpp
