@@ -44,8 +44,7 @@ namespace ecto_opencv
     static void
     declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
     {
-      inputs.declare<cv::Mat>("input", "The image to show").required(true);
-
+      inputs.declare<cv::Mat>("image", "The image to show").required(true);
       outputs.declare<int>("out", "Character pressed."); //optional output.
 
       bp::object triggers;
@@ -76,7 +75,7 @@ namespace ecto_opencv
       waitkey_ = params.get<int>("waitKey");
       auto_size_ = params.get<bool>("autoSize");
       full_screen_ = params["maximize"];
-      image_ = inputs["input"];
+      image_ = inputs["image"];
       key_ = outputs["out"];
 
       bp::object triggers;

@@ -8,10 +8,10 @@ from ecto_opencv.calib import PatternDetector, FiducialPoseFinder, \
 rows = 5
 cols = 3
 square_size = 0.04 # in meters, 4 cm
-calibration_file = "camera.yml"
+calibration_file = 'camera.yml'
 pattern_type = ASYMMETRIC_CIRCLES_GRID
 
-pattern_show = imshow('Display', name="pattern", waitKey=10, autoSize=True)
+pattern_show = imshow('Display', name='pattern', waitKey=10, autoSize=True)
 rgb2gray = cvtColor('RGB -> Gray', flag=Conversion.RGB2GRAY)
 video = VideoCapture(video_device=0)
 circle_detector = PatternDetector(rows=rows, cols=cols,
@@ -23,15 +23,15 @@ pose_drawer = PoseDrawer()
 camera_intrinsics = CameraIntrinsics(camera_file=calibration_file)
 
 plasm = ecto.Plasm()
-plasm.connect(video["image"] >> (rgb2gray["input"], circle_drawer['input']),
-            rgb2gray["out"] >> circle_detector["input"],
-            circle_detector["out", "found"] >> circle_drawer["points", "found"],
-            camera_intrinsics["K"] >> poser["K"],
-            circle_detector["out", "ideal", "found"] >> poser["points", "ideal", "found"],
-            poser["R", "T"] >> pose_drawer["R", "T"],
-            circle_drawer["out"] >> pose_drawer["image"],
-            camera_intrinsics["K"] >> pose_drawer["K"],
-            pose_drawer["output"] >> pattern_show["input"],
+plasm.connect(video['image'] >> (rgb2gray['input'], circle_drawer['input']),
+            rgb2gray['out'] >> circle_detector['input'],
+            circle_detector['out', 'found'] >> circle_drawer['points', 'found'],
+            camera_intrinsics['K'] >> poser['K'],
+            circle_detector['out', 'ideal', 'found'] >> poser['points', 'ideal', 'found'],
+            poser['R', 'T'] >> pose_drawer['R', 'T'],
+            circle_drawer['out'] >> pose_drawer['image'],
+            camera_intrinsics['K'] >> pose_drawer['K'],
+            pose_drawer['output'] >> pattern_show['image'],
             )
 
 if __name__ == '__main__':

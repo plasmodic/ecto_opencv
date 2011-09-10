@@ -5,12 +5,12 @@ from ecto_opencv.highgui import VideoCapture, imshow, FPSDrawer, ImageSaver
 video_cap = VideoCapture(video_device=0)
 fps = FPSDrawer()
 video_display = imshow(name='video_cap', waitKey=2, triggers=dict(save=ord('s')))
-saver = ecto.If(cell=ImageSaver("saver", filename_format='ecto_image_%05d.jpg',
+saver = ecto.If(cell=ImageSaver('saver', filename_format='ecto_image_%05d.jpg',
                                    start=1))
 
 plasm = ecto.Plasm()
 plasm.connect(video_cap['image'] >> fps['image'],
-              fps['image'] >> video_display['input'],
+              fps['image'] >> video_display['image'],
               video_display['save'] >> saver['__test__'],
               fps['image'] >> saver['image'],
               )

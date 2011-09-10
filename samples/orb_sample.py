@@ -7,17 +7,16 @@ from ecto_opencv.imgproc import cvtColor, Conversion
 video = VideoCapture(video_device=0)
 orb_m = ORB(n_features=2500)
 draw_kpts = DrawKeypoints()
-orb_display = imshow('orb display', name="ORB", waitKey=5, autoSize=True)
 rgb2gray = cvtColor (flag=Conversion.RGB2GRAY)
 fps = FPSDrawer()
 
 plasm = ecto.Plasm()
-plasm.connect(video["image"] >> rgb2gray ["input"],
-                rgb2gray["out"] >> orb_m["image"],
-                orb_m["keypoints"] >> draw_kpts["keypoints"],
-                video["image"] >> draw_kpts["image"],
-                draw_kpts["image"] >> fps[:],
-                fps[:] >> orb_display["input"],
+plasm.connect(video['image'] >> rgb2gray ['input'],
+                rgb2gray['out'] >> orb_m['image'],
+                orb_m['keypoints'] >> draw_kpts['keypoints'],
+                video['image'] >> draw_kpts['image'],
+                draw_kpts['image'] >> fps[:],
+                fps[:] >> imshow('orb display', name='ORB', waitKey=5)['image'],
               )
 
 if __name__ == '__main__':

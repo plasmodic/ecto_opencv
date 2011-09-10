@@ -8,11 +8,11 @@ video_cap = VideoCapture(video_device=0)
 fps = FPSDrawer()
 
 video_display = imshow('imshow',
-                                name='video_cap', waitKey=10,
-                                triggers=dict(save=ord('s')),
-                               )
+                      name='video_cap', waitKey=10,
+                      triggers=dict(save=ord('s')),
+                      )
 
-saver = ecto.If(cell=ImageSaver("saver", filename_format='bilateral_%05d.jpg',
+saver = ecto.If(cell=ImageSaver('saver', filename_format='bilateral_%05d.jpg',
                                    start=1))
 
 bl_begin = None
@@ -31,7 +31,7 @@ for i in range(1, 10):
 
 plasm.connect(video_cap['image'] >> fps['image'],
               fps['image'] >> bl_begin[:],
-              bl_end[:] >> (video_display['input'], saver['image']),
+              bl_end[:] >> (video_display['image'], saver['image']),
               video_display['save'] >> saver['__test__'],
               )
 
