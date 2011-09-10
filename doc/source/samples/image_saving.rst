@@ -1,3 +1,5 @@
+.. _sample-imshow-save:
+
 Saving images
 =============
 

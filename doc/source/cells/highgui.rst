@@ -11,8 +11,6 @@ Tricks
 Saving images on a key stroke
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. ectocell:: ecto_opencv.highgui imshow
-
 imshow accepts an optional dict of string to key value, that it will output as
 trigger bools, useful with the :ref:`ecto.If` idiom.
 
