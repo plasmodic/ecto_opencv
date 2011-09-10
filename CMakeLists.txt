@@ -36,9 +36,7 @@ add_subdirectory(modules)
 
 option(BUILD_TEST "Build tests" ON)
 if(BUILD_TEST)
-
   enable_testing()
   add_subdirectory(test)
   add_subdirectory(samples)
-  
 endif()
