@@ -4,6 +4,7 @@
 
 #include <boost/format.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/foreach.hpp>
 
 #include <iostream>
 #include <string>
@@ -23,12 +24,128 @@ namespace
     {
       *(x.second) = false;
     }
-
   };
-
 }
 namespace ecto_opencv
 {
+  struct CloseWindow
+  {
+    CloseWindow(const std::string& name)
+        :
+          name(name)
+    {
+    }
+    void
+    operator()(const boost::signals2::connection& c) const
+    {
+      c.disconnect();
+      cv::destroyWindow(name);
+    }
+    std::string name;
+  };
+
+  struct ImshowJob
+  {
+    ImshowJob(const cv::Mat& image, const std::string& name, bool full_screen, bool auto_size)
+        :
+          image(image),
+          name(name),
+          full_screen(full_screen),
+          auto_size(auto_size)
+    {
+    }
+
+    void
+    operator()(const boost::signals2::connection& c) const
+    {
+      c.disconnect();
+      if (full_screen)
+      {
+        cv::namedWindow(name, CV_WINDOW_KEEPRATIO);
+        cv::setWindowProperty(name, CV_WND_PROP_FULLSCREEN, true);
+      }
+      else if (auto_size)
+      {
+        cv::namedWindow(name, CV_WINDOW_KEEPRATIO);
+      }
+      cv::imshow(name, image);
+    }
+    const cv::Mat image;
+    std::string name;
+    bool full_screen, auto_size;
+  };
+
+  struct HighGuiRunner
+  {
+    typedef boost::signals2::signal<void(void)> sig_type;
+    typedef boost::function<void(const boost::signals2::connection&)> jop_type;
+
+    HighGuiRunner()
+        :
+          lastKey(0xff)
+    {
+      t.reset(new boost::thread(boost::ref(*this)));
+    }
+
+    ~HighGuiRunner()
+    {
+      t->interrupt();
+      t->join();
+      t.reset();
+    }
+
+    void
+    operator()()
+    {
+      while (!boost::this_thread::interruption_requested())
+      {
+        jobs();
+        lastKey = 0xff & cv::waitKey(10);
+        keys[lastKey] = true;
+      }
+    }
+
+    void
+    post_job(const jop_type& s)
+    {
+      sig_type::extended_slot_type job(s);
+      jobs.connect_extended(job);
+    }
+
+    bool
+    testKey(int time, unsigned char key, bool reset)
+    {
+      if (time > 0)
+      {
+        int count = 0;
+        while (lastKey == 0xff && count++ < time)
+        {
+          boost::this_thread::sleep(boost::posix_time::millisec(1));
+        }
+      }
+      else if (time == 0)
+      {
+        while (lastKey == 0xff)
+        {
+          boost::this_thread::sleep(boost::posix_time::millisec(1));
+        }
+      }
+      bool pressed = keys[key];
+      if (reset)
+        keys[key] = false;
+      return pressed;
+    }
+    unsigned char lastKey;
+    boost::shared_ptr<boost::thread> t;
+    sig_type jobs;
+    std::bitset<0xFF> keys;
+  }
+  ;
+
+  namespace
+  {
+    boost::shared_ptr<HighGuiRunner> runner;
+  }
   struct imshow
   {
     static void
@@ -45,17 +162,10 @@ namespace ecto_opencv
     declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
     {
       inputs.declare<cv::Mat>("image", "The image to show").required(true);
-      outputs.declare<int>("out", "Character pressed."); //optional output.
-
       bp::object triggers;
       params["triggers"] >> triggers;
       if (!triggers || triggers == bp::object())
-        return;//no user supplied triggers.
-
-      if (params.get<int>("waitKey") < 0)
-              throw std::runtime_error(
-                  "You may not have a waitKey of less than zero when you are supplying triggers."
-                  " waitKey is what captures keypress events.");
+        return; //no user supplied triggers.
 
       bp::list l = bp::dict(triggers).items();
       for (int j = 0, end = bp::len(l); j < end; ++j)
@@ -76,12 +186,11 @@ namespace ecto_opencv
       auto_size_ = params.get<bool>("autoSize");
       full_screen_ = params["maximize"];
       image_ = inputs["image"];
-      key_ = outputs["out"];
 
       bp::object triggers;
       params["triggers"] >> triggers;
       if (!triggers || triggers == bp::object())
-        return; //no user supllied triggers.
+        return; //no user supplied triggers.
 
       bp::list l = bp::dict(triggers).items();
       for (int j = 0, end = bp::len(l); j < end; ++j)
@@ -98,21 +207,15 @@ namespace ecto_opencv
     int
     process(const tendrils& inputs, const tendrils& outputs)
     {
+      if (!runner)
+      {
+        runner.reset(new HighGuiRunner);
+      }
       cv::Mat image = *image_;
       std::for_each(trigger_keys_.begin(), trigger_keys_.end(), trigger_reset());
-      *key_ = 0;
       if (image.empty())
       {
-        return 0;
-      }
-      if (*full_screen_)
-      {
-        cv::namedWindow(window_name_, CV_WINDOW_KEEPRATIO);
-        cv::setWindowProperty(window_name_, CV_WND_PROP_FULLSCREEN, true);
-      }
-      else if (auto_size_)
-      {
-        cv::namedWindow(window_name_, CV_WINDOW_KEEPRATIO);
+        return ecto::OK;
       }
 
       if (image.depth() == CV_32F || image.depth() == CV_64F)
@@ -131,33 +234,31 @@ namespace ecto_opencv
         image = show;
       }
 
-      cv::imshow(window_name_, image);
+      runner->post_job(ImshowJob(image, window_name_, *full_screen_, auto_size_));
 
-      int r = 0;
-      if (waitkey_ >= 0)
-        r = 0xff & cv::waitKey(waitkey_);
-
-      *key_ = r;
-
-      if (r == 27 || r == 'q' || r == 'Q')
+      if (runner->testKey(waitkey_, 'q', true) || runner->testKey(waitkey_, 27, true))
       {
-        std::cout << "QUIT!\n";
+        runner->post_job(CloseWindow(window_name_));
         return ecto::QUIT;
       }
-      else
-      {
-        std::map<int, ecto::spore<bool> >::iterator it = trigger_keys_.find(r);
-        if (it != trigger_keys_.end())
-          *(it->second) = true;
-        return ecto::OK;
-      }
+      typedef std::pair<int, ecto::spore<bool> > KeySporeT;
+      BOOST_FOREACH(KeySporeT x, trigger_keys_)
+          {
+            *(x.second) = runner->testKey(waitkey_, x.first, true);
+          }
+      return ecto::OK;
     }
+
+    ~imshow()
+    {
+      runner->post_job(CloseWindow(window_name_));
+    }
+
     std::string window_name_;
     int waitkey_;
     bool auto_size_;
     ecto::spore<bool> full_screen_;
     ecto::spore<cv::Mat> image_;
-    ecto::spore<int> key_;
     std::map<int, ecto::spore<bool> > trigger_keys_;
   };
 }
