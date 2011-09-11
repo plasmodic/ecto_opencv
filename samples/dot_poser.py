@@ -23,8 +23,8 @@ pose_drawer = PoseDrawer()
 camera_intrinsics = CameraIntrinsics(camera_file=calibration_file)
 
 plasm = ecto.Plasm()
-plasm.connect(video['image'] >> (rgb2gray['input'], circle_drawer['input']),
-            rgb2gray['out'] >> circle_detector['input'],
+plasm.connect(video['image'] >> (rgb2gray['image'], circle_drawer['input']),
+            rgb2gray['image'] >> circle_detector['input'],
             circle_detector['out', 'found'] >> circle_drawer['points', 'found'],
             camera_intrinsics['K'] >> poser['K'],
             circle_detector['out', 'ideal', 'found'] >> poser['points', 'ideal', 'found'],
