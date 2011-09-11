@@ -38,9 +38,9 @@ if "__main__" == __name__:
     print gray2rgb.__doc__
     
 
-    display = highgui.imshow('Poses', name='Poses', waitKey=2, autoSize=True)
-    mask_display = highgui.imshow('Masks', name='Masks', waitKey=-1, autoSize=True)
-    object_display = highgui.imshow('Object', name='Object', waitKey=-1, autoSize=True)
+    display = highgui.imshow('Poses', name='Poses')
+    mask_display = highgui.imshow('Masks', name='Masks')
+    object_display = highgui.imshow('Object', name='Object')
 
     imsaver = highgui.ImageSaver('pose image saver',filename='image_pose_')
     rawsaver = highgui.ImageSaver('raw image saver', filename='image_raw_')
@@ -56,7 +56,7 @@ if "__main__" == __name__:
                   sync["depth"]>> im2mat_depth['image'],
                   brg2rgb[:] >> (rgb2gray[:],poser['color_image'],rawsaver['image'],bitwise_and['b']),
                   rgb2gray[:] >>  poser['image'],
-                  poser['debug_image'] >> (display['input'],imsaver['image']),
+                  poser['debug_image'] >> (display['image'],imsaver['image']),
                   display['out'] >> (imsaver['trigger'],rawsaver['trigger']),
                   camera_info['K'] >> (poser['K'],masker['K']),
                   poser['R','T'] >> masker['R','T'],
