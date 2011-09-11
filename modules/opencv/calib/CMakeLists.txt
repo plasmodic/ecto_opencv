@@ -8,6 +8,7 @@ ectomodule(calib module.cpp
   CircleDrawer.cpp
   SubrectRectifier.cpp
   DepthTo3d.cpp
+  pose_drawing.cpp
   )
 link_ecto(calib ${OpenCV_LIBS})
 install_ecto_module(calib)
