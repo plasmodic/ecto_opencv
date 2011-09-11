@@ -2,32 +2,44 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <iostream>
 
+#include "imgproc.h"
+
 using ecto::tendrils;
 namespace imgproc
 {
-  struct Scale
+  struct Scale_
   {
-    static void declare_params(ecto::tendrils& p)
+    static void
+    declare_params(ecto::tendrils& p)
     {
-      p.declare<float> ("factor","Scale the given image by the constant given", 1.0f);
+      p.declare<float>("factor", "Scale the given image by the constant given", 1.0f);
+      p.declare<Interpolation>("interpolation", "Interpolation method.", NN);
     }
-    static void declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
+    static void
+    declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
     {
-      inputs.declare<cv::Mat> ("input", "An image");
-      outputs.declare<cv::Mat> ("output", "The scaled result.");
     }
-    void configure(const tendrils& p, const tendrils& inputs, const tendrils& outputs)
+    void
+    configure(const tendrils& p, const tendrils& inputs, const tendrils& outputs)
     {
-      factor = p.get<float> ("factor");
+      factor = p["factor"];
+      interpolation = p["interpolation"];
     }
-    int process(const tendrils& inputs, const tendrils& outputs)
+    int
+    process(const tendrils&, const tendrils&, const cv::Mat& input, cv::Mat& output)
     {
-      assert(false && "Scale doesn't appear to actually scale anything");
-      outputs.get<cv::Mat> ("output") = inputs.get<cv::Mat> ("input");//, , flag_);
-      return 0;
+      cv::Size nsize(input.size());
+      nsize.width *= *factor;
+      nsize.height *= *factor;
+      cv::resize(input,output,nsize, *interpolation);
+      return ecto::OK;
     }
-    float factor;
+    ecto::spore<float> factor;
+    ecto::spore<Interpolation> interpolation;
   };
-
+  //for pretty typeness.
+  struct Scale: Filter_<Scale_>
+  {
+  };
 }
 ECTO_CELL(imgproc, imgproc::Scale, "Scale", "Scales an image.");

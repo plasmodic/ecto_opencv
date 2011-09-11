@@ -12,7 +12,7 @@ plasm = ecto.Plasm()
 plasm.connect(video_cap['image'] >> scale_down['image'],
               scale_down['image'] >> scale_up['image'],
               scale_up['image'] >> fps['image'],
-              fps['image'] >> imshow(name='Rescaled',waitKey=100)['image'],
+              fps['image'] >> imshow(name='Rescaled')['image'],
               )
 
 if __name__ == '__main__':

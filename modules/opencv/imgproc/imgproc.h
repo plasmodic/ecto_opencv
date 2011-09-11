@@ -4,6 +4,15 @@
 
 namespace imgproc
 {
+  enum Interpolation
+  {
+    NN = CV_INTER_NN,
+    LINEAR = CV_INTER_LINEAR,
+    CUBIC = CV_INTER_CUBIC,
+    AREA = CV_INTER_AREA,
+    LANCZOS4 = CV_INTER_LANCZOS4,
+  };
+
   enum Conversion
   {
     /* Constants for color conversion */
@@ -161,15 +170,15 @@ namespace imgproc
     static void
     declare_io(const ecto::tendrils& p, ecto::tendrils& i, ecto::tendrils& o)
     {
-      i.declare<cv::Mat>("input", "An image.").required(true);
-      o.declare<cv::Mat>("out", "The filtered image.");
+      i.declare<cv::Mat>("image", "An image.").required(true);
+      o.declare<cv::Mat>("image", "The filtered image.");
     }
 
     void
     configure(const ecto::tendrils& p, const ecto::tendrils& i, const ecto::tendrils& o)
     {
-      input_ = i["input"];
-      output_ = o["out"];
+      input_ = i["image"];
+      output_ = o["image"];
       thiz()->configure(p, i, o);
     }
 
@@ -177,6 +186,8 @@ namespace imgproc
     process(const ecto::tendrils& i, const ecto::tendrils& o)
     {
       *output_ = cv::Mat(); //reset the output so that the cv mat is reallocated
+      if (input_->empty())
+        return ecto::OK;
       return thiz()->process(i, o, const_cast<const cv::Mat&>(*input_), *output_);
     }
     ecto::spore<cv::Mat> input_, output_;

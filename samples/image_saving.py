@@ -4,7 +4,7 @@ from ecto_opencv.highgui import VideoCapture, imshow, FPSDrawer, ImageSaver
 
 video_cap = VideoCapture(video_device=0)
 fps = FPSDrawer()
-video_display = imshow(name='video_cap', waitKey=2, triggers=dict(save=ord('s')))
+video_display = imshow(name='video_cap', triggers=dict(save=ord('s')))
 saver = ecto.If(cell=ImageSaver('saver', filename_format='ecto_image_%05d.jpg',
                                    start=1))
 

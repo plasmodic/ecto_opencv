@@ -28,10 +28,7 @@ namespace imgproc
     int
     process(const tendrils&, const tendrils&, const cv::Mat& input, cv::Mat& output)
     {
-      int flag = *flag_;
-      if(input.empty())
-        return ecto::OK;
-      cv::cvtColor(input, output, flag);
+      cv::cvtColor(input, output, *flag_);
       return ecto::OK;
     }
     ecto::spore<Conversion> flag_;

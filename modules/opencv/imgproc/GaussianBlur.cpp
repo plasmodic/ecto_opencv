@@ -7,7 +7,7 @@ using ecto::tendrils;
 using ecto::spore;
 namespace imgproc
 {
-  struct GaussianBlur
+  struct GaussianBlur_
   {
     static void
     declare_params(tendrils& p)
@@ -20,8 +20,6 @@ namespace imgproc
     static void
     declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
     {
-      inputs.declare<cv::Mat>("input", "image.");
-      outputs.declare<cv::Mat>("out", "blurred image");
     }
 
     void
@@ -29,19 +27,21 @@ namespace imgproc
     {
       kernel_ = params["kernel"];
       sigma_ = params["sigma"];
-      input_ = inputs["input"];
-      output_ = outputs["out"];
     }
+
     int
-    process(const tendrils& inputs, const tendrils& outputs)
+    process(const tendrils&, const tendrils&, const cv::Mat& input, cv::Mat& output)
     {
-      *output_ = cv::Mat();
-      cv::GaussianBlur(*input_, *output_, cv::Size(*kernel_,*kernel_), *sigma_);
-      return 0;
+      cv::GaussianBlur(input, output, cv::Size(*kernel_,*kernel_), *sigma_);
+      return ecto::OK;
     }
-    spore<cv::Mat> input_,output_;
     spore<int> kernel_;
     spore<double> sigma_;
+  };
+
+  //for pretty typeness.
+  struct GaussianBlur: Filter_<GaussianBlur_>
+  {
   };
 }
 

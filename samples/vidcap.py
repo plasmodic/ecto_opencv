@@ -7,7 +7,7 @@ fps = FPSDrawer()
 
 plasm = ecto.Plasm()
 plasm.connect(video_cap['image'] >> fps['image'],
-              fps['image'] >> imshow(name='video_cap', waitKey=2)['image'],
+              fps['image'] >> imshow(name='video_cap')['image'],
               )
 
 if __name__ == '__main__':

@@ -144,4 +144,12 @@ ECTO_DEFINE_MODULE(imgproc)
   eConversion.value("YUV420i2RGB", YUV420i2RGB);
   eConversion.value("YUV420i2BGR", YUV420i2BGR);
   eConversion.export_values();
+
+  bp::enum_<Interpolation> eInterpolation("Interpolation");
+  eInterpolation.value("NN",NN);
+  eInterpolation.value("LINEAR",LINEAR);
+  eInterpolation.value("CUBIC",CUBIC);
+  eInterpolation.value("AREA",AREA);
+  eInterpolation.value("LANCZOS4",LANCZOS4);
+  eInterpolation.export_values();
 }
