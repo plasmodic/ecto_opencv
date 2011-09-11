@@ -21,7 +21,7 @@ circle_drawer = PatternDrawer(rows=rows, cols=cols)
 plasm = ecto.Plasm()
 plasm.connect(video['image'] >> (circle_drawer['input'], camera_calibrator['image'], rgb2gray['input']),
               rgb2gray['out'] >> circle_detector['input'],
-              circle_drawer['out'] >> imshow(name='pattern', waitKey=10)['image'],
+              circle_drawer['out'] >> imshow(name='pattern')['image'],
               circle_detector[ 'ideal', 'out', 'found'] >> camera_calibrator['ideal', 'points', 'found'],
               circle_detector['out', 'found'] >> circle_drawer['points', 'found'],
               )

@@ -11,7 +11,7 @@ square_size = 0.04 # in meters, 4 cm
 calibration_file = 'camera.yml'
 pattern_type = ASYMMETRIC_CIRCLES_GRID
 
-pattern_show = imshow('Display', name='pattern', waitKey=10, autoSize=True)
+pattern_show = imshow('Display', name='pattern')
 rgb2gray = cvtColor('RGB -> Gray', flag=Conversion.RGB2GRAY)
 video = VideoCapture(video_device=0)
 circle_detector = PatternDetector(rows=rows, cols=cols,

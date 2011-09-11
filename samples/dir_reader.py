@@ -7,7 +7,7 @@ import os
 images = ImageReader(path=os.path.expanduser('~/Desktop'))
 
 #this is similar to a slide show... Wait for half a second
-imshow = imshow(name='image', waitKey=500, autoSize=True)
+imshow = imshow(name='image', waitKey=500)
 
 plasm = ecto.Plasm()
 plasm.connect(images['image'] >> imshow['image'])

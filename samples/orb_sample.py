@@ -11,12 +11,12 @@ rgb2gray = cvtColor (flag=Conversion.RGB2GRAY)
 fps = FPSDrawer()
 
 plasm = ecto.Plasm()
-plasm.connect(video['image'] >> rgb2gray ['input'],
-                rgb2gray['out'] >> orb_m['image'],
+plasm.connect(video['image'] >> rgb2gray ['image'],
+                rgb2gray['image'] >> orb_m['image'],
                 orb_m['keypoints'] >> draw_kpts['keypoints'],
                 video['image'] >> draw_kpts['image'],
                 draw_kpts['image'] >> fps[:],
-                fps[:] >> imshow('orb display', name='ORB', waitKey=5)['image'],
+                fps[:] >> imshow('orb display', name='ORB')['image'],
               )
 
 if __name__ == '__main__':

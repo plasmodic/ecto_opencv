@@ -8,8 +8,7 @@ video_cap = VideoCapture(video_device=0)
 fps = FPSDrawer()
 
 video_display = imshow('imshow',
-                      name='video_cap', waitKey=10,
-                      triggers=dict(save=ord('s')),
+                      name='video_cap', triggers=dict(save=ord('s')),
                       )
 
 saver = ecto.If(cell=ImageSaver('saver', filename_format='bilateral_%05d.jpg',
