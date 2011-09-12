@@ -48,35 +48,3 @@ class PoseFromFiducial(ecto.BlackBox):
                  self.camera_info[:] >> self.pose_draw['K'],
                ]
         return graph
-
-if "__main__" == __name__:
-    import sys
-
-    plasm = ecto.Plasm()
-    sched = ecto.schedulers.Singlethreaded(plasm)
-
-    #lil bit of debug On/Off
-    debug = True
-    if 'R' in sys.argv:
-        debug = False
-    camera_info = calib.CameraIntrinsics('Camera Info',
-                                                  camera_file="camera.yml")
-    #add our black box to the plasm.
-    poser = OpposingDotPoseEstimator(plasm,
-                                        rows=5, cols=3,
-                                        pattern_type="acircles",
-                                        square_size=0.04, debug=debug)
-    video_cap = highgui.VideoCapture(video_device=0)
-    rgb2gray = imgproc.cvtColor('rgb -> gray', flag=7)
-    display = highgui.imshow('Poses', name='Poses')
-    imsaver = highgui.ImageSaver('pose image saver', filename='image_pose_')
-    rawsaver = highgui.ImageSaver('raw image saver', filename='image_raw_')
-
-    plasm.connect(video_cap['image'] >> (rgb2gray[:], poser['color_image'], rawsaver['image']),
-                  rgb2gray[:] >> poser['image'],
-                  poser['debug_image'] >> (display['input'], imsaver['image']),
-                  display['out'] >> (imsaver['trigger'], rawsaver['trigger']),
-                  camera_info['K'] >> (poser['K']),
-                  )
-
-    sched.execute()
