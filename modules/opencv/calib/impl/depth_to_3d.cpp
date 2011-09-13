@@ -174,11 +174,13 @@ namespace calib
             if ((z != z) || (z == std::numeric_limits<float>::max()))
               z_mat(n_points, 0) = std::numeric_limits<float>::quiet_NaN();
             else
-              z_mat(n_points, 0) = z / 1000.0f;
+              z_mat(n_points, 0) = z;
             ++n_points;
           }
       }
     }
+    if (n_points==0)
+      return;
     u_mat.resize(n_points);
     v_mat.resize(n_points);
     z_mat.resize(n_points);
