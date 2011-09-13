@@ -1,3 +1,40 @@
+/*
+ * Software License Agreement (BSD License)
+ *
+ *  Copyright (c) 2009, Willow Garage, Inc.
+ *  All rights reserved.
+ *
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions
+ *  are met:
+ *
+ *   * Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *   * Redistributions in binary form must reproduce the above
+ *     copyright notice, this list of conditions and the following
+ *     disclaimer in the documentation and/or other materials provided
+ *     with the distribution.
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ *  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ *  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ *  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ *  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ *  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ *  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ *  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ *  POSSIBILITY OF SUCH DAMAGE.
+ *
+ */
+
+#include <limits>
+
 #include <ecto/ecto.hpp>
 #include <opencv2/calib3d/calib3d.hpp>
 #include <opencv2/core/core.hpp>
@@ -19,16 +56,18 @@ namespace calib
     static void
     depthTo3d_sparse(const cv::Mat& K, const cv::Mat& in_uv, const cv::Mat& depth, cv::Mat& points3d)
     {
-      unsigned int n_points = in_uv.rows;
+      // Divide by two as we have 2 channels
+      unsigned int n_points = in_uv.total() / 2;
 
       //grab camera params
       float fx = K.at<float>(0, 0);
       float fy = K.at<float>(1, 1);
       float cx = K.at<float>(0, 2);
       float cy = K.at<float>(1, 2);
-      cv::Mat_<float> uv;
-      in_uv.convertTo(uv, CV_32F);
-      
+      cv::Mat uv;
+      in_uv.convertTo(uv, CV_32FC2);
+      uv.reshape(1, n_points);
+
       if (uv.empty())
       {
         std::cerr << "Warning uv is empty!" << std::endl;
@@ -39,13 +78,18 @@ namespace calib
       if (depth.depth() == CV_16U)
       {
         for (unsigned int i = 0; i < n_points; ++i)
-          zs(i, 0) = depth.at<uint16_t>(uv(i, 1), uv(i, 0));
-        zs = zs / 1000.0f;
+        {
+          uint16_t depth_i = depth.at<uint16_t>(uv.at<float>(i, 1), uv.at<float>(i, 0));
+          if ((depth_i == 0) || (depth_i == std::numeric_limits<uint16_t>::max()))
+            zs(i, 0) = std::numeric_limits<float>::quiet_NaN();
+          else
+            zs(i, 0) = depth_i / 1000.0f;
+        }
       }
       else if (depth.depth() == CV_32F)
       {
         for (unsigned int i = 0; i < n_points; ++i)
-          zs(i, 0) = depth.at<float>(uv(i, 1), uv(i, 0));
+          zs(i, 0) = depth.at<float>(uv.at<float>(i, 1), uv.at<float>(i, 0));
       }
 
       // Store into the final points
@@ -66,7 +110,7 @@ namespace calib
     declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
     {
       inputs.declare<cv::Mat>("K", "The calibration matrix").required(true);
-      inputs.declare<cv::Mat>("points", "The u,v coordinates (n_points by 2").required(true);
+      inputs.declare<cv::Mat>("points", "The 2d coordinates (matrix with 2 channels)").required(true);
       inputs.declare<cv::Mat>("depth", "The depth image").required(true);
       outputs.declare<cv::Mat>("points3d", "The 3d points, 1 by n_points with 3 channels (x, y and z).");
     }
@@ -160,14 +204,19 @@ namespace calib
             for (int u = 0; u < depth_size.width; u++)
             {
               uint16_t fpz = *(r++);
-              if (fpz == std::numeric_limits<uint16_t>::max())
+              if ((fpz == 0) || (fpz == std::numeric_limits<uint16_t>::max()))
               {
-                std::cout << "fpz max:" << fpz << std::endl;
+                *(sp_begin++) = std::numeric_limits<float>::quiet_NaN();
+                *(sp_begin++) = std::numeric_limits<float>::quiet_NaN();
+                *(sp_begin++) = std::numeric_limits<float>::quiet_NaN();
               }
-              float z = fpz / 1000.0f;
-              *(sp_begin++) = (u - cx) * z / fx;
-              *(sp_begin++) = (v - cy) * z / fy;
-              *(sp_begin++) = z;
+              else
+              {
+                float z = fpz / 1000.0f;
+                *(sp_begin++) = (u - cx) * z / fx;
+                *(sp_begin++) = (v - cy) * z / fy;
+                *(sp_begin++) = z;
+              }
             }
           }
         }
