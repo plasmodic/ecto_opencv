@@ -146,10 +146,16 @@ ECTO_DEFINE_MODULE(imgproc)
   eConversion.export_values();
 
   bp::enum_<Interpolation> eInterpolation("Interpolation");
-  eInterpolation.value("NN",NN);
-  eInterpolation.value("LINEAR",LINEAR);
-  eInterpolation.value("CUBIC",CUBIC);
-  eInterpolation.value("AREA",AREA);
-  eInterpolation.value("LANCZOS4",LANCZOS4);
+  eInterpolation.value("NN", NN);
+  eInterpolation.value("LINEAR", LINEAR);
+  eInterpolation.value("CUBIC", CUBIC);
+  eInterpolation.value("AREA", AREA);
+  eInterpolation.value("LANCZOS4", LANCZOS4);
   eInterpolation.export_values();
+
+  bp::enum_<Morph> eMorph("Morph");
+  eMorph.value("RECT", RECT);
+  eMorph.value("CROSS", CROSS);
+  eMorph.value("ELLIPSE", ELLIPSE);
+  eMorph.export_values();
 }

@@ -152,6 +152,11 @@ namespace imgproc
     YUV420i2BGR = CV_YUV420i2BGR,
   };
 
+  enum Morph
+  {
+    RECT = cv::MORPH_RECT, CROSS = cv::MORPH_CROSS, ELLIPSE = cv::MORPH_ELLIPSE
+  };
+
   template<typename T>
   struct Filter_
   {

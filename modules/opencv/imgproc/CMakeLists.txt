@@ -8,6 +8,7 @@ ectomodule(imgproc
     CartToPolar.cpp
     cvtColor.cpp
     GaussianBlur.cpp
+    Erode.cpp
     NanRemove.cpp
     Quantize.cpp
     Scale.cpp
