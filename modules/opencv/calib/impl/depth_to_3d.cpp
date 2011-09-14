@@ -90,24 +90,18 @@ namespace calib
     // Fill the depth matrix
     cv::Mat_<float> z_float = cv::Mat_<float>(n_points, 1);
 
-    const float * v_ptr = reinterpret_cast<float*>(v_float.data), *u_ptr = reinterpret_cast<float*>(u_float.data);
+    cv::Mat_<float>::const_iterator v_ptr = v_float.begin(), u_ptr = u_float.begin();
     float *z_ptr = reinterpret_cast<float*>(z_float.data);
     if (depth.depth() == CV_16U)
     {
-      float z_min = 1, z_max = 0;
       for (unsigned int i = 0; i < n_points; ++i, ++u_ptr, ++v_ptr, ++z_ptr)
       {
         uint16_t depth_i = depth.at<uint16_t>(*v_ptr, *u_ptr);
         if ((depth_i == 0) || (depth_i == std::numeric_limits<uint16_t>::max()))
           *z_ptr = std::numeric_limits<float>::quiet_NaN();
         else
-        {
           *z_ptr = depth_i / 1000.0f;
-          z_min = std::min(z_min, *z_ptr);
-          z_max = std::max(z_max, *z_ptr);
-        }
       }
-      std::cout << z_min << " " << z_max << std::endl;
     }
     else if (depth.depth() == CV_32F)
     {
