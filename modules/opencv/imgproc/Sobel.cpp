@@ -16,16 +16,16 @@ namespace imgproc
     static void
     declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
     {
-      inputs.declare<cv::Mat>("input", "image.");
-      outputs.declare<cv::Mat>("out", "sobel image");
+      inputs.declare<cv::Mat>("image", "image.");
+      outputs.declare<cv::Mat>("image", "sobel image");
     }
     void
     configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
     {
       x_ = params["x"];
       y_ = params["y"];
-      input = inputs["input"];
-      output = outputs["out"];
+      input = inputs["image"];
+      output = outputs["image"];
     }
     int
     process(const tendrils& /*inputs*/, const tendrils& /*outputs*/)
