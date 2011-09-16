@@ -97,6 +97,7 @@ namespace ecto_opencv
     void
     operator()()
     {
+      cv::startWindowThread();
       while (!boost::this_thread::interruption_requested())
       {
         jobs();
