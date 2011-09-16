@@ -1,6 +1,7 @@
 ectomodule(highgui
     module.cpp
     FPSDrawer.cpp
+    FileIO.cpp
     ImageReader.cpp
     ImageSaver.cpp
     imread.cpp
