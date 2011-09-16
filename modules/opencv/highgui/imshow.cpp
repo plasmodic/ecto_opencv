@@ -251,7 +251,8 @@ namespace ecto_opencv
 
     ~imshow()
     {
-      runner->post_job(CloseWindow(window_name_));
+      if(runner)
+        runner->post_job(CloseWindow(window_name_));
     }
 
     std::string window_name_;
