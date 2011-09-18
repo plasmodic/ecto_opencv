@@ -32,7 +32,9 @@ namespace ecto_opencv
       std::vector<uint8_t> buffer;
       cv::imencode(".jpg", *image_, buffer);
       std::ostream& out = **stream_;
+      out.seekp(0);
       std::copy(buffer.begin(), buffer.end(), std::ostream_iterator<uint8_t>(out));
+      out.flush();
       *output_ = *stream_;
       return ecto::OK;
     }

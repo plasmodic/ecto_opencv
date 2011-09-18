@@ -13,78 +13,160 @@ from copy import copy
 from math import sqrt, atan2
 from SimpleHTTPServer import SimpleHTTPRequestHandler
 from types import IntType, LongType, FloatType, InstanceType
-from cStringIO import StringIO
+from StringIO import StringIO
 
+
+import ecto
+
+import os
+import sys
+from BaseHTTPServer import HTTPServer
+from SimpleHTTPServer import SimpleHTTPRequestHandler
+from multiprocessing import Process, Pipe, Queue, current_process, freeze_support
+from threading import Thread
+#http://docs.python.org/library/multiprocessing.html
+
+HTML_TEXT = '''
+<html>
+<head><head>
+<body>
+<table border='1'>
+<tr>
+    <td><img src='%s' width='320' height='240' />,<img src='%s',width='320' height='240'/></td>
+</tr>
+<tr>
+    <td><img src='%s' width='320' height='240' />,<img src='%s' width='320' height='240'/></td>
+</tr>
+</table>
+</body>
+</html>
+''' % ('/stream', '/stream', '/stream', '/stream')
+
+HTML_TEXT = '''
+<html>
+<head><head>
+<body>
+<img src='%s' width='320' height='240' />
+</body>
+</html>
+''' % '/stream'
 
 _jpegstreamers = {}
+def note(format, *args):
+    sys.stderr.write('[%s]\t%s\n' % (current_process().name, format % args))
+
+def serve_stream(streamer, conn):
+
+    note('stream starting.')
+    streamer.send_response(200)
+    streamer.send_header('Connection', 'close')
+    streamer.send_header('Max-Age', '0')
+    streamer.send_header('Expires', '0')
+    streamer.send_header('Cache-Control', 'no-cache, private')
+    streamer.send_header('Pragma', 'no-cache')
+    streamer.send_header('Content-Type', 'multipart/x-mixed-replace; boundary=--BOUNDARYSTRING')
+    streamer.end_headers()
+    count = 0
+    while True:
+        try:
+            jpgdata = conn.recv()
+            streamer.wfile.write('--BOUNDARYSTRING\r\n')
+            streamer.send_header('Content-type', 'image/jpeg')
+            streamer.send_header('Content-Length', str(len(jpgdata.getvalue())))
+            streamer.end_headers()
+            streamer.wfile.write(jpgdata.getvalue() + '\r\n')
+            count = count + 1
+        except socket.error, e:
+            print >> sys.stderr, e
+            break
+        except IOError, e:
+            print >> sys.stderr, e
+            break
+        except Exception, e:
+            print >> sys.stderr, e
+            break
+    note('stream ending.')
+
 class JpegStreamHandler(SimpleHTTPRequestHandler):
-    """
+    '''
     The JpegStreamHandler handles requests to the threaded HTTP server.
     Once initialized, any request to this port will receive a multipart/replace
-    jpeg.   
-    """
-
-
+    jpeg.
+    '''
+    buffers = {}
+    cvs = {}
+    
+    def start_thread(self, id):
+        
+    
     def do_GET(self):
         global _jpegstreamers
+        global HTML_TEXT
 
-        print "got a Get"
-        if (self.path == "/" or not self.path):
+        print 'Get Request.'
+        if (self.path == '/' or not self.path):
             self.send_response(200)
             self.send_header('Content-type', 'text/html')
             self.end_headers()
-            self.wfile.write("""
-<html>
-<head>
-<style type=text/css>
-    body { background-image: url(/stream); background-repeat:no-repeat; background-position:center top; background-attachment:fixed; height:100% }
-</style>
-</head>
-<body>
-&nbsp;
-</body>
-</html>
-            """)
+            self.wfile.write(HTML_TEXT)
             return
+        elif (self.path == '/stream'):
 
-
-        elif (self.path == "/stream"):
-            self.send_response(200)
-            self.send_header("Connection", "close")
-            self.send_header("Max-Age", "0")
-            self.send_header("Expires", "0")
-            self.send_header("Cache-Control", "no-cache, private")
-            self.send_header("Pragma", "no-cache")
-            self.send_header("Content-Type", "multipart/x-mixed-replace; boundary=--BOUNDARYSTRING")
-            self.end_headers()
             (host, port) = self.server.socket.getsockname()[:2]
+            conn = _jpegstreamers[port].conn
+            Thread(target=serve_stream, args=(self, stream,)).start() #spawn long running process for streaming.
 
+    def serve_stream(self, id):
+        note('stream starting.')
+        self.send_response(200)
+        self.send_header('Connection', 'close')
+        self.send_header('Max-Age', '0')
+        self.send_header('Expires', '0')
+        self.send_header('Cache-Control', 'no-cache, private')
+        self.send_header('Pragma', 'no-cache')
+        self.send_header('Content-Type', 'multipart/x-mixed-replace; boundary=--BOUNDARYSTRING')
+        self.end_headers()
+        count = 0
+        while True:
+            try:
+                jpgdata = self.get_latest(id)
+                self.wfile.write('--BOUNDARYSTRING\r\n')
+                self.send_header('Content-type', 'image/jpeg')
+                self.send_header('Content-Length', str(len(jpgdata.getvalue())))
+                self.end_headers()
+                self.wfile.write(jpgdata.getvalue() + '\r\n')
+                count = count + 1
+            except socket.error, e:
+                print >> sys.stderr, e
+                break
+            except IOError, e:
+                print >> sys.stderr, e
+                break
+            except Exception, e:
+                print >> sys.stderr, e
+                break
+        note('stream ending.')
 
-            count = 0
-            timeout = 0.10
-            lasttimeserved = 0
-            print "serving"
+    def get_latest(self, id):
+        cv = self.cvs[id]
+        # Consume one item
+        cv.acquire()
+        while not an_item_is_available():
+            cv.wait()
+        buffer = buffers[id]
+        cv.release()
+        return buffer
 
-            while (1):
-                if (_jpegstreamers[port].refreshtime > lasttimeserved or time.time() - timeout > lasttimeserved):
-                    try:
-                        self.wfile.write("--BOUNDARYSTRING\r\n")
-                        self.send_header("Content-type", "image/jpeg")
-                        self.send_header("Content-Length", str(len(_jpegstreamers[port].jpgdata.getvalue())))
-                        self.end_headers()
-                        self.wfile.write(_jpegstreamers[port].jpgdata.getvalue() + "\r\n")
-                        lasttimeserved = time.time()
-                    except socket.error, e:
-                        return
-                    except IOError, e:
-                        return
-                    count = count + 1
-
-
-                time.sleep(_jpegstreamers[port].sleeptime)
-
-
-
+    def frame_grab(self, conn):
+        while True:
+            try:
+                jpgdata = conn.recv()
+            except IOError, e:
+                sys.stderr.write(e)
+                break
+            except Exception, e:
+                sys.stderr.write(e)
+                break
 
 class JpegTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
     allow_reuse_address = True
@@ -92,113 +174,104 @@ class JpegTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
 #factory class for jpegtcpservers
 class JpegStreamer():
-    """
-    The JpegStreamer class allows the user to stream a jpeg encoded file
-    to a HTTP port.  Any updates to the jpg file will automatically be pushed
-    to the browser via multipart/replace content type.
-
-
-    To initialize:
-    js = JpegStreamer()
-
-
-    to update:
-    js.jpgdata = StringIO() 
-    saveimg.getPIL().save(js.jpgdata, "jpeg") #save via PIL to a StringIO handle 
-    fh.refreshtime = time.time()
-
-    to open a browser and display:
-    import webbrowser
-    webbrowser.open(js.url)
-
-
-    Note 3 optional parameters on the constructor:
-    - port (default 8080) which sets the TCP port you need to connect to
-    - sleep time (default 0.1) how often to update.  Above 1 second seems to cause dropped connections in Google chrome
-
-
-    Once initialized, the buffer and sleeptime can be modified and will function properly -- port will not.
-    """
-    server = ""
-    host = ""
-    port = ""
-    sleeptime = ""
-    framebuffer = ""
+    server = ''
+    host = ''
+    port = ''
+    sleeptime = ''
+    framebuffer = ''
     counter = 0
     refreshtime = 0
+    conn = None
 
-
-    def __init__(self, hostandport=8080, st=0.03):
+    def __init__(self, hostandport=8080, st=0.001, conn=None):
         global _jpegstreamers
         if (type(hostandport) == int):
             self.port = hostandport
-            self.host = "localhost"
-        elif (type(hostandport) == str and re.search(":", hostandport)):
-            (self.host, self.port) = hostandport.split(":")
+            self.host = 'localhost'
+        elif (type(hostandport) == str and re.search(':', hostandport)):
+            (self.host, self.port) = hostandport.split(':')
             self.port = int(self.port)
         elif (type(hostandport) == tuple):
             (self.host, self.port) = hostandport
 
-
+        self.conn = conn
         self.sleeptime = st
         self.server = JpegTCPServer((self.host, self.port), JpegStreamHandler)
-        self.server_thread = threading.Thread(target=self.server.serve_forever)
         _jpegstreamers[self.port] = self
-        self.server_thread.daemon = True
-        self.server_thread.start()
-        self.framebuffer = self #self referential, ugh.  but gives some bkcompat
 
-
+    def serve_forever(self):
+        self.server.serve_forever()
     def url(self):
-        """
-        Returns the JpegStreams Webbrowser-appropriate URL, if not provided in the constructor, it defaults to "http://localhost:8080"
-        """
-        return "http://" + self.host + ":" + str(self.port) + "/"
+        '''
+        Returns the JpegStreams Webbrowser-appropriate URL, if not provided in the constructor, it defaults to 'http://localhost:8080'
+        '''
+        return 'http://' + self.host + ':' + str(self.port) + '/'
 
 
     def streamUrl(self):
-        """
-        Returns the URL of the MJPEG stream. If host and port are not set in the constructor, defaults to "http://localhost:8080/stream/"
-        """
-        return self.url() + "stream"
-import ecto
+        '''
+        Returns the URL of the MJPEG stream. If host and port are not set in the constructor, defaults to 'http://localhost:8080/stream/'
+        '''
+        return self.url() + 'stream'
+
+
+
 class ImageUpdator(ecto.Module):
-    """ A python module that does not much."""
+    ''' A python module that does not much.'''
     def __init__(self, *args, **kwargs):
         ecto.Module.__init__(self, **kwargs)
 
     @staticmethod
     def declare_params(params):
-        params.declare("cell", "A cell.", None)
-        params.declare("server", "Server.", None)
+        params.declare('conn', 'A pipe connection.', None)
 
     @staticmethod
     def declare_io(params, inputs, outputs):
-        inputs.declare("file", "A file like object", None)
+        inputs.declare('ostream', 'An ecto.ostream object', None)
 
     def configure(self, params):
         pass
 
     def process(self, inputs, outputs):
-        self.params.server.jpgdata = StringIO()
-        self.params.cell.params.file = ecto.ostream(self.params.server.jpgdata)
-        time.sleep(0.1)
+        import cStringIO
+        try:
+            file = inputs.ostream.file
+            self.params.conn.send(file)
+        except Exception, e:
+            print e
         return 0
 
-if __name__ == '__main__':
+def ecto_process(conn):
     import ecto
     from ecto_opencv.highgui import VideoCapture, imshow, FPSDrawer, ImageJpgWriter
-    js = JpegStreamer(hostandport=9892)
-    js.jpgdata = StringIO()
-    print js.url()
-    video_cap = VideoCapture(video_device=0, width=640, height=480)
+    updator = ImageUpdator(conn=conn)
+    video_cap = VideoCapture(video_device=0, width=1000, height=1000)
     fps = FPSDrawer()
-    writer = ImageJpgWriter(file=ecto.ostream(js.jpgdata))
+    file = StringIO()
+    writer = ImageJpgWriter(file=ecto.ostream(file))
     plasm = ecto.Plasm()
     plasm.connect(video_cap['image'] >> fps['image'],
-                  fps['image'] >> (imshow()[:], writer['image']),
-                  writer['file'] >> ImageUpdator(server=js, cell=writer)[:]
+                  fps['image'] >> writer['image'],
+                  writer['file'] >> updator['ostream']
                   )
     sched = ecto.schedulers.Singlethreaded(plasm)
     sched.execute()
 
+def serv_process(conn):
+    server = JpegStreamer(hostandport=9892, st=0.001, conn=conn)
+    server.serve_forever()
+class Runner(object):
+    def __init__(self):
+        p1, p2 = Pipe()
+        self.ecto_proc = Process(target=ecto_process, args=(p1,))
+        self.serv_proc = Process(target=serv_process, args=(p2,))
+        self.ecto_proc.start()
+        self.serv_proc.start()
+        self.ecto_proc.join()
+        self.serv_proc.join()
+    def __del__(self):
+        self.ecto_proc.terminate()
+        self.serv_proc.terminate()
+if __name__ == '__main__':
+    freeze_support()
+    Runner()
