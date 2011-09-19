@@ -1,6 +1,12 @@
 cmake_minimum_required(VERSION 2.8)
 project(ecto_opencv)
 
+if(NOT CMAKE_BUILD_TYPE)#Only do this the on the first run, if the build type hasn't been set prior
+  set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING
+      "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel."
+      FORCE)
+endif()
+
 add_definitions(-Wno-strict-aliasing)
 
 #use the cmake cache, to -DOpenCV_dir=<path_to_build_of_opencv>
