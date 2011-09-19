@@ -29,6 +29,7 @@ namespace ecto_opencv
     {
       params.declare<std::string>("path", "The path to read images from.", "/tmp/ecto/rules");
       params.declare<std::string>("ext", "The image extension to look for.", DEFAULT_EXT);
+      params.declare<bool>("loop","Loop over the list",false);
     }
 
     static void
@@ -89,6 +90,7 @@ namespace ecto_opencv
     void
     configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
     {
+      params["loop"] >> loop;
       update_list = true;
       ext = DEFAULT_EXT; //default
       params["path"]->set_callback<std::string>(boost::bind(&ImageReader::path_change, this, _1));
@@ -98,7 +100,7 @@ namespace ecto_opencv
     int
     process(const tendrils& inputs, const tendrils& outputs)
     {
-      if (update_list)
+      if (update_list || (images.empty() && loop))
       {
         update_list = false;
         reset_list(path, ext);
@@ -113,7 +115,7 @@ namespace ecto_opencv
       return 0;
     }
     std::string path, ext;
-    bool update_list;
+    bool update_list, loop;
     std::vector<std::string> images;
   };
 }
