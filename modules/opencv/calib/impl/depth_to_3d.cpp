@@ -33,8 +33,6 @@
  *
  */
 
-#include <iostream>
-
 #include "depth_to_3d.h"
 
 namespace calib
@@ -60,8 +58,7 @@ namespace calib
     cv::Mat_<float> coordinates[3] =
     { (u_mat - cx).mul(z_mat) / fx, (v_mat - cy).mul(z_mat) / fy, z_mat };
     cv::Mat tmp_points;
-    cv::merge(coordinates, 3, tmp_points);
-    points3d = tmp_points.reshape(3, 1);
+    cv::merge(coordinates, 3, points3d);
   }
 
   /**
@@ -86,27 +83,26 @@ namespace calib
     else
       v_mat.convertTo(v_float, CV_32F);
 
-    unsigned int n_points = u_mat.rows;
     // Fill the depth matrix
-    cv::Mat_<float> z_float = cv::Mat_<float>(n_points, 1);
+    cv::Mat_<float> z_float = cv::Mat_<float>(u_float.rows, u_float.cols);
 
-    cv::Mat_<float>::const_iterator v_ptr = v_float.begin(), u_ptr = u_float.begin();
-    float *z_ptr = reinterpret_cast<float*>(z_float.data);
+    cv::Mat_<float>::const_iterator iter_v = v_float.begin(), iter_u = u_float.begin(), iter_u_end = u_float.end();
+    float *iter_z = reinterpret_cast<float*>(z_float.data);
     if (depth.depth() == CV_16U)
     {
-      for (unsigned int i = 0; i < n_points; ++i, ++u_ptr, ++v_ptr, ++z_ptr)
+      for (; iter_u != iter_u_end; ++iter_u, ++iter_v, ++iter_z)
       {
-        uint16_t depth_i = depth.at<uint16_t>(*v_ptr, *u_ptr);
+        uint16_t depth_i = depth.at<uint16_t>(*iter_v, *iter_u);
         if ((depth_i == 0) || (depth_i == std::numeric_limits<uint16_t>::max()))
-          *z_ptr = std::numeric_limits<float>::quiet_NaN();
+          *iter_z = std::numeric_limits<float>::quiet_NaN();
         else
-          *z_ptr = depth_i / 1000.0f;
+          *iter_z = depth_i / 1000.0f;
       }
     }
     else if (depth.depth() == CV_32F)
     {
-      for (unsigned int i = 0; i < n_points; ++i, ++u_ptr, ++v_ptr, ++z_ptr)
-        *z_ptr = depth.at<float>(*v_ptr, *u_ptr);
+      for (; iter_u != iter_u_end; ++iter_u, ++iter_v, ++iter_z)
+        *iter_z = depth.at<float>(*iter_v, *iter_u);
     }
 
     depthTo3d_from_uvz(in_K, u_float, v_float, z_float, points3d);
@@ -173,13 +169,14 @@ namespace calib
           }
       }
     }
-    if (n_points==0)
+    if (n_points == 0)
       return;
     u_mat.resize(n_points);
     v_mat.resize(n_points);
     z_mat.resize(n_points);
 
     depthTo3d_from_uvz(K, u_mat, v_mat, z_mat, points3d);
+    points3d = points3d.reshape(3, 1);
   }
 
   /**

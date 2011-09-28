@@ -41,8 +41,6 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/features2d/features2d.hpp>
 
-#include <iostream>
-
 #include "impl/depth_to_3d.h"
 
 using ecto::tendrils;
@@ -57,7 +55,7 @@ namespace calib
       inputs.declare<cv::Mat>("K", "The calibration matrix").required(true);
       inputs.declare<cv::Mat>("points", "The 2d coordinates (matrix with 2 channels)").required(true);
       inputs.declare<cv::Mat>("depth", "The depth image").required(true);
-      outputs.declare<cv::Mat>("points3d", "The 3d points, 1 by n_points with 3 channels (x, y and z).");
+      outputs.declare<cv::Mat>("points3d", "The 3d points, same dimensions as the input, 3 channels (x, y and z).");
     }
 
     /** Get the 2d keypoints and figure out their 3D position from the depth map
@@ -72,10 +70,10 @@ namespace calib
       inputs["K"] >> K;
       const cv::Mat &depth = inputs.get<cv::Mat>("depth"), &uv = inputs.get<cv::Mat>("points");
 
-      cv::Mat uv_reshaped = uv.reshape(1, uv.rows);
+      std::vector<cv::Mat> uv_vec(2);
+      cv::split(uv, uv_vec);
       cv::Mat points3d;
-      cv::Mat u = uv_reshaped.col(0), v = uv_reshaped.col(1);
-      depthTo3dSparse(K, depth, u, v, points3d);
+      depthTo3dSparse(K, depth, uv_vec[0], uv_vec[1], points3d);
 
       outputs["points3d"] << points3d;
 
