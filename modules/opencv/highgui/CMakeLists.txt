@@ -1,3 +1,11 @@
+find_library(V4L2_LIBRARY v4l2)
+
+if (V4L2_LIBRARY)
+  message(STATUS "Adding support for v4l2 image capture")
+  set(EXTRA_SRC V4LCapture.cpp)
+  set(EXTRA_LIB v4l2)
+endif()
+
 ectomodule(highgui
     module.cpp
     FPSDrawer.cpp
@@ -9,9 +17,9 @@ ectomodule(highgui
     MatPrinter.cpp
     NiConverters.cpp
     #OpenNICapture.cpp
-    V4LCapture.cpp
+    ${EXTRA_SRC}
     VideoCapture.cpp
     VideoWriter.cpp
     )
-link_ecto(highgui ${OpenCV_LIBS})
+link_ecto(highgui ${OpenCV_LIBS} ${EXTRA_LIB})
 install_ecto_module(highgui)
