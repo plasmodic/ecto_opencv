@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 project(ecto_opencv)
+set(${PROJECT_NAME}_GITHUB_URL https://github.com/plasmodic/ecto_opencv)
 
 if(NOT CMAKE_BUILD_TYPE)#Only do this the on the first run, if the build type hasn't been set prior
   set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING
@@ -9,15 +10,15 @@ endif()
 
 add_definitions(-Wno-strict-aliasing)
 
-#use the cmake cache, to -DOpenCV_dir=<path_to_build_of_opencv>
-#  svn co https://code.ros.org/svn/opencv/trunk
-#  and cmake that baby
-find_package(OpenCV 2.3.1 EXACT REQUIRED)
+find_package(OpenCV REQUIRED)
 if (OpenCV_FOUND)
   message(STATUS "OpenCV version: ${OpenCV_VERSION}")
   message(STATUS "OpenCV headers: ${OpenCV_INCLUDE_DIRS}")
 endif()
-find_package(ecto 0.1.0 REQUIRED)
+
+find_package(ecto REQUIRED)
+git_status(ecto_opencv)
+
 find_package(Boost COMPONENTS serialization filesystem system REQUIRED)
 
 if(NOT CMAKE_LIBRARY_OUTPUT_DIRECTORY)
@@ -38,8 +39,7 @@ install(FILES ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/__init__.py
   )
 
 add_subdirectory(modules)
-
-
+add_subdirectory(doc)
 option(BUILD_TEST "Build tests" ON)
 if(BUILD_TEST)
   enable_testing()
