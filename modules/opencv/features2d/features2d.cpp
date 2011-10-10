@@ -39,13 +39,14 @@ struct ORB
   {
     std::vector<cv::KeyPoint> keypoints;
     inputs["keypoints"] >> keypoints;
-    cv::Mat image = inputs.get<cv::Mat>("image");
-    cv::Mat mask = inputs.get<cv::Mat>("mask");
+    cv::Mat image, mask;
+    inputs["image"] >> image;
+    inputs["mask"] >> mask;
     cv::Mat desc;
     orb_(image, mask, keypoints, desc, !keypoints.empty()); //use the provided keypoints if they were given.
     outputs["keypoints"] << keypoints;
     outputs["descriptors"] << desc;
-    return 0;
+    return ecto::OK;
   }
 
   cv::ORB orb_;
