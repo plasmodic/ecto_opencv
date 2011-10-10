@@ -1,6 +1,6 @@
-add_custom_target(doc
-  COMMENT "Generate all documentation" VERBATIM
-  )
+#add_custom_target(doc
+#  COMMENT "Generate all documentation" VERBATIM
+#  )
 find_sphinx()
 if(SPHINX_BUILD)
   set(DOC_SOURCE_DIRS
