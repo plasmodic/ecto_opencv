@@ -45,7 +45,7 @@ namespace ecto_opencv
       fs::path x(path);
       if (!fs::is_directory(x))
         throw std::runtime_error(path + " is not a directory");
-      std::cout << "looking in " << x.string() << std::endl;
+      //std::cout << "looking in " << x.string() << std::endl;
       images.clear();
       fs::directory_iterator end_iter;
       for (fs::directory_iterator dir_itr(path); dir_itr != end_iter; ++dir_itr)
@@ -67,9 +67,9 @@ namespace ecto_opencv
         }
       }
       std::sort(images.rbegin(), images.rend()); //lexographic order.
-      std::cout << "Will read the following images in lexographic order:\n";
-      std::copy(images.rbegin(), images.rend(), std::ostream_iterator<std::string>(std::cout, " "));
-      std::cout << std::endl;
+      //std::cout << "Will read the following images in lexographic order:\n";
+      //std::copy(images.rbegin(), images.rend(), std::ostream_iterator<std::string>(std::cout, " "));
+      //std::cout << std::endl;
     }
     void
     path_change(const std::string& path)
