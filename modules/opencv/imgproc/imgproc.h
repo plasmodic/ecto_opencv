@@ -158,14 +158,8 @@ namespace imgproc
   };
 
   template<typename T>
-  struct Filter_
+  struct Filter_ : T
   {
-    T*
-    thiz()
-    {
-      return &t;
-    }
-
     static void
     declare_params(ecto::tendrils& p)
     {
@@ -184,7 +178,7 @@ namespace imgproc
     {
       input_ = i["image"];
       output_ = o["image"];
-      thiz()->configure(p, i, o);
+      T::configure(p, i, o);
     }
 
     int
@@ -193,9 +187,8 @@ namespace imgproc
       *output_ = cv::Mat(); //reset the output so that the cv mat is reallocated
       if (input_->empty())
         return ecto::OK;
-      return thiz()->process(i, o, const_cast<const cv::Mat&>(*input_), *output_);
+      return T::process(i, o, const_cast<const cv::Mat&>(*input_), *output_);
     }
     ecto::spore<cv::Mat> input_, output_;
-    T t;
   };
 }
