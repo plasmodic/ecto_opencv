@@ -182,6 +182,7 @@ namespace ecto_opencv
     void
     configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
     {
+      ecto::py::scoped_call_back_to_python scb;
       window_name_ = params.get<std::string>("name");
       waitkey_ = params.get<int>("waitKey");
       auto_size_ = params.get<bool>("autoSize");

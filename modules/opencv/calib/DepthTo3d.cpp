@@ -81,6 +81,119 @@ namespace calib
     }
   };
 
+  struct Select3d
+  {
+    typedef std::vector<cv::Point2f> points_t;
+    static void
+    declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
+    {
+      typedef Select3d C;
+      inputs.declare(&C::points, "points", "The 2d coordinates (matrix with 2 channels)").required(true);
+      inputs.declare(&C::points3d_in, "points3d", "The 3d points to select from.").required(true);
+      outputs.declare(&C::points3d_out, "points3d",
+                      "The 3d points, same dimensions as the input, 3 channels (x, y and z).");
+    }
+
+    /** Get the 2d keypoints and figure out their 3D position from the depth map
+     * @param inputs
+     * @param outputs
+     * @return
+     */
+    int
+    process(const tendrils& inputs, const tendrils& outputs)
+    {
+      // Make sure we use foat types
+      cv::Mat_<float> uv_float;
+      if (points->depth() == (CV_32F))
+        uv_float = *points;
+      else
+        points->convertTo(uv_float, CV_32F);
+
+      // Make sure we use float types
+      cv::Mat_<cv::Point3f> points3d, output;
+      if (points3d_in->depth() == (CV_32F))
+        points3d = *points3d_in;
+      else
+        points3d_in->convertTo(points3d, CV_32F);
+
+      output.reserve(uv_float.rows);
+      for (int i = 0, end = uv_float.rows; i < end; i++)
+      {
+        cv::Point2f p;
+        p.x = uv_float(i, 0);
+        p.y = uv_float(i, 1);
+        cv::Point3f p3d = points3d(p.y, p.x);
+        output.push_back(p3d);
+      }
+      *points3d_out = output;
+      return ecto::OK;
+    }
+    ecto::spore<cv::Mat> points, points3d_in, points3d_out;
+  };
+
+  struct Select3dRegion
+  {
+    typedef Select3dRegion C;
+    typedef std::vector<cv::Point2f> points_t;
+    static void
+    declare_params(tendrils& params)
+    {
+      params.declare(&C::radius, "radius", "A radius, in pixel with which to select a plane, from the center.");
+    }
+    static void
+    declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
+    {
+      inputs.declare(&C::image, "image", "To base the size off of.").required(true);
+      inputs.declare(&C::points3d_in, "points3d", "The 3d points to select from.").required(true);
+      outputs.declare(&C::points3d_out, "points3d",
+                      "The 3d points, same dimensions as the input, 3 channels (x, y and z).");
+    }
+
+    inline bool
+    is_nan_safe(const cv::Point3f& p) const
+    {
+      return p.x != p.x || p.y != p.y || p.z != p.z;
+    }
+
+    /** Get the 2d keypoints and figure out their 3D position from the depth map
+     * @param inputs
+     * @param outputs
+     * @return
+     */
+    int
+    process(const tendrils& inputs, const tendrils& outputs)
+    {
+      float rad = 50;
+      if (radius.user_supplied())
+      {
+        rad = *radius;
+      }
+      // Make sure we use float types
+      cv::Mat_<cv::Point3f> points3d, output;
+      if (points3d_in->depth() == (CV_32F))
+        points3d = *points3d_in;
+      else
+        points3d_in->convertTo(points3d, CV_32F);
+
+      for (int v = 0, v_end = image->rows; v != v_end; ++v)
+      {
+        for (int u = 0, u_end = image->cols; u != u_end; ++u)
+        {
+          cv::Vec2f p(u - u_end / 2.0, v - v_end / 2.0);
+          if (cv::norm(p) > rad)
+            continue;
+          cv::Point3f p3d = points3d(v, u);
+          if (!is_nan_safe(p3d))
+            output.push_back(p3d);
+        }
+      }
+      *points3d_out = output;
+      return ecto::OK;
+    }
+    ecto::spore<cv::Mat> image, points3d_in, points3d_out;
+    ecto::spore<float> radius, r_width, r_height;
+  };
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   struct DepthTo3d
@@ -137,3 +250,5 @@ namespace calib
 using namespace calib;
 ECTO_CELL(calib, DepthTo3d, "DepthTo3d", "Converts depth to 3d points.")
 ECTO_CELL(calib, DepthTo3dSparse, "DepthTo3dSparse", "Converts depth to 3d points.")
+ECTO_CELL(calib, Select3d, "Select3d", "Select 3D points given 2D locations.")
+ECTO_CELL(calib, Select3dRegion, "Select3dRegion", "Select 3D points given a radius in the center of the image.")

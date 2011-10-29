@@ -42,8 +42,10 @@ struct DrawMatches
     cv::Mat test_image,train_image;
     inputs["test_image"] >> test_image;
     inputs["train_image"] >> train_image;
+    cv::Mat matches_mask;
+    inputs["matches_mask"] >> matches_mask;
     cv::Mat out_image;
-    cv::drawMatches(test_image,test,train_image,train,matches,out_image,cv::Scalar(0,255,0),cv::Scalar::all(-1));
+    cv::drawMatches(test_image,test,train_image,train,matches,out_image,cv::Scalar(0,255,0),cv::Scalar(0,0,255),matches_mask);
     outputs["output"] << out_image;
     return ecto::OK;
   }
