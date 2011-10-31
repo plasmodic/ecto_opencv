@@ -11,21 +11,15 @@ namespace imgproc
   template<typename T>
   struct Adder
   {
+    typedef Adder<T> C;
     static void
     declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
     {
-      inputs.declare<T>("a", "to add to b");
-      inputs.declare<T>("b", "to add to a");
-      outputs.declare<T>("out", "a + b");
+      inputs.declare(&C::a_, "a", "to add to b");
+      inputs.declare(&C::b_, "b", "to add to a");
+      outputs.declare(&C::output_, "out", "a + b");
     }
-    void
-    configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
-    {
-      a_ = inputs["a"];
-      b_ = inputs["b"];
-      output_ = outputs["out"];
 
-    }
     int
     process(const tendrils& /*inputs*/, const tendrils& /*outputs*/)
     {

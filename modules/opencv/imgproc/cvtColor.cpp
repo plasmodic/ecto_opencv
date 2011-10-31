@@ -6,12 +6,12 @@
 using ecto::tendrils;
 namespace imgproc
 {
-  struct cvtColor_
+  struct cvtColor
   {
     static void
     declare_params(ecto::tendrils& p)
     {
-      p.declare<Conversion>("flag", "Convertion type.", RGB2GRAY);
+      p.declare(&cvtColor::flag_, "flag", "Convertion type.", RGB2GRAY);
     }
 
     static void
@@ -22,7 +22,6 @@ namespace imgproc
     void
     configure(const tendrils& p, const tendrils& i, const tendrils& o)
     {
-      flag_ = p["flag"];
     }
 
     int
@@ -33,11 +32,7 @@ namespace imgproc
     }
     ecto::spore<Conversion> flag_;
   };
-
-  //for pretty typeness.
-  struct cvtColor: Filter_<cvtColor_>
-  {
-  };
 }
 
-ECTO_CELL(imgproc, imgproc::cvtColor, "cvtColor", "Convert the color of a cv::Mat.");
+using namespace imgproc;
+ECTO_CELL(imgproc, Filter_<cvtColor>, "cvtColor", "Convert the color of a cv::Mat.");

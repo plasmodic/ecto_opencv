@@ -19,7 +19,7 @@ namespace ecto_opencv
     declare_params(tendrils& params)
     {
       params.declare<std::string>("filename_format", "The filename format string. "
-                                  "Must accept one integer, %d. This integer will monotonically in crease. "
+                                  "Must accept one integer, %d. This integer will monotonically increase. "
                                   "The extension determines the image format to write.",
                                   "./image_%04d.png");
       params.declare<int>("start", "The starting integer value, that will be inserted into the filename format string",

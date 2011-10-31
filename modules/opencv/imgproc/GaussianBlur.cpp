@@ -1,13 +1,11 @@
 #include <ecto/ecto.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include "imgproc.h"
-#include <iostream>
-
 using ecto::tendrils;
 using ecto::spore;
 namespace imgproc
 {
-  struct GaussianBlur_
+  struct GaussianBlur
   {
     static void
     declare_params(tendrils& p)
@@ -38,11 +36,7 @@ namespace imgproc
     spore<int> kernel_;
     spore<double> sigma_;
   };
-
-  //for pretty typeness.
-  struct GaussianBlur: Filter_<GaussianBlur_>
-  {
-  };
 }
 
-ECTO_CELL(imgproc, imgproc::GaussianBlur, "GaussianBlur", "Applies a gaussian blur operator");
+using namespace imgproc;
+ECTO_CELL(imgproc, Filter_<GaussianBlur>, "GaussianBlur", "Applies a gaussian blur operator");

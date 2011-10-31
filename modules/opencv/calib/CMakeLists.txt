@@ -1,5 +1,6 @@
 
-ectomodule(calib module.cpp
+ectomodule(calib
+  module.cpp
   calib.cpp 
   CameraIntrinsics.cpp
   PlanarSegmentation.cpp 
@@ -13,6 +14,9 @@ ectomodule(calib module.cpp
   Latch.cpp
   PlaneFitter.cpp
   TransformCompose.cpp
+  FiducialPoseEst.cpp
+  CameraCalibrator.cpp
+  GatherPoints.cpp
   )
 link_ecto(calib ${OpenCV_LIBS})
 install_ecto_module(calib)

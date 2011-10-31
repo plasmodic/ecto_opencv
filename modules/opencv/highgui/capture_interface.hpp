@@ -7,7 +7,7 @@ namespace ecto_opencv
   declare_video_device_outputs(ecto::tendrils& outputs)
   {
     //set outputs
-    outputs.declare < cv::Mat > ("image", "A video frame.", cv::Mat());
+    outputs.declare<cv::Mat>("image", "A video frame.", cv::Mat());
     outputs.declare<int>("frame_number", "The number of frames captured.", 0);
   }
 }

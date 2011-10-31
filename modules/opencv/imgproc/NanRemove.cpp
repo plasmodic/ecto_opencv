@@ -40,15 +40,13 @@ namespace imgproc
         }
         else
         {
-          *out_i = 10000.f;
+          *out_i = 0;
         }
         ++out_i;
         ++begin;
       }
       return ecto::OK;
     }
-    ecto::spore<int> diameter_;
-    ecto::spore<double> sigmaColor_, sigmaSpace_;
   };
 
   //for pretty typeness.

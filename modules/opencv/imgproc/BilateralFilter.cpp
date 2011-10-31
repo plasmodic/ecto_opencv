@@ -6,21 +6,22 @@
 using ecto::tendrils;
 namespace imgproc
 {
-  struct bilateral_
+  struct BilateralFilter
   {
+    typedef BilateralFilter C;
     static void
     declare_params(ecto::tendrils& p)
     {
-      p.declare<int>(
+      p.declare(&C::diameter_,
           "d",
           "Diameter of each pixel neighborhood that is used during filtering. If it is non-positive, it is computed from sigmaSpace .",
           -1);
-      p.declare<double>(
+      p.declare(&C::sigmaColor_,
           "sigmaColor",
           "Filter sigma in the color space. A larger value of the parameter means that farther colors within the pixel "
           "neighborhood (see sigmaSpace ) will be mixed together, resulting in larger areas of semi-equal color.",
           25);
-      p.declare<double>(
+      p.declare(&C::sigmaSpace_,
           "sigmaSpace",
           "Filter sigma in the coordinate space. A larger value of the parameter means that farther pixels will "
           "influence each other as long as their colors are close enough (see sigmaColor ). When d>0 , it specifies "
@@ -36,9 +37,6 @@ namespace imgproc
     void
     configure(const tendrils& p, const tendrils& i, const tendrils& o)
     {
-      diameter_ = p["d"];
-      sigmaColor_ = p["sigmaColor"];
-      sigmaSpace_ = p["sigmaSpace"];
     }
 
     int
@@ -50,11 +48,7 @@ namespace imgproc
     ecto::spore<int> diameter_;
     ecto::spore<double> sigmaColor_, sigmaSpace_;
   };
-
-  //for pretty typeness.
-  struct BilateralFilter: Filter_<bilateral_>
-  {
-  };
 }
 
-ECTO_CELL(imgproc, imgproc::BilateralFilter, "BilateralFilter", "Runs a bilateral filter on the image.");
+using namespace imgproc;
+ECTO_CELL(imgproc,Filter_<BilateralFilter>, "BilateralFilter", "Runs a bilateral filter on the image.");

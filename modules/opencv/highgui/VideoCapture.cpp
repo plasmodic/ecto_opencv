@@ -68,7 +68,6 @@ namespace ecto_opencv
     {
       open_video_device();
       cv::Mat image;
-      //outputs.get is a reference;
       capture >> image;
       outputs["image"] << image;
 

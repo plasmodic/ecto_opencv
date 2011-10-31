@@ -7,7 +7,7 @@
 using ecto::tendrils;
 namespace imgproc
 {
-  struct Scale_
+  struct Scale
   {
     static void
     declare_params(ecto::tendrils& p)
@@ -37,9 +37,7 @@ namespace imgproc
     ecto::spore<float> factor;
     ecto::spore<Interpolation> interpolation;
   };
-  //for pretty typeness.
-  struct Scale: Filter_<Scale_>
-  {
-  };
+
 }
-ECTO_CELL(imgproc, imgproc::Scale, "Scale", "Scales an image.");
+using namespace imgproc;
+ECTO_CELL(imgproc,  Filter_<Scale>, "Scale", "Scales an image.");

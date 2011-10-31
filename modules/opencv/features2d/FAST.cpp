@@ -27,11 +27,13 @@ struct FAST
   int
   process(const tendrils& inputs, const tendrils& outputs)
   {
+    cv::FastFeatureDetector fd(*thresh_, *nonmax_);
+
     cv::Mat in, mask;
     inputs["image"] >> in;
     inputs["mask"] >> mask;
+
     std::vector<cv::KeyPoint> keypoints;
-    cv::FastFeatureDetector fd(*thresh_, *nonmax_);
     fd.detect(in, keypoints, mask);
     outputs["keypoints"] << keypoints;
     return 0;

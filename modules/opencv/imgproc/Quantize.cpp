@@ -6,7 +6,7 @@
 using ecto::tendrils;
 namespace imgproc
 {
-  struct Quantize_
+  struct Quantize
   {
     static void
     declare_params(tendrils& p)
@@ -36,14 +36,14 @@ namespace imgproc
     ecto::spore<double> alpha_, beta_;
   };
 
-  struct ConvertTo_
+  struct ConvertTo
   {
     static void
     declare_params(tendrils& p)
     {
-      p.declare(&ConvertTo_::alpha_, "alpha", "Factor", 1);
-      p.declare(&ConvertTo_::beta_, "beta", "Additive.", 0);
-      p.declare(&ConvertTo_::type_, "cv_type", "The cv type for conversion, if -1 use the source type.", -1);
+      p.declare(&ConvertTo::alpha_, "alpha", "Factor", 1);
+      p.declare(&ConvertTo::beta_, "beta", "Additive.", 0);
+      p.declare(&ConvertTo::type_, "cv_type", "The cv type for conversion, if -1 use the source type.", -1);
 
     }
     static void
@@ -70,15 +70,7 @@ namespace imgproc
     ecto::spore<double> alpha_, beta_;
     ecto::spore<int> type_;
   };
-  //for pretty typeness.
-  struct Quantize: Filter_<Quantize_>
-  {
-  };
-
-  //for pretty typeness.
-  struct ConvertTo: Filter_<ConvertTo_>
-  {
-  };
 }
-ECTO_CELL(imgproc, imgproc::Quantize, "Quantize", "Divide and multiply an image by a factor.");
-ECTO_CELL(imgproc, imgproc::ConvertTo, "ConvertTo", "Convert to.");
+using namespace imgproc;
+ECTO_CELL(imgproc, Filter_<Quantize>, "Quantize", "Divide and multiply an image by a factor.");
+ECTO_CELL(imgproc, Filter_<ConvertTo>, "ConvertTo", "Convert to.");

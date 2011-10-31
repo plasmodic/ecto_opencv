@@ -39,7 +39,6 @@ struct ORB
   {
     std::vector<cv::KeyPoint> keypoints;
     inputs["keypoints"] >> keypoints;
-    if(keypoints.empty() == false) throw std::runtime_error("ARG!");
     cv::Mat image, mask;
     inputs["image"] >> image;
     inputs["mask"] >> mask;

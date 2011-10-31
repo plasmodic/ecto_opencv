@@ -1,13 +1,12 @@
 #include <ecto/ecto.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include "imgproc.h"
-#include <iostream>
 
 using ecto::tendrils;
 using ecto::spore;
 namespace imgproc
 {
-  struct Erode_
+  struct Erode
   {
     static void
     declare_params(tendrils& p)
@@ -42,10 +41,6 @@ namespace imgproc
     spore<Morph> morph_;
   };
 
-  //for pretty typeness.
-  struct Erode: Filter_<Erode_>
-  {
-  };
 }
-
-ECTO_CELL(imgproc, imgproc::Erode, "Erode", "Applies an erosion operator.");
+using namespace imgproc;
+ECTO_CELL(imgproc, Filter_<Erode>, "Erode", "Applies an erosion operator.");
