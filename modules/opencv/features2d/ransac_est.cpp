@@ -429,9 +429,7 @@ struct MatchRefinementHSvd
     *matches_out = good_matches;
     *matches_mask = inlier_mask;
     float inlier_percentage = 100 * float(demeaned_train_pts.size()) / good_matches.size();
-//    std::cout << "inliers : " << inlier_percentage << "%" << std::endl;
-//    std::cout << "matches : " << good_matches.size() << std::endl;
-    *found_out = inlier_percentage > *inlier_thresh;
+    *found_out = inlier_percentage > *inlier_thresh && *min_inliers/2 < demeaned_test_pts.size();
     return ecto::OK;
   }
   ecto::spore<cv::Mat> K, train_2d, test_2d, test_3d, train_3d, R_out, T_out;
