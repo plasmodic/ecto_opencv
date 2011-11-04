@@ -67,6 +67,7 @@ namespace calib
 
       image = in.get<cv::Mat>("image");
       cv::Mat& output = out.get<cv::Mat>("output");
+      output = cv::Mat();
       image.copyTo(output);
       if (in.get<bool>("trigger"))
         draw(output, K, R, T);

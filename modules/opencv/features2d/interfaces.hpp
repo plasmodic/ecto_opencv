@@ -39,5 +39,7 @@ struct descriptor_extractor_interface
     inputs.declare<cv::Mat>("image", "An input image.");
     inputs.declare<cv::Mat>("mask", "An mask, same size as image.");
     inputs.declare<std::vector<cv::KeyPoint> >("keypoints", "The keypoints.");
+    inputs.declare<cv::Mat>("points", "2d points.");
+
   }
 };

@@ -20,6 +20,7 @@ ectomodule(highgui
     ${EXTRA_SRC}
     VideoCapture.cpp
     VideoWriter.cpp
+    serialization.cpp
     )
 link_ecto(highgui ${OpenCV_LIBS} ${EXTRA_LIB})
 install_ecto_module(highgui)

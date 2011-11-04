@@ -19,14 +19,14 @@ namespace calib
     {
       params.declare<float>("x_crop", "The amount to keep in the x direction (meters) relative\n"
                             "to the coordinate frame defined by the pose.",
-                            0.1);
+                            0.15);
       params.declare<float>("y_crop", "The amount to keep in the y direction (meters) relative to\n"
                             "the coordinate frame defined by the pose.",
-                            0.1);
+                            0.15);
       params.declare<float>("z_crop", "The amount to keep in the z direction (meters) relative to\n"
                             "the coordinate frame defined by the pose.",
-                            1);
-      params.declare<float>("z_min", "The amount to crop above the plane, in meters.", 0.02);
+                            0.5);
+      params.declare<float>("z_min", "The amount to crop above the plane, in meters.", 0.0075);
     }
 
     static void
@@ -37,7 +37,6 @@ namespace calib
       in.declare<cv::Mat>("R", "The pose rotation matrix.");
       in.declare<cv::Mat>("T", "The pose translation vector.");
       in.declare<cv::Mat>("K", "The camera matrix.");
-
       out.declare<cv::Mat>("mask", "The output mask, determined by the segmentation.\n"
                            "255 is the value for objects satisfying the constraints.\n"
                            "0 otherwise.");
@@ -88,27 +87,34 @@ namespace calib
       box_mask.setTo(cv::Scalar(0));
 
       std::vector<cv::Point3f> box(8);
-      box[0] = cv::Point3f(*x_crop, *y_crop, *z_min);
-      box[1] = cv::Point3f(-*x_crop, *y_crop, *z_min);
-      box[2] = cv::Point3f(-*x_crop, -*y_crop, *z_min);
-      box[3] = cv::Point3f(*x_crop, -*y_crop, *z_min);
-      box[4] = cv::Point3f(*x_crop, *y_crop, *z_crop);
-      box[5] = cv::Point3f(-*x_crop, *y_crop, *z_crop);
-      box[6] = cv::Point3f(-*x_crop, -*y_crop, *z_crop);
-      box[7] = cv::Point3f(*x_crop, -*y_crop, *z_crop);
+      box[0] = cv::Point3f(*x_crop, *y_crop, -*z_min);
+      box[1] = cv::Point3f(-*x_crop, *y_crop, -*z_min);
+      box[2] = cv::Point3f(-*x_crop, -*y_crop, -*z_min);
+      box[3] = cv::Point3f(*x_crop, -*y_crop, -*z_min);
+      box[4] = cv::Point3f(*x_crop, *y_crop, -*z_crop);
+      box[5] = cv::Point3f(-*x_crop, *y_crop, -*z_crop);
+      box[6] = cv::Point3f(-*x_crop, -*y_crop, -*z_crop);
+      box[7] = cv::Point3f(*x_crop, -*y_crop, -*z_crop);
 
       std::vector<cv::Point2f> projected, hull;
-      cv::projectPoints(box, R, T, K, cv::Mat(4, 1, CV_64FC1, cv::Scalar(0)), projected);
+      cv::Mat rvec;
+      cv::Rodrigues(R, rvec);
+      cv::projectPoints(box, R, -T, K, cv::Mat::zeros(1, 4, CV_64F), projected);
+//      std::cout << "Rvec: " << rvec << std::endl;
+//      std::cout << "T: " << T << std::endl;
+//      std::cout << "K: " << K << std::endl;
+//      std::cout << "Box: " << cv::Mat(box) << std::endl;
+//      std::cout << "Projected: " << cv::Mat(projected) << std::endl;
 
       cv::convexHull(projected, hull, true);
       std::vector<cv::Point> points(hull.size());
       std::copy(hull.begin(), hull.end(), points.begin());
       cv::fillConvexPoly(box_mask, points.data(), points.size(), cv::Scalar::all(255));
-
+//
+//      out["mask"] << cv::Mat(box_mask);
+//      return ecto::OK;
       int width = mask.size().width;
       int height = mask.size().height;
-      cv::Mat_<uint8_t>::iterator it = mask.begin<uint8_t>();
-      cv::Mat_<uint8_t>::iterator mit = box_mask.begin();
 
       cv::Mat_<cv::Vec3f> points3d;
       depthTo3dMask(K, depth, box_mask, points3d);
@@ -118,29 +124,26 @@ namespace calib
       cv::Matx<double, 3, 1> p, p_r, Tx(T); //Translation
       cv::Matx<double, 3, 3> Rx; //inverse Rotation
       Rx = cv::Mat(R.t());
-      cv::Mat_<cv::Vec3f>::iterator point = points3d.begin();
+      cv::Mat_<cv::Vec3f>::iterator point = points3d.begin(), end = points3d.end();
 
-//      std::cout << cv::Mat(Rx) << "\n" << cv::Mat(Tx) << std::endl;
-//      std::cout << fx << " " << fy << " " << cx << " " << cy << " " << std::endl;
       double z_min_ = *z_min, z_max_ = *z_crop, x_min_ = -*x_crop, x_max_ = *x_crop, y_min_ = -*y_crop,
           y_max_ = *y_crop;
-      for (int v = 0; v < height; v++)
+      float fx = K.at<double>(0, 0);
+      float cx = K.at<double>(0,2);
+      float cy = K.at<double>(1,2);
+      while (point != end)
       {
-        for (int u = 0; u < width; u++, ++it, ++mit)
-        {
-          if (*mit == 0)
-            continue;
-          //calculate the point based on the depth
-          p(0) = (*point).val[0];
-          p(1) = (*point).val[1];
-          p(2) = (*point).val[2];
-          ++point;
-          p_r = Rx * (p - Tx);
-//          std::cout <<"p=" << cv::Mat(p) << ",p_r="<< cv::Mat(p_r) << std::endl;
-          if (p_r(2) > z_min_ && p_r(2) < z_max_ && p_r(0) > x_min_ && p_r(0) < x_max_ && p_r(1) > y_min_
-              && p_r(1) < y_max_)
-            *it = 255;
-        }
+        //calculate the point based on the depth
+        p(0) = (*point).val[0];
+        p(1) = (*point).val[1];
+        p(2) = (*point).val[2];
+        ++point;
+        p_r = Rx * (p - Tx);
+        int u = p(0) * fx / p(2) + cx + 0.5;
+        int v = p(1) * fx / p(2) + cy + 0.5;
+        if (p_r(2) > z_min_ && p_r(2) < z_max_ && p_r(0) > x_min_ && p_r(0) < x_max_ && p_r(1) > y_min_
+            && p_r(1) < y_max_)
+          mask.at<uint8_t>(v, u) = 255;
       }
       out["mask"] << mask;
       return ecto::OK;
@@ -148,7 +151,8 @@ namespace calib
     ecto::spore<float> x_crop, y_crop, z_crop, z_min;
     cv::Mat_<uint8_t> box_mask;
 
-  };
+  }
+  ;
 }
 ECTO_CELL(calib, calib::PlanarSegmentation, "PlanarSegmentation", "Given a pose, "
 "assuming it describes the center of the object coordinate system and "

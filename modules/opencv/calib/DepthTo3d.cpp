@@ -122,7 +122,7 @@ namespace calib
         cv::Point2f p;
         p.x = uv_float(i, 0);
         p.y = uv_float(i, 1);
-        cv::Point3f p3d = points3d(p.y, p.x);
+        cv::Point3f p3d = points3d(int(p.y+0.5f), int(p.x+0.5f));
         output.push_back(p3d);
       }
       *points3d_out = output;

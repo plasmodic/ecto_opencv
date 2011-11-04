@@ -6,6 +6,7 @@ ectomodule(features2d
   matcher.cpp
   ORB.cpp
   ransac_est.cpp
+  KeypointsToMat.cpp
   )
 
 link_ecto(features2d ${OpenCV_LIBS})

@@ -12,12 +12,12 @@ namespace ecto_opencv
     static void
     declare_params(tendrils& params)
     {
-      params.declare<std::string>("name", "Name of mat to print.").required();
+      params.declare<std::string>("name", "Name of mat to print.").required(true);
     }
     static void
     declare_io(const tendrils& params, tendrils& in, tendrils& out)
     {
-      in.declare<cv::Mat>("mat", "A mat to print.").required();
+      in.declare<cv::Mat>("mat", "A mat to print.").required(true);
     }
 
     void

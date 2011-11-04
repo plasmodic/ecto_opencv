@@ -15,15 +15,17 @@ namespace ecto_opencv
 {
   struct ImageSaver
   {
+    typedef ImageSaver C;
     static void
     declare_params(tendrils& params)
     {
-      params.declare<std::string>("filename_format", "The filename format string. "
-                                  "Must accept one integer, %d. This integer will monotonically increase. "
-                                  "The extension determines the image format to write.",
-                                  "./image_%04d.png");
-      params.declare<int>("start", "The starting integer value, that will be inserted into the filename format string",
-                          0);
+      params.declare(&C::filename_format, "filename_format", "The filename format string. "
+                     "Must accept one integer, %d. This integer will monotonically increase. "
+                     "The extension determines the image format to write.",
+                     "./image_%04d.png");
+      params.declare(&C::filename, "filename", "A single filename, set this for single file output.", "");
+      params.declare(&C::count, "start",
+                     "The starting integer value, that will be inserted into the filename format string", 0);
     }
 
     static void
@@ -33,27 +35,27 @@ namespace ecto_opencv
       params["filename_format"] >> format;
       //throw an error on bad format string
       boost::format(format) % 1;
-      in.declare<cv::Mat>("image", "The original image to draw the pose onto.").required(true);
-    }
-    void
-    configure(const tendrils&p, const tendrils&in, const tendrils&o)
-    {
-      filename_format = p["filename_format"];
-      count = p["start"];
+      in.declare(&C::image, "image", "The original image to draw the pose onto.").required(true);
     }
 
     int
     process(const tendrils& in, const tendrils& out)
     {
-      cv::Mat image;
-      in["image"] >> image;
-      std::string filename = boost::str(boost::format(*filename_format) % (*count)++);
-      std::cout << "Saving image to : " << filename << std::endl;
-      cv::imwrite(filename, image);
+      std::string name;
+      if (filename->empty())
+      {
+        name = boost::str(boost::format(*filename_format) % (*count)++);
+      }
+      else
+      {
+        name = *filename;
+      }
+      std::cout << "Saving image to : " << name << std::endl;
+      cv::imwrite(name, *image);
       return ecto::OK;
     }
-
-    ecto::spore<std::string> filename_format;
+    ecto::spore<cv::Mat> image;
+    ecto::spore<std::string> filename_format, filename;
     ecto::spore<int> count;
   };
 }

@@ -23,7 +23,12 @@ namespace calib
     {
       //reset outputs to enable multithreading.
       *R = cv::Mat(); *T = cv::Mat();
-      cv::composeRT(*R1,*T1,*R2,*T2,*R,*T);
+      if(R1->empty() || R2->empty()) return ecto::OK;
+      cv::Mat rvec1,rvec2,rvec_out;
+      cv::Rodrigues(*R1,rvec1);
+      cv::Rodrigues(*R2,rvec2);
+      cv::composeRT(rvec1,*T1,rvec2,*T2,rvec_out,*T);
+      cv::Rodrigues(rvec_out, *R);
       return ecto::OK;
     }
     ecto::spore<cv::Mat> R1,T1,R2,T2,R,T;

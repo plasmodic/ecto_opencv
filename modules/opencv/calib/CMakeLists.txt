@@ -17,6 +17,7 @@ ectomodule(calib
   FiducialPoseEst.cpp
   CameraCalibrator.cpp
   GatherPoints.cpp
+  DepthMask.cpp
   )
 link_ecto(calib ${OpenCV_LIBS})
 install_ecto_module(calib)

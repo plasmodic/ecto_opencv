@@ -20,7 +20,7 @@ struct DrawKeypoints
   process(const tendrils& inputs, const tendrils& outputs)
   {
     *out_image = cv::Mat(); //reset the output... mthreaded
-    cv::drawKeypoints(*in_image, *in_kpts, *out_image);
+    cv::drawKeypoints(*in_image, *in_kpts, *out_image, cv::Scalar(255,0,0));
     return ecto::OK;
   }
   ecto::spore<cv::Mat> in_image, out_image;

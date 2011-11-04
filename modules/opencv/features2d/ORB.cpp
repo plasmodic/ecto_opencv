@@ -44,8 +44,33 @@ struct ORB
     inputs["mask"] >> mask;
     cv::Mat desc;
     orb_(image, mask, keypoints, desc, !keypoints.empty()); //use the provided keypoints if they were given.
-    outputs["keypoints"] << keypoints;
-    outputs["descriptors"] << desc;
+    if (!mask.empty())
+    {
+      //need to do keypoint validation as ORB is broken.
+      cv::Mat good_desc;
+      std::vector<cv::KeyPoint> good_keypoints;
+      good_keypoints.reserve(keypoints.size());
+      good_desc.reserve(32 * keypoints.size());
+      for (int i = 0, end = keypoints.size(); i < end; ++i)
+      {
+        const cv::Point2f& p2d = keypoints[i].pt;
+        int u = p2d.x + 0.5f;
+        int v = p2d.y + 0.5f;
+        if (mask.at<uchar>(v, u))
+        {
+          good_keypoints.push_back(keypoints[i]);
+          good_desc.push_back(desc.row(i));
+        }
+      }
+//      std::cout << "points diff : " << int(keypoints.size()) - int(good_keypoints.size()) << std::endl;
+      outputs["keypoints"] << good_keypoints;
+      outputs["descriptors"] << good_desc;
+    }
+    else
+    {
+      outputs["keypoints"] << keypoints;
+      outputs["descriptors"] << desc;
+    }
     return ecto::OK;
   }
 
