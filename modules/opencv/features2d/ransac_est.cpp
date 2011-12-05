@@ -370,9 +370,8 @@ struct MatchRefinementHSvd
   {
     p.declare(&C::n_iters, "n_iters", "number of ransac iterations", 100);
     p.declare(&C::reprojection_error, "reprojection_error", "error threshold", 8);
-    p.declare(&C::min_inliers, "min_inliers", "minimum number of inliers", 100);
-    p.declare(&C::inlier_thresh, "inlier_thresh", "The inlier threshold of pose found.", 20);
-
+    p.declare(&C::min_inliers, "min_inliers", "minimum number of inliers", 25);
+    p.declare(&C::inlier_thresh, "inlier_thresh", "The inlier threshold of pose found.", 30);
   }
   static void
   declare_io(const tendrils& p, tendrils& inputs, tendrils& outputs)
@@ -396,9 +395,8 @@ struct MatchRefinementHSvd
     matches_t good_matches, good_matches_H;
     //    std::cout << "Input matches: " << matches_in->size() << std::endl;
     std::remove_copy_if(matches_in->begin(), matches_in->end(), std::back_inserter(good_matches),
-                        match_distance_predicate<60>());
-    //    std::cout << "Good matches: " << good_matches.size() << std::endl;
-    if (good_matches.size() < *inlier_thresh)
+                        match_distance_predicate<55>());
+    if (good_matches.size() < *min_inliers)
       return ecto::OK;
 
     //need to preallocate the mask!
@@ -446,10 +444,7 @@ struct MatchRefinementHSvd
     *matches_out = good_matches;
     *matches_mask = inlier_mask;
     float inlier_percentage = 100 * float(demeaned_train_pts.size()) / good_matches.size();
-    *found_out = inlier_percentage > *inlier_thresh && *min_inliers/2 < demeaned_test_pts.size();
-
-    std::cout << "Found matches: " << matches_out->size() << std::endl;
-
+    *found_out = inlier_percentage > *inlier_thresh && *min_inliers / 2 < demeaned_test_pts.size();
     return ecto::OK;
   }
   ecto::spore<cv::Mat> train_2d, test_2d, test_3d, train_3d, R_out, T_out;
@@ -457,7 +452,7 @@ struct MatchRefinementHSvd
   ecto::spore<cv::Mat> matches_mask;
   ecto::spore<bool> found_out;
   ecto::spore<unsigned> n_iters, min_inliers;
-  ecto::spore<float> reprojection_error,inlier_thresh;
+  ecto::spore<float> reprojection_error, inlier_thresh;
 
 };
 ECTO_CELL(features2d, MatchRefinement, "MatchRefinement",
