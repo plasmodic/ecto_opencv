@@ -34,6 +34,8 @@
  */
 
 #include "depth_to_3d.h"
+#include <iostream>
+using namespace std;
 
 namespace calib
 {
