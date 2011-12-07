@@ -1,7 +1,7 @@
 ectomodule(features2d
   module.cpp
   DrawKeypoints.cpp
-  FAST.cpp
+  FeatureDetector.cpp
   match_draw.cpp
   matcher.cpp
   ORB.cpp
