@@ -46,6 +46,7 @@
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+/** This is an enum on the different supported types */
 enum DescriptorExtractorType
 {
   SIFT, SURF, ORB, BRIEF
@@ -53,6 +54,7 @@ enum DescriptorExtractorType
 
 const char* descriptor_extractor_type_names_tmp[] =
 { "SIFT", "SURF", "ORB", "BRIEF" };
+/** This is the corresponding list of OpenCV names for each Descriptor type */
 const std::vector<std::string> descriptor_extractor_type_names(descriptor_extractor_type_names_tmp,
                                                                descriptor_extractor_type_names_tmp + 4);
 

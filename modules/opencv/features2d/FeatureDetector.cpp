@@ -47,6 +47,7 @@
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+/** This is an enum on the different supported types */
 enum FeatureDetectorType
 {
   ORB, FAST
@@ -54,8 +55,9 @@ enum FeatureDetectorType
 
 const char* feature_detector_type_names_tmp[] =
 { "ORB", "FAST" };
+/** This is the corresponding list of OpenCV names for each Detector type */
 const std::vector<std::string> feature_detector_type_names(feature_detector_type_names_tmp,
-                                                           feature_detector_type_names_tmp + 1);
+                                                           feature_detector_type_names_tmp + 2);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
