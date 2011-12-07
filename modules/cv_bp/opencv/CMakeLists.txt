@@ -3,10 +3,18 @@ find_package(Boost COMPONENTS
   python
   REQUIRED
   )
+  
+set(CMAKE_BUILD_TYPE Debug)
 
 find_package(PythonLibs
   REQUIRED)
 
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR})
+find_package(numpy)
+if(numpy-NOTFOUND)
+    message(WARNING "Not building cv_bp as it requires numpy")
+    return()
+endif()
 #detect the python version and install directories
 find_package(PythonInterp REQUIRED)
 
@@ -36,6 +44,7 @@ endif()
 include_directories(
   ${PYTHON_INCLUDE_PATH}
   ${Boost_INCLUDE_DIRS}
+  ${PYTHON_NUMPY_INCLUDE_DIR}
   )
 
 set(bp_opencv_target opencv_boost_python)
