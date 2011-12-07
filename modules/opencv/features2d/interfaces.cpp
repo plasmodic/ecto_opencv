@@ -33,61 +33,66 @@
  *
  */
 
-#pragma once
-#ifndef _INTERFACES_HPP
-#define _INTERFACES_HPP
+#include <stdio.h>
 
-#include <ecto/ecto.hpp>
+#include <boost/filesystem.hpp>
+#include <boost/foreach.hpp>
 
-#include <opencv2/core/core.hpp>
-#include <opencv2/features2d/features2d.hpp>
+#include "interfaces.hpp"
 
-using ecto::tendrils;
+std::string
+temporary_yml_file_name()
+{
+  std::string fname;
+  {
+    char buffer[L_tmpnam];
+    char* p = std::tmpnam(buffer);
+    if (p != NULL)
+    {
+      fname = std::string(buffer) + ".yml";
+    }
+    else
+      throw std::runtime_error("Could not create temporary filename!");
+  }
+  return fname;
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void
 read_tendrils_as_file_node(const ecto::tendrils & tendrils, boost::function<void
-(const cv::FileNode &)> function);
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/** Interface to feature detection, reused by specific feature detectors
- */
-struct feature_detector_interface
+(const cv::FileNode &)> function)
 {
-  static void
-  declare_outputs(tendrils& outputs)
-  {
-    outputs.declare<std::vector<cv::KeyPoint> >("keypoints", "The keypoints.");
-  }
-  static void
-  declare_inputs(tendrils& inputs)
-  {
-    inputs.declare<cv::Mat>("image", "An input image.");
-    inputs.declare<cv::Mat>("mask", "An mask, same size as image.");
-  }
-};
+  // Get the file
+  std::string file_name = temporary_yml_file_name();
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/** Interface to descriptor extraction, reused by specific descriptor extractors
- */
-struct descriptor_extractor_interface
-{
-  static void
-  declare_outputs(tendrils& outputs)
+  // Write the tendril's to it
   {
-    outputs.declare<cv::Mat>("descriptors", "The descriptors per keypoints");
+    cv::FileStorage fs(file_name, cv::FileStorage::WRITE);
+    BOOST_FOREACH (const ecto::tendrils::value_type &tendril_pair, tendrils)
+        {
+          std::string tendril_name = tendril_pair.first;
+          const ecto::tendril & tendril = *(tendril_pair.second);
+          std::string type_name = tendril.type_name();
+          fs << tendril_name;
+          if (type_name == "int")
+            fs << tendril.get<int>();
+          else if (type_name == "float")
+            fs << tendril.get<float>();
+          else
+          {
+            std::string error_message = "Unsupported type: ";
+            error_message += type_name;
+            throw std::runtime_error(error_message);
+          }
+        }
   }
-  static void
-  declare_inputs(tendrils& inputs)
-  {
-    inputs.declare<cv::Mat>("image", "An input image.");
-    inputs.declare<cv::Mat>("mask", "An mask, same size as image.");
-    inputs.declare<std::vector<cv::KeyPoint> >("keypoints", "The keypoints.");
-    inputs.declare<cv::Mat>("points", "2d points.");
 
+  {
+    cv::FileStorage fs(file_name, cv::FileStorage::READ);
+    function(fs.root());
   }
-};
-#endif
+
+  // Remove the temporary file
+  boost::filesystem::remove(file_name.c_str());
+}
