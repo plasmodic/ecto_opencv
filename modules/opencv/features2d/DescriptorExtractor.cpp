@@ -33,61 +33,79 @@
  *
  */
 
-#pragma once
-#ifndef _INTERFACES_HPP
-#define _INTERFACES_HPP
+#include <stdio.h>
 
 #include <ecto/ecto.hpp>
 
+#include <boost/foreach.hpp>
+#include <boost/filesystem.hpp>
+
 #include <opencv2/core/core.hpp>
 #include <opencv2/features2d/features2d.hpp>
-
-using ecto::tendrils;
+#include "interfaces.hpp"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+enum DescriptorExtractorType
+{
+  SIFT, SURF, ORB, BRIEF
+};
+
+const char* descriptor_extractor_type_names_tmp[] =
+{ "SIFT", "SURF", "ORB", "BRIEF" };
+const std::vector<std::string> descriptor_extractor_type_names(descriptor_extractor_type_names_tmp,
+                                                               descriptor_extractor_type_names_tmp + 4);
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/** Cell for ORB feature detection and descriptor extraction
+ */
+template<DescriptorExtractorType T>
+struct EctoDescriptorExtractor
+{
+  static void
+  declare_params(tendrils& p)
+  {
+    throw std::runtime_error("Unsupported DescriptorExtractor type");
+  }
+
+  static void
+  declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
+  {
+    descriptor_extractor_interface::declare_inputs(outputs);
+    descriptor_extractor_interface::declare_outputs(outputs);
+  }
+
+  void
+  configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
+  {
+    descriptor_extractor_ = cv::DescriptorExtractor::create(descriptor_extractor_type_names[T]);
+
+    read_tendrils_as_file_node(params, boost::bind(&cv::DescriptorExtractor::read, &(*descriptor_extractor_), _1));
+  }
+
+  int
+  process(const tendrils& inputs, const tendrils& outputs)
+  {
+    std::vector<cv::KeyPoint> keypoints;
+    cv::Mat image, descriptors;
+    inputs["image"] >> image;
+
+    descriptor_extractor_->compute(image, keypoints, descriptors);
+
+    outputs["descriptors"] << descriptors;
+    return ecto::OK;
+  }
+
+  cv::Ptr<cv::DescriptorExtractor> descriptor_extractor_;
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+template<>
 void
-read_tendrils_as_file_node(const ecto::tendrils & tendrils, boost::function<void
-(const cv::FileNode &)> function);
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/** Interface to feature detection, reused by specific feature detectors
- */
-struct feature_detector_interface
+EctoDescriptorExtractor<ORB>::declare_params(tendrils& p)
 {
-  static void
-  declare_outputs(tendrils& outputs)
-  {
-    outputs.declare<std::vector<cv::KeyPoint> >("keypoints", "The keypoints.");
-  }
-  static void
-  declare_inputs(tendrils& inputs)
-  {
-    inputs.declare<cv::Mat>("image", "An input image.");
-    inputs.declare<cv::Mat>("mask", "An mask, same size as image.");
-  }
-};
+}
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/** Interface to descriptor extraction, reused by specific descriptor extractors
- */
-struct descriptor_extractor_interface
-{
-  static void
-  declare_outputs(tendrils& outputs)
-  {
-    outputs.declare<cv::Mat>("descriptors", "The descriptors per keypoints");
-  }
-  static void
-  declare_inputs(tendrils& inputs)
-  {
-    inputs.declare<cv::Mat>("image", "An input image.");
-    inputs.declare<cv::Mat>("mask", "An mask, same size as image.");
-    inputs.declare<std::vector<cv::KeyPoint> >("keypoints", "The keypoints.");
-    inputs.declare<cv::Mat>("points", "2d points.");
-
-  }
-};
-#endif
+ECTO_CELL(features2d, EctoDescriptorExtractor<ORB>, "ORBDescriptor", "An ORB descriptor extractor.");

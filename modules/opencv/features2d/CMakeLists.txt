@@ -1,7 +1,9 @@
 ectomodule(features2d
   module.cpp
+  DescriptorExtractor.cpp
   DrawKeypoints.cpp
   FeatureDetector.cpp
+  interfaces.cpp
   match_draw.cpp
   matcher.cpp
   ORB.cpp

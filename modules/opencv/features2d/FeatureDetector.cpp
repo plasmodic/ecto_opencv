@@ -37,31 +37,13 @@
 
 #include <ecto/ecto.hpp>
 
+#include <boost/bind.hpp>
 #include <boost/foreach.hpp>
 #include <boost/filesystem.hpp>
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/features2d/features2d.hpp>
 #include "interfaces.hpp"
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-std::string
-temporary_yml_file_name()
-{
-  std::string fname;
-  {
-    char buffer[L_tmpnam];
-    char* p = std::tmpnam(buffer);
-    if (p != NULL)
-    {
-      fname = std::string(buffer) + ".yml";
-    }
-    else
-      throw std::runtime_error("Could not create temporary filename!");
-  }
-  return fname;
-}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -100,35 +82,7 @@ struct EctoFeatureDetector
   {
     feature_detector_ = cv::FeatureDetector::create(feature_detector_type_names[T]);
 
-    // Get the binary file
-    std::string file_name = temporary_yml_file_name();
-
-    // Read it
-    {
-      cv::FileStorage fs(file_name, cv::FileStorage::WRITE);
-      BOOST_FOREACH(const ecto::tendrils::value_type &tendril_pair, params)
-          {
-            std::string tendril_name = tendril_pair.first;
-            const ecto::tendril & tendril = *(tendril_pair.second);
-            std::string type_name = tendril.type_name();
-            fs << tendril_name;
-            if (type_name == "int")
-              fs << tendril.get<int>();
-            else if (type_name == "float")
-              fs << tendril.get<float>();
-            else
-            {
-              std::string error_message = "Unsupported type: ";
-              error_message += type_name;
-              throw std::runtime_error(error_message);
-            }
-          }
-    }
-
-    cv::FileStorage fs(file_name, cv::FileStorage::READ);
-    feature_detector_->read(fs.root());
-
-    boost::filesystem::remove(file_name.c_str());
+    read_tendrils_as_file_node(params, boost::bind(&cv::FeatureDetector::read, &(*feature_detector_), _1));
   }
 
   int
@@ -172,4 +126,4 @@ EctoFeatureDetector<FAST>::declare_params(tendrils& p)
   p.declare<bool>("nonmax", "Use the FAST nonmax suppression.", true);
 }
 
-ECTO_CELL(features2d, EctoFeatureDetector<FAST>, "FAST", "A FAST feature detector.");
+ECTO_CELL(features2d, EctoFeatureDetector<FAST>, "FASTFeature", "A FAST feature detector.");
