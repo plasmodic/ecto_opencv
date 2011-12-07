@@ -21,6 +21,8 @@ Dependencies
  - python
  - ecto https://github.com/plasmodic/ecto
  - opencv2.3 deb from packages.ros.org, or source install from https://code.ros.org/svn/opencv/branches/2.3/opencv
+ - python numpy dev libraries
+
 
 Style
 -----------------------------------------------
