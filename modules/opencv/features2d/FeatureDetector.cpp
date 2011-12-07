@@ -50,14 +50,14 @@
 /** This is an enum on the different supported types */
 enum FeatureDetectorType
 {
-  ORB, FAST
+  FAST, ORB, SIFT
 };
 
 const char* feature_detector_type_names_tmp[] =
-{ "ORB", "FAST" };
+{ "FAST", "ORB", "SIFT" };
 /** This is the corresponding list of OpenCV names for each Detector type */
 const std::vector<std::string> feature_detector_type_names(feature_detector_type_names_tmp,
-                                                           feature_detector_type_names_tmp + 2);
+                                                           feature_detector_type_names_tmp + 3);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -108,6 +108,18 @@ struct EctoFeatureDetector
 
 template<>
 void
+EctoFeatureDetector<FAST>::declare_params(tendrils& p)
+{
+  p.declare<int>("thresh", "The FAST threshold. 20 is a decent value.", 20);
+  p.declare<bool>("nonmax", "Use the FAST nonmax suppression.", true);
+}
+
+ECTO_CELL(features2d, EctoFeatureDetector<FAST>, "FASTFeature", "A FAST feature detector.");
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+template<>
+void
 EctoFeatureDetector<ORB>::declare_params(tendrils& p)
 {
   p.declare<int>("n_features", "The number of desired features", 1000);
@@ -122,10 +134,14 @@ ECTO_CELL(features2d, EctoFeatureDetector<ORB>, "ORBFeature", "An ORB feature de
 
 template<>
 void
-EctoFeatureDetector<FAST>::declare_params(tendrils& p)
+EctoFeatureDetector<SIFT>::declare_params(tendrils& p)
 {
-  p.declare<int>("thresh", "The FAST threshold. 20 is a decent value.", 20);
-  p.declare<bool>("nonmax", "Use the FAST nonmax suppression.", true);
+  p.declare<float>("threshold", "");
+  p.declare<float>("edgeThreshold", "");
+  p.declare<int>("nOctaves", "", cv::SIFT::CommonParams::DEFAULT_NOCTAVES);
+  p.declare<int>("nOctaveLayers", "", cv::SIFT::CommonParams::DEFAULT_NOCTAVE_LAYERS);
+  p.declare<int>("firstOctave", "", cv::SIFT::CommonParams::DEFAULT_FIRST_OCTAVE);
+  p.declare<int>("angleMode", "", cv::SIFT::CommonParams::FIRST_ANGLE);
 }
 
-ECTO_CELL(features2d, EctoFeatureDetector<FAST>, "FASTFeature", "A FAST feature detector.");
+ECTO_CELL(features2d, EctoFeatureDetector<SIFT>, "SIFTFeature", "A SIFT feature detector.");

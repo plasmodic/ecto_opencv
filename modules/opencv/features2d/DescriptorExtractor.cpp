@@ -111,3 +111,19 @@ EctoDescriptorExtractor<ORB>::declare_params(tendrils& p)
 }
 
 ECTO_CELL(features2d, EctoDescriptorExtractor<ORB>, "ORBDescriptor", "An ORB descriptor extractor.");
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+template<>
+void
+EctoDescriptorExtractor<SIFT>::declare_params(tendrils& p)
+{
+  p.declare<float>("threshold", "");
+  p.declare<float>("edgeThreshold", "");
+  p.declare<int>("nOctaves", "", cv::SIFT::CommonParams::DEFAULT_NOCTAVES);
+  p.declare<int>("nOctaveLayers", "", cv::SIFT::CommonParams::DEFAULT_NOCTAVE_LAYERS);
+  p.declare<int>("firstOctave", "", cv::SIFT::CommonParams::DEFAULT_FIRST_OCTAVE);
+  p.declare<int>("angleMode", "", cv::SIFT::CommonParams::FIRST_ANGLE);
+}
+
+ECTO_CELL(features2d, EctoDescriptorExtractor<SIFT>, "SIFTDescriptor", "A SIFT feature detector.");

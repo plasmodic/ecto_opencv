@@ -4,11 +4,12 @@ ectomodule(features2d
   DrawKeypoints.cpp
   FeatureDetector.cpp
   interfaces.cpp
+  KeypointsToMat.cpp
   match_draw.cpp
   matcher.cpp
   ORB.cpp
   ransac_est.cpp
-  KeypointsToMat.cpp
+  SIFT.cpp
   )
 
 link_ecto(features2d ${OpenCV_LIBS})
