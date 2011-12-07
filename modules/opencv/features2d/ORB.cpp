@@ -4,6 +4,8 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/features2d/features2d.hpp>
 #include "interfaces.hpp"
+#include "hamming.h"
+#include <numeric>
 
 /** Cell for ORB feature detection and descriptor extraction
  */
@@ -78,5 +80,43 @@ struct ORB
   cv::ORB::CommonParams orb_params_;
 };
 
+struct ORBstats
+{
+  typedef ORBstats C;
+
+  static void
+  declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
+  {
+    inputs.declare(&C::in_descriptors, "descriptors", "The input descriptors.");
+    outputs.declare(&C::out_hist, "distances", "A histogram of the distances in this set.");
+
+  }
+
+  int
+  process(const tendrils& inputs, const tendrils& outputs)
+  {
+    std::vector<int> distances(256, 0);
+    cv::Mat desc;
+    in_descriptors->copyTo(desc);
+    while (desc.rows)
+    {
+      cv::Mat desc_i;
+      desc.row(desc.rows - 1).copyTo(desc_i);
+      desc.pop_back(1);
+      for (int i = 0, end = desc.rows; i < end; i++)
+      {
+        size_t distance = HammingOperator()(desc_i.data, desc.row(i).data, desc.cols);
+        distances[distance]++;
+      }
+    }
+    *out_hist = cv::Mat(distances).clone();
+    return ecto::OK;
+  }
+
+  ecto::spore<cv::Mat> in_descriptors;
+  ecto::spore<cv::Mat> out_hist;
+};
+
 ECTO_CELL(features2d, ORB, "ORB",
           "An ORB detector. Takes a image and a mask, and computes keypoints and descriptors(32 byte binary).");
+ECTO_CELL(features2d, ORBstats, "ORBstats", "Prints stats on ORB descriptors.");
