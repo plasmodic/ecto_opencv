@@ -79,7 +79,35 @@ struct ORB
   cv::ORB orb_;
   cv::ORB::CommonParams orb_params_;
 };
+struct DescriptorAccumulator
+{
+  typedef DescriptorAccumulator C;
 
+  static void
+  declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
+  {
+    inputs.declare(&C::in_descriptors, "descriptors", "The input descriptors.");
+    outputs.declare(&C::out_descriptors, "descriptors", "A cumulative view of all descriptors.");
+  }
+
+  int
+  process(const tendrils& inputs, const tendrils& outputs)
+  {
+    cv::Mat desc;
+    in_descriptors->copyTo(desc);
+    if (cumulative_desc_.empty())
+    {
+      cumulative_desc_ = desc;
+      return ecto::OK;
+    }
+    cumulative_desc_.push_back(desc);
+    cumulative_desc_.copyTo(*out_descriptors);
+    return ecto::OK;
+  }
+  cv::Mat cumulative_desc_;
+  ecto::spore<cv::Mat> in_descriptors;
+  ecto::spore<cv::Mat> out_descriptors;
+};
 struct ORBstats
 {
   typedef ORBstats C;
@@ -112,11 +140,10 @@ struct ORBstats
     *out_hist = cv::Mat(distances).clone();
     return ecto::OK;
   }
-
   ecto::spore<cv::Mat> in_descriptors;
   ecto::spore<cv::Mat> out_hist;
 };
-
 ECTO_CELL(features2d, ORB, "ORB",
           "An ORB detector. Takes a image and a mask, and computes keypoints and descriptors(32 byte binary).");
 ECTO_CELL(features2d, ORBstats, "ORBstats", "Prints stats on ORB descriptors.");
+ECTO_CELL(features2d, DescriptorAccumulator, "DescriptorAccumulator", "Accumulates descriptors.");

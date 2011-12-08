@@ -16,11 +16,12 @@ struct SIFT
   {
     p.declare<float>("threshold", "");
     p.declare<float>("edgeThreshold", "");
-    p.declare<int>("nOctaves", "", cv::SIFT::CommonParams::DEFAULT_NOCTAVES);
-    p.declare<int>("nOctaveLayers", "", cv::SIFT::CommonParams::DEFAULT_NOCTAVE_LAYERS);
-    p.declare<int>("firstOctave", "", cv::SIFT::CommonParams::DEFAULT_FIRST_OCTAVE);
-    p.declare<int>("angleMode", "", cv::SIFT::CommonParams::FIRST_ANGLE);
-  }
+//    p.declare<int>("nOctaves", "", cv::SIFT::CommonParams::DEFAULT_NOCTAVES);
+//    p.declare<int>("nOctaveLayers", "", cv::SIFT::CommonParams::DEFAULT_NOCTAVE_LAYERS);
+//    p.declare<int>("firstOctave", "", cv::SIFT::CommonParams::DEFAULT_FIRST_OCTAVE);
+//    p.declare<int>("angleMode", "", cv::SIFT::CommonParams::FIRST_ANGLE);
+//
+    }
 
   static void
   declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)

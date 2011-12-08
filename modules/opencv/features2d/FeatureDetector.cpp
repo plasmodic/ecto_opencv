@@ -138,10 +138,10 @@ EctoFeatureDetector<SIFT>::declare_params(tendrils& p)
 {
   p.declare<float>("threshold", "");
   p.declare<float>("edgeThreshold", "");
-  p.declare<int>("nOctaves", "", cv::SIFT::CommonParams::DEFAULT_NOCTAVES);
-  p.declare<int>("nOctaveLayers", "", cv::SIFT::CommonParams::DEFAULT_NOCTAVE_LAYERS);
-  p.declare<int>("firstOctave", "", cv::SIFT::CommonParams::DEFAULT_FIRST_OCTAVE);
-  p.declare<int>("angleMode", "", cv::SIFT::CommonParams::FIRST_ANGLE);
+//  p.declare<int>("nOctaves", "", cv::SIFT::CommonParams::DEFAULT_NOCTAVES);
+//  p.declare<int>("nOctaveLayers", "", cv::SIFT::CommonParams::DEFAULT_NOCTAVE_LAYERS);
+//  p.declare<int>("firstOctave", "", cv::SIFT::CommonParams::DEFAULT_FIRST_OCTAVE);
+//  p.declare<int>("angleMode", "", cv::SIFT::CommonParams::FIRST_ANGLE);
 }
 
 ECTO_CELL(features2d, EctoFeatureDetector<SIFT>, "SIFTFeature", "A SIFT feature detector.");

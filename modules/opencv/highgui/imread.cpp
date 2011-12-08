@@ -33,10 +33,10 @@ namespace ecto_opencv
     {
       std::string file;
       params["image_file"] >> file;
-      cv::Mat image = cv::imread(file, CV_LOAD_IMAGE_UNCHANGED);
+      cv::Mat image = cv::imread(file);
       outputs["image"] << image;
       std::cout << "read Image:" << file << std::endl;
-      std::cout << image.cols << ":" << image.rows << std::endl;
+      std::cout << image.cols << ":" << image.rows << " channels:" << image.channels() << std::endl;
     }
 
   };

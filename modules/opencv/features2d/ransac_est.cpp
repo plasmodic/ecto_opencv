@@ -385,9 +385,11 @@ struct MatchRefinementHSvd
     *found_out = false;
     matches_t good_matches, good_matches_H;
     std::remove_copy_if(matches_in->begin(), matches_in->end(), std::back_inserter(good_matches),
-                        match_distance_predicate<55>());
+                        match_distance_predicate<70>());
     if (good_matches.size() < *min_inliers)
       return ecto::OK;
+
+    std::cout << good_matches.size() << std::endl;
 
     //collate the matches into contiguous blocks of 3d points.
     points_t train_pts;
@@ -426,8 +428,9 @@ struct MatchRefinementHSvd
     *R_out = R;
     *T_out = T;
     *matches_out = good_matches;
-    *matches_mask = inlier_mask;
+    *matches_mask = cv::Mat();//inlier_mask;
     float inlier_percentage = 100 * float(demeaned_train_pts.size()) / good_matches.size();
+    std::cout << inlier_percentage << std::endl;
     *found_out = inlier_percentage > *inlier_thresh && *min_inliers / 2 < demeaned_test_pts.size();
     return ecto::OK;
   }
