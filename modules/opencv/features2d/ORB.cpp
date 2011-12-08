@@ -3,7 +3,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/features2d/features2d.hpp>
-#include "interfaces.hpp"
+#include "interfaces.h"
 #include "hamming.h"
 #include <numeric>
 

@@ -1,11 +1,8 @@
 #include <ecto/ecto.hpp>
 #include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/features2d/features2d.hpp>
-#include "interfaces.hpp"
-#include "hamming.h"
-#include <numeric>
+
+#include "interfaces.h"
 
 /** Cell for ORB feature detection and descriptor extraction
  */
@@ -16,10 +13,7 @@ struct SIFT
   {
     p.declare<float>("threshold", "");
     p.declare<float>("edgeThreshold", "");
-    p.declare<int>("nOctaves", "", cv::SIFT::CommonParams::DEFAULT_NOCTAVES);
-    p.declare<int>("nOctaveLayers", "", cv::SIFT::CommonParams::DEFAULT_NOCTAVE_LAYERS);
-    p.declare<int>("firstOctave", "", cv::SIFT::CommonParams::DEFAULT_FIRST_OCTAVE);
-    p.declare<int>("angleMode", "", cv::SIFT::CommonParams::FIRST_ANGLE);
+    SIFT_interface::declare_common_params(p);
   }
 
   static void

@@ -1,6 +1,6 @@
 #include <ecto/ecto.hpp>
 #include <opencv2/features2d/features2d.hpp>
-#include "interfaces.hpp"
+#include "interfaces.h"
 
 /** Interface to cv::drawKeypoints, to draw keypoints to an image
  */
