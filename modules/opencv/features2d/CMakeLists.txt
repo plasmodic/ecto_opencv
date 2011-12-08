@@ -5,6 +5,7 @@ ectomodule(features2d
   FeatureDetector.cpp
   interfaces.cpp
   KeypointsToMat.cpp
+  MatchesToMat.cpp
   match_draw.cpp
   matcher.cpp
   ORB.cpp

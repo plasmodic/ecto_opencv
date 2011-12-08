@@ -93,4 +93,12 @@ boost::python::enum_<ecto_opencv::Record::RecordCommands>("RecordCommands")
     .value("STOP", ecto_opencv::Record::STOP)
     .export_values()
     ;
+boost::python::enum_<ecto_opencv::Image::Modes>("ImageMode")
+    .value("GRAYSCALE",ecto_opencv::Image::GRAYSCALE)
+    .value("COLOR",ecto_opencv::Image::COLOR)
+    .value("UNCHANGED",ecto_opencv::Image::UNCHANGED)
+    .value("ANYCOLOR",ecto_opencv::Image::ANYCOLOR)
+    .value("ANYDEPTH",ecto_opencv::Image::ANYDEPTH)
+    .export_values()
+    ;
 }

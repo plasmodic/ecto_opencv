@@ -114,6 +114,21 @@ namespace
     const cv::Mat& test;
   };
 
+  struct match_distance_predicate_
+  {
+    match_distance_predicate_(double dist)
+        :
+          dist(dist)
+    {
+    }
+    bool
+    operator()(const cv::DMatch& m) const
+    {
+      return m.distance > dist;
+    }
+    double dist;
+  };
+
   template<int dist>
   struct match_distance_predicate
   {
@@ -172,16 +187,18 @@ namespace
 }
 struct MatchRefinement
 {
+  typedef MatchRefinement C;
+
   static void
   declare_params(tendrils& p)
   {
+    p.declare(&C::match_distance, "match_distance", "The match distance threshhold.", 120);
   }
   static void
   declare_io(const tendrils& p, tendrils& inputs, tendrils& outputs)
   {
-    typedef MatchRefinement C;
-    inputs.declare(&C::train, "train", "The training kpts.");
-    inputs.declare(&C::test, "test", "The test kpts.");
+    inputs.declare(&C::train, "train", "The training points.");
+    inputs.declare(&C::test, "test", "The test points.");
     inputs.declare(&C::matches_in, "matches", "The descriptor matches.");
     outputs.declare(&C::matches_out, "matches", "The verified matches.");
     outputs.declare(&C::matches_mask, "matches_mask", "The matches mask, same size as the original matches.");
@@ -191,31 +208,34 @@ struct MatchRefinement
   int
   process(const tendrils&inputs, const tendrils& outputs)
   {
+
     if (matches_in->empty())
       return ecto::OK;
-    points_t train_pts, test_pts;
-    std::transform(matches_in->begin(), matches_in->end(), std::back_inserter(train_pts), select_train_2d(*train));
-    std::transform(matches_in->begin(), matches_in->end(), std::back_inserter(test_pts), select_test_2d(*test));
-    cv::Mat mask;
     matches_t good_matches;
+    std::remove_copy_if(matches_in->begin(), matches_in->end(), std::back_inserter(good_matches),
+                        match_distance_predicate_(*match_distance));
+
+    points_t train_pts, test_pts;
+    std::transform(good_matches.begin(), good_matches.end(), std::back_inserter(train_pts), select_train_2d(*train));
+    std::transform(good_matches.begin(), good_matches.end(), std::back_inserter(test_pts), select_test_2d(*test));
+    cv::Mat mask;
     if (test_pts.size() > 5 && train_pts.size() > 5)
     {
       cv::Mat H = cv::findHomography(test_pts, train_pts, CV_RANSAC, 10, mask);
-      std::remove_copy_if(matches_in->begin(), matches_in->end(), std::back_inserter(good_matches),
-                          mask_predicate(mask.begin<uchar>()));
       *H_out = H;
     }
     else
     {
       *H_out = cv::Mat();
     }
-    *matches_out = *matches_in;
+    *matches_out = good_matches;
     *matches_mask = mask;
     return ecto::OK;
   }
   ecto::spore<cv::Mat> train, test;
   ecto::spore<matches_t> matches_in, matches_out;
   ecto::spore<cv::Mat> matches_mask, H_out;
+  ecto::spore<double> match_distance;
 
 };
 
@@ -323,9 +343,10 @@ struct MatchRefinementPnP
     matches_t good_matches;
     std::remove_copy_if(matches_in->begin(), matches_in->end(), std::back_inserter(good_matches),
                         match_distance_predicate<50>());
-//    std::cout << "matches: " << good_matches.size() << std::endl;
+
     if (good_matches.size() < 50)
       return ecto::OK;
+
     //collate the matches into contiguous blocks of 3d points.
     points3d_t train_m;
     points_t test_m;
@@ -368,10 +389,10 @@ struct MatchRefinementHSvd
   static void
   declare_params(tendrils& p)
   {
-    p.declare(&C::n_iters, "n_iters", "number of ransac iterations", 100);
-    p.declare(&C::reprojection_error, "reprojection_error", "error threshold", 8);
-    p.declare(&C::min_inliers, "min_inliers", "minimum number of inliers", 25);
-    p.declare(&C::inlier_thresh, "inlier_thresh", "The inlier threshold of pose found.", 30);
+    p.declare(&C::n_iters, "n_iters", "number of ransac iterations", 200);
+    p.declare(&C::reprojection_error, "reprojection_error", "error threshold", 43.5);
+    p.declare(&C::min_inliers, "min_inliers", "minimum number of inliers", 100);
+    p.declare(&C::inlier_thresh, "inlier_thresh", "The inlier threshold of pose found.", 25);
   }
   static void
   declare_io(const tendrils& p, tendrils& inputs, tendrils& outputs)
@@ -393,13 +414,10 @@ struct MatchRefinementHSvd
   {
     *found_out = false;
     matches_t good_matches, good_matches_H;
-    //    std::cout << "Input matches: " << matches_in->size() << std::endl;
     std::remove_copy_if(matches_in->begin(), matches_in->end(), std::back_inserter(good_matches),
-                        match_distance_predicate<70>());
-    if (good_matches.size() < *min_inliers)
+                        match_distance_predicate<90>());
+    if (good_matches.size() < 2 * (*min_inliers))
       return ecto::OK;
-
-    std::cout << good_matches.size() << std::endl;
 
     //collate the matches into contiguous blocks of 3d points.
     points_t train_pts;
@@ -438,10 +456,12 @@ struct MatchRefinementHSvd
     *R_out = R;
     *T_out = T;
     *matches_out = good_matches;
-    *matches_mask = cv::Mat();//inlier_mask;
+    *matches_mask = inlier_mask;
     float inlier_percentage = 100 * float(demeaned_train_pts.size()) / good_matches.size();
-    std::cout << inlier_percentage << std::endl;
-    *found_out = inlier_percentage > *inlier_thresh && *min_inliers / 2 < demeaned_test_pts.size();
+//     std::cout << "inlier percentage: " << inlier_percentage << std::endl;
+//    std::cout << "number: " << good_matches.size() << std::endl;
+    *found_out = inlier_percentage > *inlier_thresh && ((*min_inliers) < demeaned_test_pts.size());
+    //std::cout << "pose good: " << (*found_out ? "YES" : "NO") << std::endl;
     return ecto::OK;
   }
   ecto::spore<cv::Mat> train_2d, test_2d, test_3d, train_3d, R_out, T_out;

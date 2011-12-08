@@ -7,6 +7,8 @@
 
 #include <iostream>
 #include <string>
+
+#include "highgui.h"
 using ecto::tendrils;
 
 namespace pt = boost::posix_time;
@@ -15,29 +17,38 @@ namespace ecto_opencv
 {
   struct imread
   {
+    typedef imread C;
     static void
     declare_params(tendrils& params)
     {
-      params.declare<std::string>("image_file", "The path to the image to read.", "lena.jpg");
+      params.declare(&C::image_file, "image_file", "The path to the image to read.", "lena.jpg");
+      params.declare(&C::mode, "mode", "The image read mode.", Image::COLOR);
     }
 
     static void
     declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
     {
       //set outputs
-      outputs.declare<cv::Mat>("image", "The image in full color.", cv::Mat());
+      outputs.declare(&C::image_out, "image", "The image in full color.", cv::Mat());
+    }
+    void
+    filechange(const std::string& file)
+    {
+      cv::Mat image = cv::imread(file, *mode);
+      *image_out = image;
+      std::cout << "read image:" << file << std::endl;
+      std::cout << "width:" << image.cols << " height:" << image.rows << " channels:" << image.channels() << std::endl;
     }
 
     void
     configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
     {
-      std::string file;
-      params["image_file"] >> file;
-      cv::Mat image = cv::imread(file);
-      outputs["image"] << image;
-      std::cout << "read Image:" << file << std::endl;
-      std::cout << image.cols << ":" << image.rows << " channels:" << image.channels() << std::endl;
+      image_file.set_callback(boost::bind(&imread::filechange, this, _1));
+      image_file.dirty(true);
     }
+    ecto::spore<cv::Mat> image_out;
+    ecto::spore<Image::Modes> mode;
+    ecto::spore<std::string> image_file;
 
   };
 }

@@ -35,7 +35,7 @@ namespace ecto_opencv
       params["filename_format"] >> format;
       //throw an error on bad format string
       boost::format(format) % 1;
-      in.declare(&C::image, "image", "The original image to draw the pose onto.").required(true);
+      in.declare(&C::image, "image", "The image to save.").required(true);
     }
 
     int
