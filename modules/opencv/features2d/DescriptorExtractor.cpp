@@ -42,7 +42,8 @@
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/features2d/features2d.hpp>
-#include "interfaces.hpp"
+
+#include "interfaces.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -120,10 +121,7 @@ EctoDescriptorExtractor<SIFT>::declare_params(tendrils& p)
 {
   p.declare<float>("threshold", "");
   p.declare<float>("edgeThreshold", "");
-//  p.declare<int>("nOctaves", "", cv::SIFT::CommonParams::DEFAULT_NOCTAVES);
-//  p.declare<int>("nOctaveLayers", "", cv::SIFT::CommonParams::DEFAULT_NOCTAVE_LAYERS);
-//  p.declare<int>("firstOctave", "", cv::SIFT::CommonParams::DEFAULT_FIRST_OCTAVE);
-//  p.declare<int>("angleMode", "", cv::SIFT::CommonParams::FIRST_ANGLE);
+  SIFT_interface::declare_common_params(p);
 }
 
 ECTO_CELL(features2d, EctoDescriptorExtractor<SIFT>, "SIFTDescriptor", "A SIFT feature detector.");
