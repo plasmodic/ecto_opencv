@@ -45,20 +45,36 @@ namespace calib
   void
   depth_mask(const cv::Mat& input, cv::Mat& output)
   {
-    if (input.depth() != CV_32F)
-      throw std::runtime_error("Expected input to be of floating point value, CV_32F");
-    output.create(input.size(), CV_8UC1);
-    output = cv::Scalar::all(255);
-    cv::Mat_<float>::const_iterator begin(input.begin<float>()), end(input.end<float>());
-    cv::Mat_<uint8_t>::iterator out_i(output.begin<uint8_t>());
-    while (begin != end)
-    {
-      float v = *begin;
-      *out_i = (!std::isnan(v)) * 255;
-      ++out_i;
-      ++begin;
-    }
+    if (input.depth() == CV_32F)
+      {
+	output.create(input.size(), CV_8UC1);
+	output = cv::Scalar::all(255);
+	cv::Mat_<float>::const_iterator begin(input.begin<float>()), end(input.end<float>());
+	cv::Mat_<uint8_t>::iterator out_i(output.begin<uint8_t>());
+	while (begin != end)
+	  {
+	    float v = *begin;
+	    *out_i = (!std::isnan(v)) * 255;
+	    ++out_i;
+	    ++begin;
+	  }
+      }
+
+    else if (input.depth() == CV_16U)
+      {
+	output.create(input.size(), CV_8UC1);
+	output = cv::Scalar::all(255);
+	cv::Mat_<uint16_t>::const_iterator begin(input.begin<uint16_t>()), end(input.end<uint16_t>());
+	cv::Mat_<uint8_t>::iterator out_i(output.begin<uint8_t>());
+	while (begin != end)
+	  *out_i++ = (*begin++ != 0)*255;
+      }
+
+    else
+      throw std::runtime_error("Expected input to be of floating point (CV_32F) or 16-bit depth (CV_16U)");
+
   }
+
   struct DepthMask
   {
 

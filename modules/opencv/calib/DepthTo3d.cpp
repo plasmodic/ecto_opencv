@@ -102,7 +102,7 @@ namespace calib
     int
     process(const tendrils& inputs, const tendrils& outputs)
     {
-      // Make sure we use foat types
+      // Make sure we use float types
       cv::Mat_<float> uv_float;
       if (points->depth() == (CV_32F))
         uv_float = *points;

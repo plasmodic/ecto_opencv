@@ -246,8 +246,17 @@ struct MatchRefinement3d
 
     std::remove_copy_if(matches_in->begin(), matches_in->end(), std::back_inserter(non_nan_matches),
                         nan_predicate(*train, *test));
+
+    //    std::cout << "Non-NAN matches: " << non_nan_matches.size() << std::endl;
+
     if (non_nan_matches.empty())
       return ecto::OK;
+
+    //need to preallocate the mask!
+    //    cv::Mat inl(1, non_nan_matches.size(), CV_8U, 1);
+    //    *matches_out = non_nan_matches;
+    //    *matches_mask = inl;
+
     //collate the matches into contiguous blocks of 3d points.
     std::vector<cv::Point3f> train_m, test_m;
     std::transform(non_nan_matches.begin(), non_nan_matches.end(), std::back_inserter(train_m),
@@ -369,8 +378,8 @@ struct MatchRefinementHSvd
   {
     inputs.declare(&C::train_2d, "train_2d", "The 2d training points.");
     inputs.declare(&C::test_2d, "test_2d", "The 2d test points.");
-    inputs.declare(&C::train_3d, "train_3d", "The 2d training points.");
-    inputs.declare(&C::test_3d, "test_3d", "The 2d test points.");
+    inputs.declare(&C::train_3d, "train_3d", "The 3d training points.");
+    inputs.declare(&C::test_3d, "test_3d", "The 3d test points.");
     inputs.declare(&C::matches_in, "matches", "The descriptor matches.");
     outputs.declare(&C::matches_out, "matches", "The verified matches.");
     outputs.declare(&C::matches_mask, "matches_mask", "The matches mask, same size as the original matches.");
@@ -384,6 +393,7 @@ struct MatchRefinementHSvd
   {
     *found_out = false;
     matches_t good_matches, good_matches_H;
+    //    std::cout << "Input matches: " << matches_in->size() << std::endl;
     std::remove_copy_if(matches_in->begin(), matches_in->end(), std::back_inserter(good_matches),
                         match_distance_predicate<70>());
     if (good_matches.size() < *min_inliers)
@@ -434,7 +444,7 @@ struct MatchRefinementHSvd
     *found_out = inlier_percentage > *inlier_thresh && *min_inliers / 2 < demeaned_test_pts.size();
     return ecto::OK;
   }
-  ecto::spore<cv::Mat> K, train_2d, test_2d, test_3d, train_3d, R_out, T_out;
+  ecto::spore<cv::Mat> train_2d, test_2d, test_3d, train_3d, R_out, T_out;
   ecto::spore<matches_t> matches_in, matches_out;
   ecto::spore<cv::Mat> matches_mask;
   ecto::spore<bool> found_out;
