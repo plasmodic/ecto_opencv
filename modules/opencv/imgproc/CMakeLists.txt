@@ -14,6 +14,8 @@ ectomodule(imgproc
     Scale.cpp
     Scharr.cpp
     Sobel.cpp
+    Split.cpp
+    SplitThree.cpp
     )
 
 link_ecto(imgproc ${OpenCV_LIBS})
