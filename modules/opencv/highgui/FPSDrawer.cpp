@@ -61,7 +61,7 @@ namespace ecto_opencv
       image.copyTo(output);
       draw(output, freq);
       out["image"] << output;
-      return 0;
+      return ecto::OK;
     }
     pt::ptime prev;
     size_t count;
