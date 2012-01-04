@@ -5,9 +5,7 @@ Author: Ethan Rublee <erublee@willowgarage.com>, Troy Straszheim <straszheim@wil
 Maintainer:  Ethan Rublee <erublee@willowgarage.com>
 Homepage:  http://ecto.willowgarage.com
 
-Depends: catkin, boost, ecto
+Depends: catkin, boost, ecto, opencv
 
 Catkin-CopyrightType:  willowgarage
-Catkin-ChangelogType: +catkin/changelog.em
-Catkin-DebRulesType: +catkin/rules.em
 
