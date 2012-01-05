@@ -50,7 +50,7 @@ namespace ecto_opencv
       {
         name = *filename;
       }
-      std::cout << "Saving image to : " << name << std::endl;
+//      std::cout << "Saving image to : " << name << std::endl;
       cv::imwrite(name, *image);
       return ecto::OK;
     }
