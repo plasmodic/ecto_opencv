@@ -61,13 +61,16 @@ namespace ecto_opencv
             std::cout << dir_itr->filename() << " " << e.what() << std::endl;
           }
       }
-      std::sort(images.rbegin(), images.rend()); //lexographic order.
-      BOOST_FOREACH(const std::string& s, images)
-        std::cout << ">>> " << s << "\n";
-      //std::cout << "Will read the following images in lexographic order:\n";
-      //std::copy(images.rbegin(), images.rend(), std::ostream_iterator<std::string>(std::cout, " "));
-      //std::cout << std::endl;
+      std::sort(images.begin(), images.end()); //lexographic order.
+
+      std::cout << "Will read the following images in lexographic order:\n";
+      std::copy(images.rbegin(), images.rend(), std::ostream_iterator<std::string>(std::cout, " "));
+      std::cout << std::endl;
+
+      iter = images.begin();
+      update_list = false;
     }
+
     void
     path_change(const std::string& path)
     {
@@ -77,9 +80,14 @@ namespace ecto_opencv
     }
 
     void
-    re_change(const std::string& ext)
+    re_change(const std::string& s)
     {
-      this->re = ext.c_str();
+      update_list = false;
+      if (this->re.str() != s)
+        {
+          this->re = s.c_str();
+          update_list = true;
+        }
     }
 
     void
@@ -94,23 +102,28 @@ namespace ecto_opencv
     int
     process(const tendrils& inputs, const tendrils& outputs)
     {
-      if (update_list || (images.empty() && loop))
-      {
-        update_list = false;
+      if (update_list)
         reset_list(path);
+
+      if (iter == images.end()) {
+        if (loop)
+          iter = images.begin();
+        else
+          return ecto::QUIT;
       }
-      if (images.empty())
-        return ecto::QUIT;
+
       //outputs.get is a reference;
-      outputs["image"] << cv::imread(images.back());
-      images.pop_back();
+      outputs["image"] << cv::imread(*iter);
+
       //increment our frame number.
       ++(outputs.get<int>("frame_number"));
+      ++iter;
       return 0;
     }
     std::string path;
     bool update_list, loop;
     std::vector<std::string> images;
+    std::vector<std::string>::iterator iter;
     boost::regex re;
   };
 }
