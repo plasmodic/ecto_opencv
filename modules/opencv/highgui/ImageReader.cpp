@@ -5,6 +5,8 @@
 #include <boost/format.hpp>
 #define BOOST_FILESYSTEM_VERSION 2
 #include <boost/filesystem.hpp>
+#include <boost/foreach.hpp>
+#include <boost/regex.hpp>
 
 #include <iostream>
 #include <algorithm>
@@ -17,18 +19,13 @@ namespace pt = boost::posix_time;
 namespace fs = boost::filesystem;
 namespace ecto_opencv
 {
-  namespace
-  {
-    const char * DEFAULT_EXT = ".png|.jpg|.bmp";
-  }
-
   struct ImageReader
   {
     static void
     declare_params(tendrils& params)
     {
       params.declare<std::string>("path", "The path to read images from.", "/tmp/ecto/rules");
-      params.declare<std::string>("ext", "The image extension to look for.", DEFAULT_EXT);
+      params.declare<std::string>("match", "Use images matching this regex (regex.  not glob.)",  ".*\\.(bmp|jpg|png)");
       params.declare<bool>("loop","Loop over the list",false);
     }
 
@@ -40,7 +37,7 @@ namespace ecto_opencv
     }
 
     void
-    reset_list(const std::string& path, const std::string& ext)
+    reset_list(const std::string& path)
     {
       fs::path x(path);
       if (!fs::is_directory(x))
@@ -55,18 +52,18 @@ namespace ecto_opencv
           if (fs::is_regular_file(dir_itr->status()))
           {
             fs::path x(*dir_itr);
-            std::string x_ext(x.extension());
-            //TODO make this more fancy...
-            if (x_ext.size() == 0 || ext.find(x_ext) == std::string::npos)
-              continue;
-            images.push_back(x.string());
+            if (boost::regex_match(x.string(), re))
+              images.push_back(x.string());
           }
-        } catch (const std::exception &)
-        {
-          //std::cout << dir_itr->filename() << " " << ex.what() << std::endl;
         }
+        catch (const std::exception &e)
+          {
+            std::cout << dir_itr->filename() << " " << e.what() << std::endl;
+          }
       }
       std::sort(images.rbegin(), images.rend()); //lexographic order.
+      BOOST_FOREACH(const std::string& s, images)
+        std::cout << ">>> " << s << "\n";
       //std::cout << "Will read the following images in lexographic order:\n";
       //std::copy(images.rbegin(), images.rend(), std::ostream_iterator<std::string>(std::cout, " "));
       //std::cout << std::endl;
@@ -80,11 +77,9 @@ namespace ecto_opencv
     }
 
     void
-    ext_change(const std::string& ext)
+    re_change(const std::string& ext)
     {
-      if (ext != this->ext)
-        update_list = true;
-      this->ext = ext;
+      this->re = ext.c_str();
     }
 
     void
@@ -92,9 +87,8 @@ namespace ecto_opencv
     {
       params["loop"] >> loop;
       update_list = true;
-      ext = DEFAULT_EXT; //default
       params["path"]->set_callback<std::string>(boost::bind(&ImageReader::path_change, this, _1));
-      params["ext"]->set_callback<std::string>(boost::bind(&ImageReader::ext_change, this, _1));
+      params["match"]->set_callback<std::string>(boost::bind(&ImageReader::re_change, this, _1));
     }
 
     int
@@ -103,7 +97,7 @@ namespace ecto_opencv
       if (update_list || (images.empty() && loop))
       {
         update_list = false;
-        reset_list(path, ext);
+        reset_list(path);
       }
       if (images.empty())
         return ecto::QUIT;
@@ -114,9 +108,10 @@ namespace ecto_opencv
       ++(outputs.get<int>("frame_number"));
       return 0;
     }
-    std::string path, ext;
+    std::string path;
     bool update_list, loop;
     std::vector<std::string> images;
+    boost::regex re;
   };
 }
 ECTO_CELL(highgui, ecto_opencv::ImageReader, "ImageReader", "Read images from a directory.");
