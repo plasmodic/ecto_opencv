@@ -16,6 +16,7 @@ ectomodule(imgproc
     Sobel.cpp
     Split.cpp
     SplitThree.cpp
+    Subtract.cpp
     )
 
 link_ecto(imgproc ${OpenCV_LIBS})
