@@ -40,20 +40,22 @@ namespace ecto_opencv
     reset_list(const std::string& path)
     {
       fs::path x(path);
+      std::cout << "Scanning " << path << "\n";
       if (!fs::is_directory(x))
         throw std::runtime_error(path + " is not a directory");
       //std::cout << "looking in " << x.string() << std::endl;
       images.clear();
-      fs::directory_iterator end_iter;
-      for (fs::directory_iterator dir_itr(path); dir_itr != end_iter; ++dir_itr)
+      fs::recursive_directory_iterator end_iter;
+      for (fs::recursive_directory_iterator dir_itr(path); dir_itr != end_iter; ++dir_itr)
       {
         try
         {
           if (fs::is_regular_file(dir_itr->status()))
           {
             fs::path x(*dir_itr);
-            if (boost::regex_match(x.string(), re))
+            if (boost::regex_match(x.string(), re)) {
               images.push_back(x.string());
+            }
           }
         }
         catch (const std::exception &e)
@@ -61,10 +63,17 @@ namespace ecto_opencv
             std::cout << dir_itr->filename() << " " << e.what() << std::endl;
           }
       }
+
+      if (images.size() == 0)
+        BOOST_THROW_EXCEPTION(ecto::except::EctoException() <<
+                              ecto::except::diag_msg("No files matched regular expression")
+                              );
+
       std::sort(images.begin(), images.end()); //lexographic order.
 
-      std::cout << "Will read the following images in lexographic order:\n";
-      std::copy(images.rbegin(), images.rend(), std::ostream_iterator<std::string>(std::cout, " "));
+      std::cout << "Will read the following " << images.size() << " images in lexographic order:\n";
+      std::copy(images.rbegin(), images.rend(),
+                std::ostream_iterator<std::string>(std::cout, " "));
       std::cout << std::endl;
 
       iter = images.begin();
