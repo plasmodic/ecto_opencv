@@ -25,7 +25,8 @@ namespace ecto_opencv
     declare_params(tendrils& params)
     {
       params.declare<std::string>("path", "The path to read images from.", "/tmp/ecto/rules");
-      params.declare<std::string>("match", "Use images matching this regex (regex.  not glob.)",  ".*\\.(bmp|jpg|png)");
+      params.declare<std::string>("match", "Use images matching this regex (regex.  not glob.)",
+                                  ".*\\.(bmp|jpg|png)");
       params.declare<bool>("loop","Loop over the list",false);
     }
 
@@ -71,10 +72,7 @@ namespace ecto_opencv
 
       std::sort(images.begin(), images.end()); //lexographic order.
 
-      std::cout << "Will read the following " << images.size() << " images in lexographic order:\n";
-      std::copy(images.rbegin(), images.rend(),
-                std::ostream_iterator<std::string>(std::cout, " "));
-      std::cout << std::endl;
+      std::cout << "ImageReader found " << images.size() << " images.\n";
 
       iter = images.begin();
       update_list = false;
@@ -122,7 +120,7 @@ namespace ecto_opencv
       }
 
       //outputs.get is a reference;
-      outputs["image"] << cv::imread(*iter);
+      outputs["image"] << cv::imread(*iter, CV_LOAD_IMAGE_UNCHANGED);
 
       //increment our frame number.
       ++(outputs.get<int>("frame_number"));
