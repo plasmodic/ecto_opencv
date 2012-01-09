@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 2.8)
 project(ecto_opencv)
+find_package(catkin REQUIRED)
+catkin_stack(ecto_opencv)
+
 set(${PROJECT_NAME}_GITHUB_URL https://github.com/plasmodic/ecto_opencv)
 
 if(NOT CMAKE_BUILD_TYPE)#Only do this the on the first run, if the build type hasn't been set prior
@@ -46,3 +49,8 @@ if(BUILD_TEST)
   add_subdirectory(test)
   add_subdirectory(samples)
 endif()
+
+catkin_project(ecto_opencv
+)
+
+catkin_add_env_hooks(10ecto_opencv.buildspace.sh 10ecto_opencv.install.sh)
