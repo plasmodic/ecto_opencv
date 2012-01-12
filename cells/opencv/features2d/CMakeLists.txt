@@ -5,6 +5,7 @@ ectomodule(features2d
   FeatureDetector.cpp
   interfaces.cpp
   KeypointsToMat.cpp
+  LshMatcher.cpp
   MatchesToMat.cpp
   match_draw.cpp
   matcher.cpp
@@ -13,7 +14,9 @@ ectomodule(features2d
   SIFT.cpp
   )
 
-link_ecto(features2d ${OpenCV_LIBS})
+link_ecto(features2d
+    ${OpenCV_LIBS}
+    opencv_candidate)
 install_ecto_module(features2d)
 #For Hamming distance
 set_target_properties(features2d_ectomodule PROPERTIES COMPILE_FLAGS "-msse4.2")
