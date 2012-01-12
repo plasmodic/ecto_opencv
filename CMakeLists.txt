@@ -41,8 +41,12 @@ install(FILES ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/__init__.py
   DESTINATION ${ecto_module_PYTHON_INSTALL} COMPONENT main
   )
 
-add_subdirectory(modules)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+add_subdirectory(cells)
 add_subdirectory(doc)
+add_subdirectory(src)
+
 option(BUILD_TEST "Build tests" ON)
 if(BUILD_TEST)
   enable_testing()

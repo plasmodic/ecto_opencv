@@ -4,7 +4,7 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/features2d/features2d.hpp>
 #include "interfaces.h"
-#include "hamming.h"
+#include <opencv_candidate/hamming.h>
 #include <numeric>
 
 /** Cell for ORB feature detection and descriptor extraction
