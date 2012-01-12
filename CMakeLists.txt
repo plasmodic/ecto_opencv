@@ -51,6 +51,8 @@ if(BUILD_TEST)
 endif()
 
 catkin_project(ecto_opencv
+ INCLUDE_DIRS
+ include
+ LIBRARIES opencv_candidate
 )
-
 catkin_add_env_hooks(10ecto_opencv.buildspace.sh 10ecto_opencv.install.sh)
