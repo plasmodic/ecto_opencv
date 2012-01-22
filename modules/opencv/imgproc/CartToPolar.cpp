@@ -33,7 +33,7 @@ namespace imgproc
       *angle = cv::Mat();
       *magnitude = cv::Mat();
       cv::cartToPolar(*x, *y, *magnitude, *angle, true);
-      return 0;
+      return ecto::OK;
     }
     spore<cv::Mat> x, y, angle, magnitude;
   };

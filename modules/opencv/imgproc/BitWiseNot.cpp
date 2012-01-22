@@ -21,7 +21,7 @@ namespace imgproc
       in["input"] >> input;
       cv::bitwise_not(input, output);
       out["out"] << output;
-      return 0;
+      return ecto::OK;
     }
   };
 }

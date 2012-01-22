@@ -25,7 +25,7 @@ namespace imgproc
     {
       *output_ = T();
       *output_ = *a_ + *b_;
-      return 0;
+      return ecto::OK;
     }
     spore<T> a_, b_, output_;
   };
