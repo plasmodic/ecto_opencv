@@ -6,9 +6,10 @@ ectomodule(imgproc
     BitWiseNot.cpp
     Canny.cpp
     CartToPolar.cpp
+    EqualizeHistogram.cpp
+    Erode.cpp
     cvtColor.cpp
     GaussianBlur.cpp
-    Erode.cpp
     NanRemove.cpp
     Quantize.cpp
     Scale.cpp
