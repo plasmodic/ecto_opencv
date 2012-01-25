@@ -61,4 +61,8 @@ namespace imgproc
     ecto::spore<cv::Mat> input, output1, output2;
   };
 }
+
+// Not a stateless cell, so make sure there is only one instance at a time of this . . .
+ECTO_THREAD_UNSAFE(imgproc::Pairwise);
+
 ECTO_CELL(imgproc, imgproc::Pairwise, "Pairwise", "Cell for doing pairwise image comparison of sequential images.\n First return duplicates the first input.  Later calls include the current image and the last that made its way throught the pipeline.");
