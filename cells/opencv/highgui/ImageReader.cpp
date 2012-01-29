@@ -28,6 +28,9 @@ namespace ecto_opencv
       params.declare<std::string>("match", "Use images matching this regex (regex.  not glob.)",
                                   ".*\\.(bmp|jpg|png)");
       params.declare<bool>("loop","Loop over the list",false);
+      params.declare(&ImageReader::file_list, "file_list","A list of images to read.");
+      params.declare(&ImageReader::step, "step","A list of images to read.", 1);
+
     }
 
     static void
@@ -35,6 +38,7 @@ namespace ecto_opencv
     {
       //set outputs
       declare_video_device_outputs(outputs);
+      outputs.declare(&ImageReader::image_file, "image_file", "The current image file being read");
     }
 
     void
@@ -44,7 +48,6 @@ namespace ecto_opencv
       std::cout << "Scanning " << path << "\n";
       if (!fs::is_directory(x))
         throw std::runtime_error(path + " is not a directory");
-      //std::cout << "looking in " << x.string() << std::endl;
       images.clear();
       fs::recursive_directory_iterator end_iter;
       for (fs::recursive_directory_iterator dir_itr(path); dir_itr != end_iter; ++dir_itr)
@@ -89,6 +92,7 @@ namespace ecto_opencv
     void
     re_change(const std::string& s)
     {
+      std::cout << "regex: " << s << std::endl;
       update_list = false;
       if (this->re.str() != s)
         {
@@ -98,18 +102,30 @@ namespace ecto_opencv
     }
 
     void
+    list_change(const std::vector<std::string>& l)
+    {
+      images = l;
+      update_list = false;
+      iter = images.begin();
+    }
+
+    void
     configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
     {
       params["loop"] >> loop;
-      update_list = true;
+      file_list.set_callback(boost::bind(&ImageReader::list_change,this,_1));
       params["path"]->set_callback<std::string>(boost::bind(&ImageReader::path_change, this, _1));
       params["match"]->set_callback<std::string>(boost::bind(&ImageReader::re_change, this, _1));
+      update_list = true;
+      params["path"]->dirty(true);
+      params["match"]->dirty(true);
+
     }
 
     int
     process(const tendrils& inputs, const tendrils& outputs)
     {
-      if (update_list)
+      if (update_list && file_list->empty())
         reset_list(path);
 
       if (iter == images.end()) {
@@ -121,10 +137,11 @@ namespace ecto_opencv
 
       //outputs.get is a reference;
       outputs["image"] << cv::imread(*iter, CV_LOAD_IMAGE_UNCHANGED);
-
+      *image_file = *iter;
       //increment our frame number.
       ++(outputs.get<int>("frame_number"));
-      ++iter;
+      for(int i = 0; i < *step && iter != images.end(); ++i)
+        ++iter;
       return 0;
     }
     std::string path;
@@ -132,6 +149,9 @@ namespace ecto_opencv
     std::vector<std::string> images;
     std::vector<std::string>::iterator iter;
     boost::regex re;
+    ecto::spore<int> step;
+    ecto::spore<std::string> image_file;
+    ecto::spore<std::vector<std::string> > file_list;
   };
 }
 ECTO_CELL(highgui, ecto_opencv::ImageReader, "ImageReader", "Read images from a directory.");
