@@ -29,8 +29,6 @@ namespace ecto_opencv
                                   ".*\\.(bmp|jpg|png)");
       params.declare<bool>("loop","Loop over the list",false);
       params.declare(&ImageReader::file_list, "file_list","A list of images to read.");
-      params.declare(&ImageReader::step, "step","A list of images to read.", 1);
-
     }
 
     static void
@@ -38,6 +36,8 @@ namespace ecto_opencv
     {
       //set outputs
       declare_video_device_outputs(outputs);
+      inputs.declare(&ImageReader::step, "step","The set at which to read the images.", 1);
+
       outputs.declare(&ImageReader::image_file, "image_file", "The current image file being read");
     }
 
@@ -142,7 +142,7 @@ namespace ecto_opencv
       ++(outputs.get<int>("frame_number"));
       for(int i = 0; i < *step && iter != images.end(); ++i)
         ++iter;
-      return 0;
+      return ecto::OK;
     }
     std::string path;
     bool update_list, loop;
