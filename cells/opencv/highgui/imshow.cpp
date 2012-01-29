@@ -238,7 +238,7 @@ namespace ecto_opencv
 
       runner->post_job(ImshowJob(image, window_name_, *full_screen_, auto_size_));
 
-      if (runner->testKey(waitkey_, 'q', true) || runner->testKey(waitkey_, 27, true))
+      if (runner->testKey(waitkey_, 'q', true) || runner->testKey(-1, 27, true))
       {
         runner->post_job(CloseWindow(window_name_));
         return ecto::QUIT;
@@ -246,7 +246,7 @@ namespace ecto_opencv
       typedef std::pair<int, ecto::spore<bool> > KeySporeT;
       BOOST_FOREACH(KeySporeT x, trigger_keys_)
           {
-            *(x.second) = runner->testKey(waitkey_, x.first, true);
+            *(x.second) = runner->testKey(-1, x.first, true);
           }
       return ecto::OK;
     }
