@@ -1,4 +1,6 @@
 #include <boost/python.hpp>
+#include <boost/python/suite/indexing/vector_indexing_suite.hpp>
+#include <boost/python/stl_iterator.hpp>
 
 #include <string>
 
@@ -63,6 +65,9 @@ namespace opencv_wrappers
     wrap_rect<int> ("Rect");
     wrap_rect<float> ("Rectf");
     wrap_rect<double> ("Rectd");
+
+    bp::class_<std::vector<cv::Point2f> > ("VectorPoint2f")
+     .def(bp::vector_indexing_suite<std::vector<cv::Point2f> >());
 
   }
 }
