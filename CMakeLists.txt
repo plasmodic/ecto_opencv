@@ -14,10 +14,9 @@ endif()
 add_definitions(-Wno-strict-aliasing)
 
 find_package(OpenCV REQUIRED)
-if (OpenCV_FOUND)
-  message(STATUS "OpenCV version: ${OpenCV_VERSION}")
-  message(STATUS "OpenCV headers: ${OpenCV_INCLUDE_DIRS}")
-endif()
+message(STATUS "OpenCV version: ${OpenCV_VERSION}")
+message(STATUS "OpenCV headers: ${OpenCV_INCLUDE_DIRS}")
+include_directories(${OpenCV_INCLUDE_DIRS})
 
 find_package(ecto REQUIRED)
 git_status(ecto_opencv)
@@ -30,10 +29,10 @@ endif()
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/ecto_opencv)
 
-configure_file(python/__init__.py.in 
+configure_file(python/__init__.py.in
   ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/__init__.py
   @ONLY)
-  
+
 ecto_python_env_gen(${CMAKE_BINARY_DIR}/lib ${CMAKE_CURRENT_SOURCE_DIR}/python)
 set_ecto_install_package_name(ecto_opencv)
 
