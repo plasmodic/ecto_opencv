@@ -1,7 +1,7 @@
 macro(validate_sample pyfile)
   string(REPLACE ";" " " args "${ARGN}")
   add_test(validate_opencv_${pyfile}
-    ${CMAKE_CURRENT_SOURCE_DIR}/validate_sample.sh ${CMAKE_BINARY_DIR}/python_path.sh ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/${pyfile}.py ${args}
+    ${CATKIN_ENV} ${CMAKE_CURRENT_SOURCE_DIR}/validate_sample.sh ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/${pyfile}.py ${args}
     )
 endmacro()
 
@@ -17,7 +17,7 @@ validate_sample(rescale)
 macro(desktop_test_sample pyfile)
   string(REPLACE ";" " " args "${ARGN}")
   add_test(desktop_test_opencv_${pyfile}
-    ${CMAKE_CURRENT_SOURCE_DIR}/desktop_test.sh ${CMAKE_BINARY_DIR}/python_path.sh ${CMAKE_CURRENT_SOURCE_DIR}/${pyfile}.py ${args}
+    ${CATKIN_ENV} ${CMAKE_CURRENT_SOURCE_DIR}/desktop_test.sh ${CMAKE_CURRENT_SOURCE_DIR}/${pyfile}.py ${args}
     )
 endmacro()
 
