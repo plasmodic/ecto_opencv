@@ -45,7 +45,6 @@ namespace ecto_opencv
     reset_list(const std::string& path)
     {
       fs::path x(path);
-      std::cout << "Scanning " << path << "\n";
       if (!fs::is_directory(x))
         throw std::runtime_error(path + " is not a directory");
       images.clear();
@@ -75,8 +74,6 @@ namespace ecto_opencv
 
       std::sort(images.begin(), images.end()); //lexographic order.
 
-      std::cout << "ImageReader found " << images.size() << " images.\n";
-
       iter = images.begin();
       update_list = false;
     }
@@ -92,7 +89,6 @@ namespace ecto_opencv
     void
     re_change(const std::string& s)
     {
-      std::cout << "regex: " << s << std::endl;
       update_list = false;
       if (this->re.str() != s)
         {
