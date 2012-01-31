@@ -33,7 +33,6 @@ configure_file(python/__init__.py.in
   ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/__init__.py
   @ONLY)
 
-ecto_python_env_gen(${CMAKE_BINARY_DIR}/lib ${CMAKE_CURRENT_SOURCE_DIR}/python)
 set_ecto_install_package_name(ecto_opencv)
 
 install(FILES ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/__init__.py
