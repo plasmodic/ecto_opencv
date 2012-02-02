@@ -100,21 +100,11 @@ namespace calib
       cv::Mat rvec;
       cv::Rodrigues(R, rvec);
       cv::projectPoints(box, R, -T, K, cv::Mat::zeros(1, 4, CV_64F), projected);
-//      std::cout << "Rvec: " << rvec << std::endl;
-//      std::cout << "T: " << T << std::endl;
-//      std::cout << "K: " << K << std::endl;
-//      std::cout << "Box: " << cv::Mat(box) << std::endl;
-//      std::cout << "Projected: " << cv::Mat(projected) << std::endl;
 
       cv::convexHull(projected, hull, true);
       std::vector<cv::Point> points(hull.size());
       std::copy(hull.begin(), hull.end(), points.begin());
       cv::fillConvexPoly(box_mask, points.data(), points.size(), cv::Scalar::all(255));
-//
-//      out["mask"] << cv::Mat(box_mask);
-//      return ecto::OK;
-      int width = mask.size().width;
-      int height = mask.size().height;
 
       cv::Mat_<cv::Vec3f> points3d;
       depthTo3dMask(K, depth, box_mask, points3d);
@@ -141,7 +131,11 @@ namespace calib
         p_r = Rx * (p - Tx);
         int u = p(0) * fx / p(2) + cx + 0.5;
         int v = p(1) * fx / p(2) + cy + 0.5;
-        if (p_r(2) > z_min_ && p_r(2) < z_max_ && p_r(0) > x_min_ && p_r(0) < x_max_ && p_r(1) > y_min_
+        if (p_r(2) > z_min_
+            && p_r(2) < z_max_
+            && p_r(0) > x_min_
+            && p_r(0) < x_max_
+            && p_r(1) > y_min_
             && p_r(1) < y_max_)
           mask.at<uint8_t>(v, u) = 255;
       }

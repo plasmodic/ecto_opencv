@@ -11,7 +11,7 @@ if(NOT CMAKE_BUILD_TYPE)#Only do this the on the first run, if the build type ha
       FORCE)
 endif()
 
-add_definitions(-Wno-strict-aliasing)
+add_definitions(-Wno-strict-aliasing -Wall -Werror)
 
 find_package(OpenCV REQUIRED)
 message(STATUS "OpenCV version: ${OpenCV_VERSION}")

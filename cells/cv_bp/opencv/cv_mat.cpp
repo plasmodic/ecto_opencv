@@ -311,11 +311,6 @@ namespace
   {
     return m.t();
   }
-  //overloaded function pointers
-  void
-  (*mat_set_p2)(cv::Mat&, bp::object) = mat_set;
-  void
-  (*mat_set_p3)(cv::Mat&, bp::object, int) = mat_set;
 
 }
 
