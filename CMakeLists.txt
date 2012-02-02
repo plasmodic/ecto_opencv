@@ -42,7 +42,6 @@ install(FILES ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/__init__.py
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 add_subdirectory(cells)
-add_subdirectory(doc)
 add_subdirectory(src)
 
 option(BUILD_TEST "Build tests" ON)
@@ -57,5 +56,7 @@ catkin_project(ecto_opencv
  include
  LIBRARIES opencv_candidate
 )
+
+sphinx(${CMAKE_CURRENT_SOURCE_DIR}/doc doc)
 
 catkin_add_env_hooks(10ecto_opencv.buildspace.sh 10ecto_opencv.install.sh)
