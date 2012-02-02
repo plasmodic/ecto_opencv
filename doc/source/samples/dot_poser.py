@@ -1,1 +1,0 @@
-../../../samples/dot_poser.py
