@@ -23,7 +23,6 @@ namespace ecto_opencv
                      "Must accept one integer, %d. This integer will monotonically increase. "
                      "The extension determines the image format to write.",
                      "./image_%04d.png");
-      params.declare(&C::filename, "filename", "A single filename, set this for single file output.", "");
       params.declare(&C::count, "start",
                      "The starting integer value, that will be inserted into the filename format string", 0);
     }
@@ -36,6 +35,7 @@ namespace ecto_opencv
       //throw an error on bad format string
       boost::format(format) % 1;
       in.declare(&C::image, "image", "The image to save.").required(true);
+      in.declare(&C::filename, "filename", "A single filename, set this for single file output.", "");
     }
 
     int
