@@ -9,6 +9,7 @@ endif()
 ectomodule(highgui
     module.cpp
     FPSDrawer.cpp
+    DoubleDrawer.cpp
     FileIO.cpp
     ImageReader.cpp
     ImageSaver.cpp
