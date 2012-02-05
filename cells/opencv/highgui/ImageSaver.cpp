@@ -7,7 +7,9 @@
 
 #include <iostream>
 #include <string>
+
 using ecto::tendrils;
+using ecto::spore;
 
 namespace pt = boost::posix_time;
 namespace fs = boost::filesystem;
@@ -34,8 +36,11 @@ namespace ecto_opencv
       params["filename_format"] >> format;
       //throw an error on bad format string
       boost::format(format) % 1;
+
       in.declare(&C::image, "image", "The image to save.").required(true);
       in.declare(&C::filename, "filename", "A single filename, set this for single file output.", "");
+      //outputs.
+      out.declare(&C::filename_output,"filename", "The filename that was used for saving the last frame.");
     }
 
     int
@@ -50,13 +55,13 @@ namespace ecto_opencv
       {
         name = *filename;
       }
-//      std::cout << "Saving image to : " << name << std::endl;
       cv::imwrite(name, *image);
+      *filename_output = name;
       return ecto::OK;
     }
-    ecto::spore<cv::Mat> image;
-    ecto::spore<std::string> filename_format, filename;
-    ecto::spore<int> count;
+    spore<cv::Mat> image;
+    spore<std::string> filename_format, filename, filename_output;
+    spore<int> count;
   };
 }
 ECTO_CELL(highgui, ecto_opencv::ImageSaver, "ImageSaver", "An file saver for images.");
