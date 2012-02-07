@@ -19,6 +19,7 @@ ectomodule(imgproc
     Split.cpp
     SplitThree.cpp
     Subtract.cpp
+    VerticalStepFilter.cpp
     )
 
 link_ecto(imgproc ${OpenCV_LIBS})
