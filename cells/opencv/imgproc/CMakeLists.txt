@@ -10,6 +10,7 @@ ectomodule(imgproc
     Erode.cpp
     cvtColor.cpp
     GaussianBlur.cpp
+    MedianBlur.cpp
     NanRemove.cpp
     Quantize.cpp
     Scale.cpp
