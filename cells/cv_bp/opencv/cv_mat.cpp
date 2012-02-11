@@ -167,9 +167,13 @@ namespace
   mat_from_array(cv::Mat& m, bp::numeric::array array)
   {
     std::vector<npy_intp> shape = numpy_helpers::shape(array);
-    int cv_type = numpy_helpers::fromPyArray_TYPES(numpy_helpers::type(array));
+    int cv_depth = numpy_helpers::fromPyArray_TYPES(numpy_helpers::type(array));
+    if(shape.size() != 2 && shape.size() != 3)
+      throw std::runtime_error("Can't handle numpy arrays unless they are of dimensionality of 2 or 3");
+    int channels = shape.size() == 2? 1: shape[2];
+    int cv_type = CV_MAKETYPE(cv_depth, channels);
     m.create(shape[0], shape[1], cv_type);
-    numpy_helpers::copy_data(m.data, array);
+    numpy_helpers::copy_data(m.ptr(0), array);
   }
 
   bp::object
@@ -188,8 +192,7 @@ namespace
   mat_set(cv::Mat& m, bp::object o, int type)
   {
     //switch on the given type and use this type as the cv::Mat element type
-    switch(CV_MAT_DEPTH(type)
-)    {
+    switch(CV_MAT_DEPTH(type)){
       case CV_8U:
       mat_set_t<unsigned char> (m, o);
       break;
@@ -312,6 +315,13 @@ namespace
     return m.t();
   }
 
+  boost::shared_ptr<cv::Mat> from_numpy( bp::numeric::array array)
+  {
+    cv::Mat m;
+    mat_from_array(m,array);
+    return boost::shared_ptr<cv::Mat>(new cv::Mat(m));
+  }
+
 }
 
 namespace opencv_wrappers
@@ -331,11 +341,12 @@ namespace opencv_wrappers
     bp::implicitly_convertible<cv::Mat, cv::_OutputArray>();
 
     //mat definition
-    bp::class_<cv::Mat> Mat_("Mat");
+    bp::class_<cv::Mat, boost::shared_ptr<cv::Mat> > Mat_("Mat");
     Mat_.def(bp::init<>());
     Mat_.def(bp::init<int, int, int>());
     Mat_.def(bp::init<cv::Size, int>());
     Mat_.def(bp::init<buffer_t>());
+    Mat_.def("__init__", bp::make_constructor(from_numpy));
     Mat_.def_readonly("rows", &cv::Mat::rows, "the number of rows");
     Mat_.def_readonly("cols", &cv::Mat::cols, "the number of columns");
     Mat_.def("row", &cv::Mat::row, "get the row at index");
