@@ -183,6 +183,8 @@ namespace
     std::vector<int> dim(2);
     dim[0] = m.rows;
     dim[1] = m.cols;
+    if(m.channels() != 1)
+      dim.push_back(m.channels());
     bp::numeric::array array(numpy_helpers::makeNum(dim, numpy_helpers::fromCVDepth(m.depth())));
     numpy_helpers::copy_data(array, m.ptr(0));
     return array;
