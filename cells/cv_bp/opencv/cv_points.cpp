@@ -11,7 +11,15 @@ namespace bp = boost::python;
 namespace
 {
 
-template<typename T>
+  template<typename T>
+  cv::Point_<T>* make_point(bp::object o)
+  {
+    T x = bp::extract<T>(o[0]);
+    T y = bp::extract<T>(o[1]);
+    return  new cv::Point_<T>(x,y);
+  }
+
+  template<typename T>
   void wrap_point(const std::string& name)
   {
     typedef cv::Point_<T> Point_t;
@@ -19,6 +27,7 @@ template<typename T>
     Point_.def(bp::init<>());
     Point_.def(bp::init<T, T>());
     Point_.def(bp::init<Point_t>());
+    Point_.def("__init__",bp::make_constructor(&make_point<T>));
     Point_.def_readwrite("x", &Point_t::x);
     Point_.def_readwrite("y", &Point_t::y);
     Point_.def_readwrite("dot", &Point_t::dot);
