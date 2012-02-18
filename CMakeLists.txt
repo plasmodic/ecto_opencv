@@ -19,8 +19,6 @@ message(STATUS "OpenCV headers: ${OpenCV_INCLUDE_DIRS}")
 include_directories(${OpenCV_INCLUDE_DIRS})
 
 find_package(ecto REQUIRED)
-git_status(ecto_opencv)
-
 find_package(Boost COMPONENTS serialization filesystem system REQUIRED)
 
 if(NOT CMAKE_LIBRARY_OUTPUT_DIRECTORY)
