@@ -16,7 +16,7 @@ add_definitions(-Wno-strict-aliasing -Wall -Werror)
 find_package(OpenCV REQUIRED)
 message(STATUS "OpenCV version: ${OpenCV_VERSION}")
 message(STATUS "OpenCV headers: ${OpenCV_INCLUDE_DIRS}")
-include_directories(${OpenCV_INCLUDE_DIRS})
+include_directories(SYSTEM ${OpenCV_INCLUDE_DIRS})
 
 find_package(ecto REQUIRED)
 git_status(ecto_opencv)
