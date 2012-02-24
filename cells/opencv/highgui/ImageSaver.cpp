@@ -55,6 +55,12 @@ namespace ecto_opencv
       {
         name = *filename;
       }
+      fs::path p(name);
+      if (! fs::is_directory(p.parent_path()))
+        {
+          fs::create_directory(p.parent_path());
+        }
+
       cv::imwrite(name, *image);
       *filename_output = name;
       return ecto::OK;
