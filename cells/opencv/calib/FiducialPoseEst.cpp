@@ -32,7 +32,6 @@ namespace calib
         out_R->create(3, 3, CV_64F);
         return ecto::OK;
       }
-
       cv::Mat rvec, tvec;
       cv::solvePnP(*in_ideal, *in_points, *in_K, cv::Mat(), rvec, tvec, false);
       cv::Rodrigues(rvec, *out_R);

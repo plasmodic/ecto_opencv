@@ -5,7 +5,7 @@
 #include <opencv2/imgproc/imgproc.hpp>
 
 #include "calib.hpp"
-
+#include <boost/format.hpp>
 using ecto::tendrils;
 namespace calib
 {
@@ -18,9 +18,10 @@ namespace calib
 
       if (R.empty() || T.empty())
         return;
-      Point3f z(0, 0, 0.25);
-      Point3f x(0.25, 0, 0);
-      Point3f y(0, 0.25, 0);
+      float scale = 0.1;
+      Point3f z(0, 0, scale);
+      Point3f x(scale, 0, 0);
+      Point3f y(0, scale, 0);
       Point3f o(0, 0, 0);
       vector<Point3f> op(4);
       op[1] = x, op[2] = y, op[3] = z, op[0] = o;
@@ -35,7 +36,7 @@ namespace calib
       line(drawImage, ip[0], ip[1], c[1]);
       line(drawImage, ip[0], ip[2], c[2]);
       line(drawImage, ip[0], ip[3], c[3]);
-      string scaleText = "scale 0.25 meters";
+      string scaleText = boost::str(boost::format("scale %0.2f meters")%scale);
       int baseline = 0;
       Size sz = getTextSize(scaleText, CV_FONT_HERSHEY_SIMPLEX, 1, 1, &baseline);
       Point box_origin(10, drawImage.size().height - 10);

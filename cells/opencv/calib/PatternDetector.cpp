@@ -20,6 +20,10 @@ namespace calib
       switch (patternType)
       {
         case CHESSBOARD:
+          for (int i = boardSize.height -1; i >=0; i--)
+            for (int j = 0; j < boardSize.width; j++)
+              corners.push_back(cv::Point3f(float(j * squareSize), float(i * squareSize), 0) + offset);
+          break;
         case CIRCLES_GRID:
           for (int i = 0; i < boardSize.height; i++)
             for (int j = 0; j < boardSize.width; j++)
