@@ -25,17 +25,19 @@ if(NOT CMAKE_LIBRARY_OUTPUT_DIRECTORY)
   set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 endif()
 
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/ecto_opencv)
+set(python_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${PYTHON_PACKAGES_PATH}/ecto_opencv)
 
 configure_file(python/__init__.py.in
-  ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/__init__.py
-  @ONLY)
+               ${python_LIBRARY_OUTPUT_DIRECTORY}/__init__.py
+               @ONLY
+)
+
+install(FILES ${python_LIBRARY_OUTPUT_DIRECTORY}/__init__.py
+        DESTINATION ${ecto_module_PYTHON_INSTALL} COMPONENT main
+)
 
 set_ecto_install_package_name(ecto_opencv)
 
-install(FILES ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/__init__.py
-  DESTINATION ${ecto_module_PYTHON_INSTALL} COMPONENT main
-  )
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
