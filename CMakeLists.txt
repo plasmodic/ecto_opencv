@@ -32,12 +32,11 @@ configure_file(python/__init__.py.in
                @ONLY
 )
 
+set_ecto_install_package_name(ecto_opencv)
+
 install(FILES ${python_LIBRARY_OUTPUT_DIRECTORY}/__init__.py
         DESTINATION ${ecto_module_PYTHON_INSTALL} COMPONENT main
 )
-
-set_ecto_install_package_name(ecto_opencv)
-
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
