@@ -27,18 +27,25 @@ endif()
 
 set(python_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${PYTHON_PACKAGES_PATH}/ecto_opencv)
 
+set_ecto_install_package_name(ecto_opencv)
+
+# configure and install Python
 configure_file(python/__init__.py.in
                ${python_LIBRARY_OUTPUT_DIRECTORY}/__init__.py
                @ONLY
 )
 
-set_ecto_install_package_name(ecto_opencv)
-
 install(FILES ${python_LIBRARY_OUTPUT_DIRECTORY}/__init__.py
         DESTINATION ${ecto_module_PYTHON_INSTALL} COMPONENT main
 )
 
+# install the include directory
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/opencv_candidate
+        DESTINATION include/opencv_candidate
+        COMPONENT main
+)
 
 add_subdirectory(cells)
 add_subdirectory(src)
