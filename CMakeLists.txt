@@ -58,4 +58,4 @@ catkin_project(ecto_opencv
 
 #catkin_sphinx(${CMAKE_CURRENT_SOURCE_DIR}/doc doc)
 
-catkin_add_env_hooks(10ecto_opencv.buildspace.sh 10ecto_opencv.install.sh)
+catkin_add_env_hooks(10.ecto_opencv SHELLS all)
