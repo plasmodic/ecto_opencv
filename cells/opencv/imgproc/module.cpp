@@ -141,8 +141,6 @@ ECTO_DEFINE_MODULE(imgproc)
   eConversion.value("BayerRG2GRAY", BayerRG2GRAY);
   eConversion.value("BayerGR2GRAY", BayerGR2GRAY);
 
-  eConversion.value("YUV420i2RGB", YUV420i2RGB);
-  eConversion.value("YUV420i2BGR", YUV420i2BGR);
   eConversion.export_values();
 
   bp::enum_<Interpolation> eInterpolation("Interpolation");

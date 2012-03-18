@@ -147,9 +147,6 @@ namespace imgproc
     BayerGB2GRAY = CV_BayerGB2GRAY,
     BayerRG2GRAY = CV_BayerRG2GRAY,
     BayerGR2GRAY = CV_BayerGR2GRAY,
-
-    YUV420i2RGB = CV_YUV420i2RGB,
-    YUV420i2BGR = CV_YUV420i2BGR,
   };
 
   enum Morph
