@@ -60,7 +60,7 @@ add_library(${bp_opencv_target} SHARED
 
 set_target_properties(${bp_opencv_target}
   PROPERTIES
-  LIBRARY_OUTPUT_DIRECTORY ${python_LIBRARY_OUTPUT_DIRECTORY}
+  LIBRARY_OUTPUT_DIRECTORY ${ecto_module_PYTHON_OUTPUT}
   OUTPUT_NAME cv_bp
   PREFIX ""
   )

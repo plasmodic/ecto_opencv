@@ -25,19 +25,10 @@ if(NOT CMAKE_LIBRARY_OUTPUT_DIRECTORY)
   set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 endif()
 
-set(python_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${PYTHON_PACKAGES_PATH}/ecto_opencv)
-
 set_ecto_install_package_name(ecto_opencv)
 
 # configure and install Python
-configure_file(python/__init__.py.in
-               ${python_LIBRARY_OUTPUT_DIRECTORY}/__init__.py
-               @ONLY
-)
-
-install(FILES ${python_LIBRARY_OUTPUT_DIRECTORY}/__init__.py
-        DESTINATION ${ecto_module_PYTHON_INSTALL} COMPONENT main
-)
+catkin_python_setup()
 
 # install the include directory
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -64,5 +55,3 @@ catkin_project(ecto_opencv
 )
 
 #catkin_sphinx(${CMAKE_CURRENT_SOURCE_DIR}/doc doc)
-
-catkin_add_env_hooks(10.ecto_opencv SHELLS all)
