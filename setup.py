@@ -4,6 +4,6 @@ from distutils.core import setup
 setup(name='Ecto OpenCV',
       version='1.0.0',
       description='Ecto bindings for OpenCV',
-      packages=['ecto_opencv_py'],
+      packages=['ecto_opencv'],
       package_dir={'':'python'}
 )
