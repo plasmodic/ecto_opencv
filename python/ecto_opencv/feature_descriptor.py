@@ -16,9 +16,9 @@ class FeatureDescriptor(ecto.BlackBox):
 
     def declare_params(self, p):
         p.declare('json_feature_params', 'Parameters for the feature as a JSON string. '
-                  'It should have the format: "{"type":"ORB/SIFT whatever", "opencv_param_1":val1, ....}', '{}')
+                  'It should have the format: "{"type":"ORB/SIFT whatever", "opencv_param_1":val1, ....}', '{"type":"ORB"}')
         p.declare('json_descriptor_params', 'Parameters for the descriptor as a JSON string. '
-                  'It should have the format: "{"type":"ORB/SIFT whatever", "opencv_param_1":val1, ....}', '{}')
+                  'It should have the format: "{"type":"ORB/SIFT whatever", "opencv_param_1":val1, ....}', '{"type":"ORB"}')
 
     def declare_io(self, p, i, o):
         types = []
