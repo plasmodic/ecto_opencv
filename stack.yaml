@@ -1,8 +1,8 @@
 Catkin-ProjectName: ecto_opencv
-Version: 0.3.1
+Version: 0.3.2
 Description: Ecto bindings for common opencv functionality.
 Author: Ethan Rublee <erublee@willowgarage.com>, Troy Straszheim <straszheim@willowgarage.com>
-Maintainer:  Ethan Rublee <erublee@willowgarage.com>
+Maintainer:  Vincent Rabaud <vrabaud@willowgarage.com>
 Homepage:  http://ecto.willowgarage.com
 
 Depends: catkin, boost, ecto, opencv2
