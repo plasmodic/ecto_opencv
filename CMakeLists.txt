@@ -34,7 +34,7 @@ catkin_python_setup()
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/opencv_candidate
-        DESTINATION include/opencv_candidate
+        DESTINATION include
         COMPONENT main
 )
 
