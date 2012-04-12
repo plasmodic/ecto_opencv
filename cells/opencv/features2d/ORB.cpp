@@ -30,10 +30,7 @@ struct ORB
   void
   configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
   {
-    orb_params_.first_level_ = 0;
-    orb_params_.n_levels_ = params.get<int>("n_levels");
-    orb_params_.scale_factor_ = params.get<float>("scale_factor");
-    orb_ = cv::ORB(params.get<int>("n_features"), orb_params_);
+    orb_ = cv::ORB(params.get<int>("n_features"), params.get<float>("scale_factor"), params.get<int>("n_levels"));
   }
 
   int
@@ -77,7 +74,6 @@ struct ORB
   }
 
   cv::ORB orb_;
-  cv::ORB::CommonParams orb_params_;
 };
 struct DescriptorAccumulator
 {

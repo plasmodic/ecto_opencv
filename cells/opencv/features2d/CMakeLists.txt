@@ -14,6 +14,7 @@ ectomodule(features2d
   SIFT.cpp
   )
 
+find_package(OpenCV REQUIRED)
 link_ecto(features2d
     ${OpenCV_LIBS}
     opencv_candidate)

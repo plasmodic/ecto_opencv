@@ -27,11 +27,17 @@ struct SIFT
   void
   configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
   {
+#if (CV_MAJOR_VERSION > 2) || ((CV_MAJOR_VERSION == 2) && (CV_MINOR_VERSION >= 4))
+    sift_ = cv::SIFT();
+    sift_.set("nOctaveLayers", params.get<int>("nOctaveLayers"));
+#else
+    cv::SIFT::CommonParams common_params;
     common_params_.nOctaves = params.get<int>("nOctaves");
     common_params_.nOctaveLayers = params.get<int>("nOctaveLayers");
     common_params_.firstOctave = params.get<int>("firstOctave");
     common_params_.angleMode = params.get<int>("angleMode");
     sift_ = cv::SIFT(common_params_);
+#endif
   }
 
   int
@@ -53,7 +59,6 @@ struct SIFT
   }
 
   cv::SIFT sift_;
-  cv::SIFT::CommonParams common_params_;
 };
 
 ECTO_CELL(features2d, SIFT, "SIFT",

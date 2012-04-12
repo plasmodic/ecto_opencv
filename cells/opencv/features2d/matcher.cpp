@@ -28,7 +28,11 @@ struct Matcher
     cv::Mat train, test;
     inputs["train"] >> train;
     inputs["test"] >> test;
+#if (CV_MAJOR_VERSION > 2) || ((CV_MAJOR_VERSION == 2) && (CV_MINOR_VERSION >= 4))
+    cv::BFMatcher matcher(cv::NORM_HAMMING);
+#else
     cv::BruteForceMatcher<HammingOperator> matcher;
+#endif
     std::vector<cv::DMatch> matches;
     matcher.match(test, train, matches);
     outputs["matches"] << matches;

@@ -41,6 +41,9 @@
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/features2d/features2d.hpp>
+#if (CV_MAJOR_VERSION > 2) || ((CV_MAJOR_VERSION == 2) && (CV_MINOR_VERSION >= 4))
+#include <opencv2/nonfree/features2d.hpp>
+#endif
 
 using ecto::tendrils;
 
