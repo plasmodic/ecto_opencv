@@ -2,7 +2,7 @@ ecto opencv
 ===========
 
 ecto opencv is a collection of cells that perception researchers may or may not find intriguing.
-Please see :ref:`Ecto <ecto:overview-ecto>` for information on how ecto opencv is built.
+Please see :ref:`Ecto <overview-ecto>` for information on how ecto opencv is built.
 
 .. toctree::
    :maxdepth: 2
