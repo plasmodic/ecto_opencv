@@ -2,9 +2,8 @@
 
 ecto_opencv.features2d
 ----------------------
-Feature detection cells.
 
-See :ref:`features2d.ORB`.
+Feature detection cells.
 
 .. ectomodule:: ecto_opencv.features2d
 

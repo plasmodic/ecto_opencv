@@ -5,8 +5,7 @@ Generated docs for ecto_opencv cells.
 .. toctree::
    :maxdepth: 2
    
-   calib
-   highgui
-   imgproc
-   features2d
-
+   calib <calib>
+   highgui <highgui>
+   imgproc <imgproc>
+   features2d <features2d>
