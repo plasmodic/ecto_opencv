@@ -30,7 +30,15 @@ struct ORB
   void
   configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
   {
+#if (CV_MAJOR_VERSION > 2) || ((CV_MAJOR_VERSION == 2) && (CV_MINOR_VERSION >= 4))
     orb_ = cv::ORB(params.get<int>("n_features"), params.get<float>("scale_factor"), params.get<int>("n_levels"));
+#else
+    cv::ORB::CommonParams orb_params;
+    orb_params.first_level_ = 0;
+    orb_params.n_levels_ = params.get<int>("n_levels");
+    orb_params.scale_factor_ = params.get<float>("scale_factor");
+    orb_ = cv::ORB(params.get<int>("n_features"), orb_params);
+#endif
   }
 
   int
