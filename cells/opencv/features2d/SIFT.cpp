@@ -32,11 +32,11 @@ struct SIFT
     sift_.set("nOctaveLayers", params.get<int>("nOctaveLayers"));
 #else
     cv::SIFT::CommonParams common_params;
-    common_params_.nOctaves = params.get<int>("nOctaves");
-    common_params_.nOctaveLayers = params.get<int>("nOctaveLayers");
-    common_params_.firstOctave = params.get<int>("firstOctave");
-    common_params_.angleMode = params.get<int>("angleMode");
-    sift_ = cv::SIFT(common_params_);
+    common_params.nOctaves = params.get<int>("nOctaves");
+    common_params.nOctaveLayers = params.get<int>("nOctaveLayers");
+    common_params.firstOctave = params.get<int>("firstOctave");
+    common_params.angleMode = params.get<int>("angleMode");
+    sift_ = cv::SIFT(common_params);
 #endif
   }
 
