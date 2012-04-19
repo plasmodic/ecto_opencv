@@ -12,7 +12,7 @@ Saving images on a key stroke
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 imshow accepts an optional dict of string to key value, that it will output as
-trigger bools, useful with the :ref:`if`_ idiom.
+trigger bools, useful with the ``ecto::if`` cell.
 
 See :ref:`sample-imshow-save`
 
