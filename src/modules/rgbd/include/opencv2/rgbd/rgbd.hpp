@@ -33,9 +33,14 @@
  *
  */
 
+#ifndef __OPENCV_RGBD_HPP__
+#define __OPENCV_RGBD_HPP__
+
+#ifdef __cplusplus
+
 #include <opencv2/core/core.hpp>
 
-namespace calib
+namespace cv
 {
   /**
    * @param K
@@ -46,22 +51,21 @@ namespace calib
    */
   void
   depthTo3dSparse(const cv::Mat& in_K, const cv::Mat& depth, const cv::Mat& u_mat, const cv::Mat& v_mat,
-                   cv::Mat& points3d);
+                  cv::Mat& points3d);
 
   /**
-   * @param K
-   * @param depth the depth image
+   * @param depth the depth image (if given as short int CV_U, it is assumed to be the depth in millimeters
+   *              (as done with the Microsoft Kinect), otherwise, if given as CV_32F, it is assumed in meters)
+   * @param K The calibration matrix
+   * @param points3d the resulting 3d points
    * @param mask the mask of the points to consider (can be empty)
-   * @param points3d the resulting 3d points
    */
   void
-  depthTo3dMask(const cv::Mat& K, const cv::Mat& depth, const cv::Mat& mask, cv::Mat& points3d);
+  depthTo3d(const cv::Mat& depth, const cv::Mat& K, cv::Mat& points3d, const cv::Mat& mask = cv::Mat());
+} /* namespace cv */
 
-  /**
-   * @param K
-   * @param depth the depth image
-   * @param points3d the resulting 3d points
-   */
-  void
-  depthTo3d(const cv::Mat& K, const cv::Mat& depth, cv::Mat& points3d);
-}
+#endif /* __cplusplus */
+
+#endif
+
+/* End of file. */
