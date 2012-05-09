@@ -1,7 +1,0 @@
-if(NOT OPENCV_MODULES_PATH)
-  set(OPENCV_MODULES_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
-endif()
-
-set(OPENCV_LIB_INSTALL_PATH ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
-add_custom_target(opencv_modules)
-ocv_glob_modules(${OPENCV_MODULES_PATH})
