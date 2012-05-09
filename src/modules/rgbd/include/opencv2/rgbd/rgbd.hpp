@@ -53,7 +53,7 @@ namespace cv
   depthTo3dSparse(const cv::Mat& in_K, const cv::Mat& depth, const cv::Mat& u_mat, const cv::Mat& v_mat,
                   cv::Mat& points3d);
 
-  /**
+  /** Converts a depth image to an organized set of 3d points
    * @param depth the depth image (if given as short int CV_U, it is assumed to be the depth in millimeters
    *              (as done with the Microsoft Kinect), otherwise, if given as CV_32F, it is assumed in meters)
    * @param K The calibration matrix
@@ -62,6 +62,16 @@ namespace cv
    */
   void
   depthTo3d(const cv::Mat& depth, const cv::Mat& K, cv::Mat& points3d, const cv::Mat& mask = cv::Mat());
+
+  /** If the input image is of type CV_16UC1 (like the Kinect one), the image is converted to floats, divided
+   * by 1000 to get a depth in meters, and the values 0 are converted to std::numeric_limits<float>::quiet_NaN()
+   * Otherwise, the image is simply converted to floats
+   * @param in the depth image (if given as short int CV_U, it is assumed to be the depth in millimeters
+   *              (as done with the Microsoft Kinect), it is assumed in meters)
+   * @param out The rescaled float depth image
+   */
+  void
+  rescaleDepth(const cv::Mat& in, cv::Mat& out);
 } /* namespace cv */
 
 #endif /* __cplusplus */

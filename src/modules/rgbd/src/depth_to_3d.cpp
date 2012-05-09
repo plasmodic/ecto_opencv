@@ -65,11 +65,12 @@ namespace
 
     std::vector<cv::Mat> coordinates(3);
 
-    if (s == 0)
-      coordinates[0] = (u_mat - cx).mul(z_mat) / fx;
-    else
-      coordinates[0] = (u_mat - (s / fy) * v_mat + (cy * s - cx * fy) / fy).mul(z_mat) / fx;
+    coordinates[0] = (u_mat - cx) / fx;
 
+    if (s != 0)
+      coordinates[0] = coordinates[0] + ( - (s / fy) * v_mat + cy * s / fy) / fx;
+
+    coordinates[0] = coordinates[0].mul(z_mat);
     coordinates[1] = (v_mat - cy).mul(z_mat)  * (1. / fy);
     coordinates[2] = z_mat;
     cv::merge(coordinates, points3d);
@@ -181,47 +182,7 @@ namespace
     float cy = K.at<float>(1, 2);
 
     // Build z
-    float* sp_begin = reinterpret_cast<float*>(z_mat.data);
-
-    if (in_depth.depth() == CV_16U)
-    {
-      const uint16_t* r;
-
-      for (int v = 0; v < depth_size.height; v++)
-      {
-        r = in_depth.ptr<uint16_t>(v, 0);
-
-        for (int u = 0; u < depth_size.width; u++)
-        {
-          uint16_t fpz = *(r++);
-
-          if ((fpz == std::numeric_limits<uint16_t>::min()) || (fpz == std::numeric_limits<uint16_t>::max()))
-            *(sp_begin++) = std::numeric_limits<float>::quiet_NaN();
-          else
-            *(sp_begin++) = fpz / 1000.0f;
-        }
-      }
-    }
-    else
-      if (in_depth.depth() == CV_32F)
-      {
-        const float* r;
-
-        for (int v = 0; v < depth_size.height; v++)
-        {
-          r = in_depth.ptr<float>(v, 0);
-
-          for (int u = 0; u < depth_size.width; ++u, ++r)
-          {
-            float z = *r;
-
-            if ((z != z) || (z == std::numeric_limits<float>::max()))
-              *(sp_begin++) = z;
-            else
-              *(sp_begin++) = z;
-          }
-        }
-      }
+    rescaleDepth(in_depth, z_mat);
 
     // Build the set of v's
     cv::Mat_<float> us = cv::Mat_<float>(1, depth_size.width), vs = cv::Mat_<float>(depth_size.height, 1);
@@ -236,15 +197,13 @@ namespace
     cv::repeat((vs - cy) / fy, 1, depth_size.width, v_mat);
 
     // Build the set of u's
-    if (s == 0)
-      cv::repeat((us - cx) / fx, depth_size.height, 1, u_mat);
-    else
-    {
-      cv::repeat(us / fx, depth_size.height, 1, us);
-      cv::repeat(-(s / fx / fy) * vs, 1, depth_size.width, vs);
-      u_mat = us + vs + (cy * s - cx * fy) / fy;
-    }
+    cv::repeat((us - cx) / fx, depth_size.height, 1, u_mat);
 
+    if (s != 0)
+    {
+      cv::repeat(-(s / fx / fy) * vs, 1, depth_size.width, vs);
+      u_mat = u_mat + vs + (cy * s / fy);
+    }
 
     // Compute all the coordinates
     cv::Mat_<float> coordinates[3] =
