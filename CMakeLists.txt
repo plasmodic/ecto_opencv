@@ -57,9 +57,9 @@ if(BUILD_TEST)
 endif()
 
 catkin_project(ecto_opencv
- INCLUDE_DIRS
- include
- LIBRARIES opencv_candidate
+               INCLUDE_DIRS include
+               LIBRARIES opencv_candidate
+                         opencv_rgbd
 )
 
 #catkin_sphinx(${CMAKE_CURRENT_SOURCE_DIR}/doc doc)
