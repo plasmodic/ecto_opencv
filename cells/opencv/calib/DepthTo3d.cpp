@@ -41,7 +41,7 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/features2d/features2d.hpp>
 
-#include "impl/depth_to_3d.h"
+#include <opencv2/rgbd/rgbd.hpp>
 
 using ecto::tendrils;
 namespace calib
@@ -73,7 +73,7 @@ namespace calib
       std::vector<cv::Mat> uv_vec(2);
       cv::split(uv, uv_vec);
       cv::Mat points3d;
-      depthTo3dSparse(K, depth, uv_vec[0], uv_vec[1], points3d);
+      cv::depthTo3dSparse(K, depth, uv_vec[0], uv_vec[1], points3d);
 
       outputs["points3d"] << points3d;
 
@@ -209,9 +209,9 @@ namespace calib
     {
       // Create 3D points in one go.
       if (!mask.empty())
-        depthTo3dMask(K, depth, mask, points3d);
+        cv::depthTo3d(depth, K, points3d, mask);
       else
-        calib::depthTo3d(K, depth, points3d);
+        cv::depthTo3d(depth, K, points3d);
     }
 
     typedef std::vector<cv::Point2f> points_t;
@@ -240,7 +240,7 @@ namespace calib
       inputs["mask"] >> mask;
 
       cv::Mat points3d;
-      depthTo3d(K, depth, mask, points3d);
+      depthTo3d(depth, K, points3d, mask);
 
       outputs["points3d"] << points3d;
       return 0;

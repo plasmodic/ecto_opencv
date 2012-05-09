@@ -30,10 +30,18 @@ set_ecto_install_package_name(ecto_opencv)
 # configure and install Python
 catkin_python_setup()
 
+include(cmake/OpenCVModule.cmake)
+include(cmake/OpenCVUtils.cmake)
+
 # install the include directory
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src/modules/rgbd/include)
 
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/opencv_candidate
+        DESTINATION include
+        COMPONENT main
+)
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/src/modules/rgbd/include
         DESTINATION include
         COMPONENT main
 )

@@ -1,1 +1,2 @@
 add_subdirectory(opencv_candidate)
+add_subdirectory(modules)

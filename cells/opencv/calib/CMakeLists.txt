@@ -10,7 +10,6 @@ ectomodule(calib
   SubrectRectifier.cpp
   DepthTo3d.cpp
   pose_drawing.cpp
-  impl/depth_to_3d.cpp
   Latch.cpp
   PlaneFitter.cpp
   TransformCompose.cpp
@@ -20,6 +19,10 @@ ectomodule(calib
   DepthMask.cpp
   PointsTo3d.cpp
   )
-link_ecto(calib ${OpenCV_LIBS})
+add_dependencies(calib_ectomodule opencv_rgbd)
+link_ecto(calib
+          ${OpenCV_LIBS}
+          ${OpenCV_LIBRARIES}
+          opencv_rgbd
+)
 install_ecto_module(calib)
-

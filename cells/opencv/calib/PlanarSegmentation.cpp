@@ -7,7 +7,7 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <ecto/registry.hpp>
 
-#include "impl/depth_to_3d.h"
+#include <opencv2/rgbd/rgbd.hpp>
 
 using ecto::tendrils;
 namespace calib
@@ -107,7 +107,7 @@ namespace calib
       cv::fillConvexPoly(box_mask, points.data(), points.size(), cv::Scalar::all(255));
 
       cv::Mat_<cv::Vec3f> points3d;
-      depthTo3dMask(K, depth, box_mask, points3d);
+      depthTo3d(depth, K, points3d, box_mask);
       if (points3d.empty())
         return ecto::OK;
 
