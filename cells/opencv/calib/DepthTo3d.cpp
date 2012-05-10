@@ -198,22 +198,6 @@ namespace calib
 
   struct DepthTo3d
   {
-    /**
-     * @param K
-     * @param depth the depth image
-     * @param mask the mask of the points to consider (can be empty)
-     * @param points3d the resulting 3d points
-     */
-    static void
-    depthTo3d(const cv::Mat& K, const cv::Mat& depth, const cv::Mat& mask, cv::Mat& points3d)
-    {
-      // Create 3D points in one go.
-      if (!mask.empty())
-        cv::depthTo3d(depth, K, points3d, mask);
-      else
-        cv::depthTo3d(depth, K, points3d);
-    }
-
     typedef std::vector<cv::Point2f> points_t;
 
     static void
