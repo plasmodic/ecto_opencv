@@ -37,6 +37,8 @@
 #include <iostream>
 #include <limits>
 
+#include "depth_to_3d.h"
+
 namespace
 {
   /**
@@ -96,55 +98,15 @@ namespace
       mask.convertTo(uchar_mask, CV_8U);
 
     // Figure out the interesting indices
-    unsigned int n_points = 0;
-    const uchar* r;
+    size_t n_points;
 
     if (depth.depth() == CV_16U)
-    {
-      // Raw data from the Kinect has int
-      for (int v = 0; v < depth_size.height; v++)
-      {
-        r = uchar_mask.ptr<uchar>(v, 0);
-
-        for (int u = 0; u < depth_size.width; u++, ++r)
-          if (*r)
-          {
-            u_mat(n_points, 0) = u;
-            v_mat(n_points, 0) = v;
-            uint16_t depth_i = depth.at<uint16_t>(v, u);
-
-            if ((depth_i == std::numeric_limits<uint16_t>::min()) || (depth_i == std::numeric_limits<uint16_t>::max()))
-              z_mat(n_points, 0) = std::numeric_limits<float>::quiet_NaN();
-            else
-              z_mat(n_points, 0) = depth_i / 1000.0f;
-
-            ++n_points;
-          }
-      }
-    }
+      n_points = convertDepthToFloat<uint16_t>(depth, mask, 1.0 / 1000.0f, u_mat, v_mat, z_mat);
     else
-    {
-      // If the depth is already floats, no need to divide by 1000
-      for (int v = 0; v < depth_size.height; v++)
-      {
-        r = uchar_mask.ptr<uchar>(v, 0);
-
-        for (int u = 0; u < depth_size.width; u++, ++r)
-          if (*r)
-          {
-            u_mat(n_points, 0) = u;
-            v_mat(n_points, 0) = v;
-            float z = depth.at<float>(v, u);
-
-            if ((z != z) || (z == std::numeric_limits<float>::max()))
-              z_mat(n_points, 0) = std::numeric_limits<float>::quiet_NaN();
-            else
-              z_mat(n_points, 0) = z;
-
-            ++n_points;
-          }
-      }
-    }
+      if (depth.depth() == CV_16S)
+        n_points = convertDepthToFloat<int16_t>(depth, mask, 1.0 / 1000.0f, u_mat, v_mat, z_mat);
+      else
+        n_points = convertDepthToFloat<int16_t>(depth, mask, 1.0f, u_mat, v_mat, z_mat);
 
     if (n_points == 0)
       return;
@@ -228,48 +190,36 @@ namespace cv
    * @param points3d the resulting 3d points
    */
   void
-  depthTo3dSparse(const cv::Mat& in_K, const cv::Mat& depth, const cv::Mat& u_mat, const cv::Mat& v_mat,
-                  cv::Mat& points3d)
+  depthTo3dSparse(const cv::Mat& depth, const cv::Mat& in_K, const cv::InputArray in_points, cv::Mat& points3d)
   {
     // Make sure we use foat types
-    cv::Mat_<float> u_float, v_float;
+    cv::Mat points = in_points.getMat();
 
-    if (u_mat.depth() == (CV_32F))
-      u_float = u_mat;
-    else
-      u_mat.convertTo(u_float, CV_32F);
+    cv::Mat_<float> points_float;
 
-    if (v_mat.depth() == (CV_32F))
-      v_float = v_mat;
+    if (points.depth() != CV_32F)
+      points.convertTo(points_float, CV_32F);
     else
-      v_mat.convertTo(v_float, CV_32F);
+      points_float = points;
 
     // Fill the depth matrix
-    cv::Mat_<float> z_float = cv::Mat_<float>(u_float.rows, u_float.cols);
-
-    cv::Mat_<float>::const_iterator iter_v = v_float.begin(), iter_u = u_float.begin(), iter_u_end = u_float.end();
-    float* iter_z = reinterpret_cast<float*>(z_float.data);
+    cv::Mat_<float> z_mat;
 
     if (depth.depth() == CV_16U)
-    {
-      for (; iter_u != iter_u_end; ++iter_u, ++iter_v, ++iter_z)
-      {
-        uint16_t depth_i = depth.at<uint16_t>(*iter_v, *iter_u);
-
-        if ((depth_i == 0) || (depth_i == std::numeric_limits<uint16_t>::max()))
-          *iter_z = std::numeric_limits<float>::quiet_NaN();
-        else
-          *iter_z = depth_i / 1000.0f;
-      }
-    }
+      convertDepthToFloat<uint16_t>(depth, 1.0 / 1000.0f, points_float, z_mat);
     else
-      if (depth.depth() == CV_32F)
-      {
-        for (; iter_u != iter_u_end; ++iter_u, ++iter_v, ++iter_z)
-          *iter_z = depth.at<float>(*iter_v, *iter_u);
-      }
+      if (depth.depth() == CV_16U)
+        convertDepthToFloat<int16_t>(depth, 1.0 / 1000.0f, points_float, z_mat);
+      else
+        convertDepthToFloat<float>(depth, 1.0f, points_float, z_mat);
 
-    depthTo3d_from_uvz(in_K, u_float, v_float, z_float, points3d);
+    cv::Mat u_float, v_float;
+    std::vector<cv::Mat> channels;
+    channels.push_back(u_float);
+    channels.push_back(v_float);
+    cv::split(points_float, channels);
+
+    depthTo3d_from_uvz(in_K, u_float, v_float, z_mat, points3d);
   }
 
   /**
@@ -280,16 +230,16 @@ namespace cv
   * @param mask the mask of the points to consider (can be empty)
   */
   void
-  depthTo3d(const cv::Mat& depth, const cv::Mat& K, cv::Mat& points3d, const cv::Mat& mask)
+  depthTo3d (const cv::Mat& depth, const cv::Mat& K, cv::Mat& points3d, const cv::Mat& mask)
   {
-    CV_Assert(K.cols == 3 && K.rows == 3);
-    CV_Assert(depth.type() == CV_32FC1 || depth.type() == CV_16SC1);
-    CV_Assert(mask.channels() == 1);
+    CV_Assert (K.cols == 3 && K.rows == 3);
+    CV_Assert (depth.type() == CV_32FC1 || depth.type() == CV_16UC1 || depth.type() == CV_16SC1);
+    CV_Assert (mask.channels() == 1);
 
     // Create 3D points in one go.
     if (!mask.empty())
-      depthTo3dMask(depth, K, mask, points3d);
+      depthTo3dMask (depth, K, mask, points3d);
     else
-      depthTo3dNoMask(depth, K, points3d);
+      depthTo3dNoMask (depth, K, points3d);
   }
 }

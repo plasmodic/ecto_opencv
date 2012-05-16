@@ -70,10 +70,8 @@ namespace calib
       inputs["K"] >> K;
       const cv::Mat &depth = inputs.get<cv::Mat>("depth"), &uv = inputs.get<cv::Mat>("points");
 
-      std::vector<cv::Mat> uv_vec(2);
-      cv::split(uv, uv_vec);
       cv::Mat points3d;
-      cv::depthTo3dSparse(K, depth, uv_vec[0], uv_vec[1], points3d);
+      cv::depthTo3dSparse(depth, K, uv, points3d);
 
       outputs["points3d"] << points3d;
 

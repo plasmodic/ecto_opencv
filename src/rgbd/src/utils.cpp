@@ -48,6 +48,8 @@ namespace cv
   void
   rescaleDepth(const cv::Mat& in, cv::Mat& out)
   {
+    CV_Assert (in.type() == CV_32FC1 || in.type() == CV_16UC1 || in.type() == CV_16SC1);
+
     if (in.type() == CV_16UC1)
     {
       in.convertTo(out, CV_32F, 1 / 1000.0); //convert to float so tha$
@@ -55,6 +57,13 @@ namespace cv
       out.setTo(std::numeric_limits<float>::quiet_NaN(), valid_mask); //set a$
     }
     else
-      in.convertTo(out, CV_32F);
+      if (in.type() == CV_16SC1)
+      {
+        in.convertTo(out, CV_32F, 1 / 1000.0); //convert to float so tha$
+        cv::Mat valid_mask = (in == std::numeric_limits<int16_t>::min()) | (in == std::numeric_limits<int16_t>::max()); // Should we do std::numeric_limits<uint16_t>::max() too ?
+        out.setTo(std::numeric_limits<float>::quiet_NaN(), valid_mask); //set a$
+      }
+      else
+        in.convertTo(out, CV_32F);
   }
 }

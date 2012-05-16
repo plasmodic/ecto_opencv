@@ -43,15 +43,13 @@
 namespace cv
 {
   /**
-   * @param K
    * @param depth the depth image
-   * @param u_mat the list of x coordinates
-   * @param v_mat the list of matching y coordinates
+   * @param K
+   * @param in_points the list of xy coordinates
    * @param points3d the resulting 3d points
    */
   void
-  depthTo3dSparse(const cv::Mat& in_K, const cv::Mat& depth, const cv::Mat& u_mat, const cv::Mat& v_mat,
-                  cv::Mat& points3d);
+  depthTo3dSparse(const cv::Mat& depth, const cv::Mat& in_K, const cv::InputArray in_points, cv::Mat& points3d);
 
   /** Converts a depth image to an organized set of 3d points
    * @param depth the depth image (if given as short int CV_U, it is assumed to be the depth in millimeters
