@@ -51,6 +51,9 @@ namespace
   depthTo3d_from_uvz(const cv::Mat& in_K, const cv::Mat& u_mat, const cv::Mat& v_mat, const cv::Mat& z_mat,
                      cv::Mat& points3d)
   {
+    CV_Assert((u_mat.size() == z_mat.size()) && (u_mat.size() == z_mat.size()));
+    CV_Assert((u_mat.type() == z_mat.type()) && (u_mat.type() == z_mat.type()));
+
     //grab camera params
     cv::Mat_<float> K;
 
@@ -195,10 +198,9 @@ namespace cv
     // Make sure we use foat types
     cv::Mat points = in_points.getMat();
 
-    cv::Mat_<float> points_float;
-
+    cv::Mat points_float;
     if (points.depth() != CV_32F)
-      points.convertTo(points_float, CV_32F);
+      points.convertTo(points_float, CV_32FC2);
     else
       points_float = points;
 
@@ -213,13 +215,10 @@ namespace cv
       else
         convertDepthToFloat<float>(depth, 1.0f, points_float, z_mat);
 
-    cv::Mat u_float, v_float;
-    std::vector<cv::Mat> channels;
-    channels.push_back(u_float);
-    channels.push_back(v_float);
+    std::vector<cv::Mat> channels(2);
     cv::split(points_float, channels);
 
-    depthTo3d_from_uvz(in_K, u_float, v_float, z_mat, points3d);
+    depthTo3d_from_uvz(in_K, channels[0], channels[1], z_mat, points3d);
   }
 
   /**

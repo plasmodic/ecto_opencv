@@ -90,20 +90,22 @@ convertDepthToFloat(const cv::Mat& depth, const cv::Mat& mask, float scale, cv::
  */
 template <typename T>
 void
-convertDepthToFloat(const cv::Mat& depth, float scale, const cv::Mat_<cv::Vec2f> &uv_mat, cv::Mat_<float> &z_mat)
+convertDepthToFloat(const cv::Mat& depth, float scale, const cv::Mat &uv_mat, cv::Mat_<float> &z_mat)
 {
   z_mat = cv::Mat_<float>(uv_mat.size());
 
   // Raw data from the Kinect has int
-  cv::Mat_<float>::iterator uv_iter = z_mat.begin(), ub_end = z_mat.end();
+  float* z_mat_iter = reinterpret_cast<float*>(z_mat.data);
 
-  for (cv::Mat_<cv::Vec2f>::const_iterator uv_iter = uv_mat.begin(), uv_end = uv_mat.end(); uv_iter != uv_end; ++uv_iter)
+  for (cv::Mat_<cv::Vec2f>::const_iterator uv_iter = uv_mat.begin<cv::Vec2f>(), uv_end = uv_mat.end<cv::Vec2f>();
+      uv_iter != uv_end; ++uv_iter, ++z_mat_iter)
   {
-    T depth_i = depth.at<T>((*uv_iter)[1], (*uv_iter)[0]);
+    T depth_i = depth.at < T > ((*uv_iter)[1], (*uv_iter)[0]);
 
-    if (cvIsNaN(depth_i) || (depth_i == std::numeric_limits<T>::min()) || (depth_i == std::numeric_limits<T>::max()))
-      z_mat((*uv_iter)[1], (*uv_iter)[0]) = std::numeric_limits<float>::quiet_NaN();
+    if (cvIsNaN(depth_i) || (depth_i == std::numeric_limits < T > ::min())
+        || (depth_i == std::numeric_limits < T > ::max()))
+      *z_mat_iter = std::numeric_limits<float>::quiet_NaN();
     else
-      z_mat((*uv_iter)[1], (*uv_iter)[0]) = depth_i * scale;
+      *z_mat_iter = depth_i * scale;
   }
 }
