@@ -38,6 +38,17 @@
 
 namespace cv
 {
+  /** Specialization for floats
+   * @param depth
+   * @return
+   */
+  template<>
+  bool
+  isValidDepth(const float & depth)
+  {
+    return cvIsNaN(depth);
+  }
+
   /** If the input image is of type CV_16UC1 (like the Kinect one), the image is converted to floats, divided
    * by 1000 to get a depth in meters, and the values 0 are converted to std::numeric_limits<float>::quiet_NaN()
    * Otherwise, the image is simply converted to floats
