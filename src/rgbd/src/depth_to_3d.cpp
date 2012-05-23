@@ -51,8 +51,12 @@ namespace
   depthTo3d_from_uvz(const cv::Mat& in_K, const cv::Mat& u_mat, const cv::Mat& v_mat, const cv::Mat& z_mat,
                      cv::Mat& points3d)
   {
-    CV_Assert((u_mat.size() == z_mat.size()) && (u_mat.size() == z_mat.size()));
-    CV_Assert((u_mat.type() == z_mat.type()) && (u_mat.type() == z_mat.type()));
+    CV_Assert((u_mat.size() == z_mat.size()) && (v_mat.size() == z_mat.size()));
+    if (u_mat.empty()) {
+      points3d = cv::Mat();
+      return;
+    }
+    CV_Assert((u_mat.type() == z_mat.type()) && (v_mat.type() == z_mat.type()));
 
     //grab camera params
     cv::Mat_<float> K;
