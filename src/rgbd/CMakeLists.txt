@@ -16,7 +16,7 @@ install(TARGETS opencv_rgbd
         DESTINATION lib
 )
 
-install(DIRECTORY include
-        DESTINATION include
+install(DIRECTORY include/opencv2/rgbd
+        DESTINATION include/opencv2
         COMPONENT main
 )
