@@ -4,8 +4,9 @@
 
 find_package(OpenCV REQUIRED)
 
-add_library(opencv_rgbd src/utils.cpp
+add_library(opencv_rgbd src/compute_normals.cpp
                         src/depth_to_3d.cpp
+                        src/utils.cpp
 )
 
 target_link_libraries(opencv_rgbd ${OpenCV_LIBS}

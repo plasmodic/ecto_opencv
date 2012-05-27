@@ -55,8 +55,30 @@ namespace cv
   bool
   isValidDepth(const T & depth)
   {
-    return (depth != std::numeric_limits < T > ::min()) && (depth != std::numeric_limits < T > ::max());
+    return (depth != std::numeric_limits<T>::min()) && (depth != std::numeric_limits<T>::max());
   }
+
+  /** Object that can compute the normals in an image.
+   * It is an object as it can cache data for speed efficiency
+   */
+  class RgbdNormals
+  {
+  public:
+    /** Constructor
+     */
+    RgbdNormals(int rows, int cols, int depth, const cv::Mat & K);
+
+    /** Given a set of 3d points in a depth image, compute the normals at each point.
+     * @param points a rows x cols x 3 matrix
+     * @return normals a rows x cols x 3 matrix
+     */
+    cv::Mat
+    operator()(const cv::Mat &points);
+  private:
+    std::vector<std::vector<cv::Mat> > R_hat_;
+    /** The cached 1/cos(phi) */
+    cv::Mat cos_phi_inv_;
+  };
 
   /**
    * @param depth the depth image
