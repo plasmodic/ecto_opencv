@@ -33,6 +33,7 @@
  *
  */
 
+#include <iostream>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/rgbd/rgbd.hpp>
 
@@ -48,6 +49,7 @@ namespace
     sin_theta = cv::Mat_<T>(rows, cols);
     cos_phi = cv::Mat_<T>(rows, cols);
     sin_phi = cv::Mat_<T>(rows, cols);
+    phi = cv::Mat_<T>(rows, cols);
     for (int y = 0; y < rows; ++y)
     {
       T * row_cos_theta = cos_theta.ptr<T>(y), *row_sin_theta = sin_theta.ptr<T>(y);
@@ -55,7 +57,8 @@ namespace
       T *row_phi = phi.ptr<T>(y);
       const T * row_x = xyz[0].ptr<T>(y), *row_x_end = xyz[0].ptr<T>(y) + xyz[0].cols;
       const T * row_y = xyz[1].ptr<T>(y), *row_z = xyz[2].ptr<T>(y);
-      for (; row_x < row_x_end; ++row_cos_theta, ++row_cos_phi, ++row_x, ++row_y, ++row_z)
+      for (; row_x < row_x_end;
+          ++row_cos_theta, ++row_sin_theta, ++row_cos_phi, ++row_sin_phi, ++row_phi, ++row_x, ++row_y, ++row_z)
       {
         *row_cos_theta = std::cos(std::atan2(*row_x, *row_z));
         *row_sin_theta = std::sin(std::atan2(*row_x, *row_z));
@@ -95,17 +98,17 @@ namespace cv
     for (unsigned char i = 0; i < 3; ++i)
       R_hat_[i].resize(3);
 
-    R_hat_[0][0] = sin_theta * cos_phi;
+    cv::multiply(sin_theta, cos_phi, R_hat_[0][0]);
     R_hat_[0][1] = cos_theta;
-    R_hat_[0][2] = -sin_theta * sin_phi;
+    cv::multiply(-sin_theta, sin_phi, R_hat_[0][2]);
 
     R_hat_[1][0] = sin_phi;
     R_hat_[1][1] = cv::Mat::zeros(rows, cols, depth);
     R_hat_[1][2] = cos_phi;
 
-    R_hat_[2][0] = cos_theta * cos_phi;
+    cv::multiply(cos_theta, cos_phi, R_hat_[2][0]);
     R_hat_[2][1] = -sin_theta;
-    R_hat_[2][2] = -cos_theta * sin_phi;
+    cv::multiply(-cos_theta, sin_phi, R_hat_[2][2]);
   }
 
   /** Given a set of 3d points in a depth image, compute the normals at each point
@@ -118,7 +121,7 @@ namespace cv
   cv::Mat
   RgbdNormals::operator()(const cv::Mat &points)
   {
-    CV_Assert(points.channels()==3 && points.dims==3);
+    CV_Assert(points.channels()==3 && points.dims==2);
     CV_Assert(points.depth()==CV_32F || points.depth()==CV_64F);
 
     int rows = points.rows, cols = points.cols, depth = points.depth();
@@ -127,24 +130,36 @@ namespace cv
 
     // Compute r
     cv::Mat r;
-    cv::sqrt(xyz[0] * xyz[0] + xyz[1] * xyz[1] + xyz[2] * xyz[2], r);
+    points.copyTo(r);
+    r = r.reshape(1, r.cols * r.rows);
+    cv::multiply(r, r, r);
+    cv::reduce(r, r, 1, CV_REDUCE_SUM);
+    cv::sqrt(r, r);
+    r = r.reshape(1, points.rows);
 
     // Compute the derivatives with respect to theta and phi
     cv::Mat r_theta, r_phi;
     cv::Scharr(r, r_theta, depth, 1, 0);
-    cv::Scharr(r, r_phi, depth, 1, 1);
-
-    // Create the result matrix
-    int dims[] =
-    { rows, cols, 3 };
-    cv::Mat res(3, dims, depth);
-    std::vector<cv::Mat> res_channels;
-    cv::split(res, res_channels);
+    cv::Scharr(r, r_phi, depth, 0, 1);
 
     // Fill the result matrix
-    cv::Mat r_inv = cv::Mat::ones(rows, cols, depth) / r;
+    cv::Mat r_inv;
+    cv::divide(cv::Mat::ones(rows, cols, depth), r, r_inv);
+
+    std::vector<cv::Mat> res_channels(3);
     for (unsigned char i = 0; i < 3; ++i)
-      res_channels[i] = R_hat_[i][0] + R_hat_[i][1] * cos_phi_inv_ * r_inv + R_hat_[i][2] * r_inv;
+    {
+      cv::Mat tmp1, tmp2;
+      cv::multiply(R_hat_[i][1], cos_phi_inv_, tmp1);
+      cv::multiply(tmp1, r_inv, tmp1);
+      cv::multiply(R_hat_[i][2], r_inv, tmp2);
+
+      res_channels[i] = R_hat_[i][0] + tmp1 + tmp2;
+    }
+
+    // Create the result matrix
+    cv::Mat res;
+    cv::merge(res_channels, res);
 
     return res;
   }
