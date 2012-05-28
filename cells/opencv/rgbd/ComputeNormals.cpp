@@ -91,23 +91,28 @@ namespace rgbd
       image_in_->copyTo(*image_out_);
 
       // Draw the normals at given steps
-      int len = (*step_) / 2 - 2;
       for (int y = *step_; y < (image_in_->rows - (*step_)); y += *step_)
         for (int x = *step_; x < (image_in_->cols - (*step_)); x += *step_)
         {
-          float angle;
+          float angle1, angle2;
+          cv::Vec3f normal;
           if (normals_->depth() == CV_32F)
-            angle = std::atan2(normals_->at<cv::Vec3f>(y, x)[1], normals_->at<cv::Vec3f>(y, x)[0]);
+            normal = normals_->at<cv::Vec3f>(y, x);
           else
-            angle = std::atan2(normals_->at<cv::Vec3d>(y, x)[1], normals_->at<cv::Vec3d>(y, x)[0]);
+            normal = normals_->at<cv::Vec3d>(y, x);
+          normal = normal / cv::norm(normal);
+          angle1 = std::atan2(normal.val[1], normal.val[0]);
+          angle2 = std::atan2(normal.val[2], std::sqrt(normal.val[0] * normal.val[0] + normal.val[1] * normal.val[1]));
 
           std::cout << normals_->at<cv::Vec3f>(y, x)[0] << " " << normals_->at<cv::Vec3f>(y, x)[1] << " "
                     << normals_->at<cv::Vec3f>(y, x)[1] << std::endl;
-          if (cvIsNaN(angle))
+
+          if (cvIsNaN(angle1))
             continue;
 
-          cv::line(*image_out_, cv::Point2i(x, y), cv::Point2i(x + len * std::cos(angle), y - len * std::sin(angle)),
-                   cv::Scalar(0, 0, 255));
+          int len = (*step_) * cos(angle2);
+          cv::line(*image_out_, cv::Point2i(x, y), cv::Point2i(x + len * std::cos(angle1), y - len * std::sin(angle1)),
+                   cv::Scalar(255, 0, 0));
         }
 
       return ecto::OK;
