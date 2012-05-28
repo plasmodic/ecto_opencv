@@ -39,30 +39,56 @@
 
 namespace
 {
+  /** Given 3d points, compute their distance to the origin
+   * @param points
+   * @return
+   */
+  cv::Mat
+  computeR(const cv::Mat &points)
+  {
+    cv::Mat r;
+    points.copyTo(r);
+    r = r.reshape(1, r.cols * r.rows);
+    cv::multiply(r, r, r);
+    cv::reduce(r, r, 1, CV_REDUCE_SUM);
+    cv::sqrt(r, r);
+    r = r.reshape(1, points.rows);
+
+    return r;
+  }
+
   // Compute theta and phi according to equation 3
   template<typename T>
   void
-  computeThetaPhi(int rows, int cols, const std::vector<cv::Mat> & xyz, cv::Mat &cos_theta, cv::Mat &sin_theta,
-                  cv::Mat &phi, cv::Mat &cos_phi, cv::Mat &sin_phi)
+  computeThetaPhi(int rows, int cols, const cv::Mat& points, cv::Mat &cos_theta, cv::Mat &sin_theta, cv::Mat &phi,
+                  cv::Mat &cos_phi, cv::Mat &sin_phi)
   {
+    typedef cv::Matx<T, 3, 1> Vec_T;
+
     cos_theta = cv::Mat_<T>(rows, cols);
     sin_theta = cv::Mat_<T>(rows, cols);
     cos_phi = cv::Mat_<T>(rows, cols);
     sin_phi = cv::Mat_<T>(rows, cols);
     phi = cv::Mat_<T>(rows, cols);
+    cv::Mat r = computeR(points);
     for (int y = 0; y < rows; ++y)
     {
       T * row_cos_theta = cos_theta.ptr<T>(y), *row_sin_theta = sin_theta.ptr<T>(y);
       T *row_cos_phi = cos_phi.ptr<T>(y), *row_sin_phi = sin_phi.ptr<T>(y);
       T *row_phi = phi.ptr<T>(y);
-      const T * row_x = xyz[0].ptr<T>(y), *row_x_end = xyz[0].ptr<T>(y) + xyz[0].cols;
-      const T * row_y = xyz[1].ptr<T>(y), *row_z = xyz[2].ptr<T>(y);
-      for (; row_x < row_x_end;
-          ++row_cos_theta, ++row_sin_theta, ++row_cos_phi, ++row_sin_phi, ++row_phi, ++row_x, ++row_y, ++row_z)
+      const Vec_T * row_points = points.ptr<Vec_T>(y), *row_points_end = points.ptr<Vec_T>(y) + points.cols;
+      const T * row_r = r.ptr<T>(y);
+      for (; row_points < row_points_end;
+          ++row_cos_theta, ++row_sin_theta, ++row_cos_phi, ++row_sin_phi, ++row_phi, ++row_points, ++row_r)
       {
-        *row_cos_theta = std::cos(std::atan2(*row_x, *row_z));
-        *row_sin_theta = std::sin(std::atan2(*row_x, *row_z));
-        *row_phi = std::asin((*row_y) / (*row_z));
+        // In the paper, x goes away from the camera, y goes down, z goes left
+        // In our convention, x goes right, y goes down, z goes away from the camera
+        // We therefore need to replace the following paper notations:
+        // x->z, y->y, z->-x
+        float theta = std::atan2(row_points->val[2], -row_points->val[0]);
+        *row_cos_theta = std::cos(theta);
+        *row_sin_theta = std::sin(theta);
+        *row_phi = std::asin(row_points->val[1] / (*row_r));
         *row_cos_phi = std::cos(*row_phi);
         *row_sin_phi = std::sin(*row_phi);
       }
@@ -88,9 +114,9 @@ namespace cv
     std::vector<cv::Mat> xyz(3);
     cv::split(points3d, xyz);
     if (depth == CV_32F)
-      computeThetaPhi<float>(rows, cols, xyz, cos_theta, sin_theta, phi, cos_phi, sin_phi);
+      computeThetaPhi<float>(rows, cols, points3d, cos_theta, sin_theta, phi, cos_phi, sin_phi);
     else
-      computeThetaPhi<double>(rows, cols, xyz, cos_theta, sin_theta, phi, cos_phi, sin_phi);
+      computeThetaPhi<double>(rows, cols, points3d, cos_theta, sin_theta, phi, cos_phi, sin_phi);
 
     cos_phi_inv_ = cv::Mat::ones(rows, cols, depth) / phi;
 
@@ -119,7 +145,7 @@ namespace cv
    * @return normals a rows x cols x 3 matrix
    */
   cv::Mat
-  RgbdNormals::operator()(const cv::Mat &points)
+  RgbdNormals::operator()(const cv::Mat &points) const
   {
     CV_Assert(points.channels()==3 && points.dims==2);
     CV_Assert(points.depth()==CV_32F || points.depth()==CV_64F);
@@ -129,13 +155,7 @@ namespace cv
     cv::split(points, xyz);
 
     // Compute r
-    cv::Mat r;
-    points.copyTo(r);
-    r = r.reshape(1, r.cols * r.rows);
-    cv::multiply(r, r, r);
-    cv::reduce(r, r, 1, CV_REDUCE_SUM);
-    cv::sqrt(r, r);
-    r = r.reshape(1, points.rows);
+    cv::Mat r = computeR(points);
 
     // Compute the derivatives with respect to theta and phi
     cv::Mat r_theta, r_phi;
