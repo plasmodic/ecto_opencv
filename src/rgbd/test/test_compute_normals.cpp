@@ -68,12 +68,11 @@ protected:
       for (int y = 0; y < rows; ++y)
         for (int x = 0; x < cols; ++x)
         {
-          for (unsigned char i = 0; i < 3; ++i)
-          {
-            avg_diff += std::abs(normals(y, x).val[i] - plane(0, i));
-            //std::cout << normals(y, x).val[i] << " ";
-          }
-          //std::cout << std::endl;
+          cv::Vec3f normal1 = normals(y, x), normal2(plane(0, 0), plane(0, 1), plane(0, 2));
+          normal1 = normal1 / cv::norm(normal1);
+          normal2 = normal2 / cv::norm(normal2);
+
+          avg_diff += std::min(cv::norm(normal1 - normal2), cv::norm(normal1 + normal2));
         }
 
       // Verify the function works
