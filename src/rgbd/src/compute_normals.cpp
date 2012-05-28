@@ -48,20 +48,30 @@ namespace
   {
     cv::Mat r;
     points.copyTo(r);
-    r = r.reshape(1, r.cols * r.rows);
+    r = r.reshape(1, points.cols * points.rows);
     cv::multiply(r, r, r);
     cv::reduce(r, r, 1, CV_REDUCE_SUM);
     cv::sqrt(r, r);
     r = r.reshape(1, points.rows);
 
+#if 0
+    for (int y = 0; y < points.rows; ++y)
+    for (int x = 0; x < points.cols; ++x)
+    {
+      cv::Vec3f point = points.at<cv::Vec3f>(y, x);
+      if (std::abs(r.at<float>(y, x) - cv::norm(point)) / cv::norm(point) > 1e-4)
+      std::cout << "r badly computed: " << r.at<float>(y, x) << " for " << cv::norm(point) << ", vec: " << point[0]
+      << " " << point[1] << " " << point[2] << std::endl;
+    }
+#endif
     return r;
   }
 
   // Compute theta and phi according to equation 3
   template<typename T>
   void
-  computeThetaPhi(int rows, int cols, const cv::Mat& points, cv::Mat &cos_theta, cv::Mat &sin_theta, cv::Mat &phi,
-                  cv::Mat &cos_phi, cv::Mat &sin_phi)
+  computeThetaPhi(int rows, int cols, const cv::Mat& points, cv::Mat &cos_theta, cv::Mat &sin_theta, cv::Mat &cos_phi,
+                  cv::Mat &sin_phi)
   {
     typedef cv::Matx<T, 3, 1> Vec_T;
 
@@ -69,28 +79,26 @@ namespace
     sin_theta = cv::Mat_<T>(rows, cols);
     cos_phi = cv::Mat_<T>(rows, cols);
     sin_phi = cv::Mat_<T>(rows, cols);
-    phi = cv::Mat_<T>(rows, cols);
     cv::Mat r = computeR(points);
     for (int y = 0; y < rows; ++y)
     {
-      T * row_cos_theta = cos_theta.ptr<T>(y), *row_sin_theta = sin_theta.ptr<T>(y);
+      T *row_cos_theta = cos_theta.ptr<T>(y), *row_sin_theta = sin_theta.ptr<T>(y);
       T *row_cos_phi = cos_phi.ptr<T>(y), *row_sin_phi = sin_phi.ptr<T>(y);
-      T *row_phi = phi.ptr<T>(y);
       const Vec_T * row_points = points.ptr<Vec_T>(y), *row_points_end = points.ptr<Vec_T>(y) + points.cols;
       const T * row_r = r.ptr<T>(y);
       for (; row_points < row_points_end;
-          ++row_cos_theta, ++row_sin_theta, ++row_cos_phi, ++row_sin_phi, ++row_phi, ++row_points, ++row_r)
+          ++row_cos_theta, ++row_sin_theta, ++row_cos_phi, ++row_sin_phi, ++row_points, ++row_r)
       {
         // In the paper, x goes away from the camera, y goes down, z goes left
         // In our convention, x goes right, y goes down, z goes away from the camera
         // We therefore need to replace the following paper notations:
         // x->z, y->y, z->-x
-        float theta = std::atan2(row_points->val[2], -row_points->val[0]);
+        float theta = std::atan2(row_points->val[0], row_points->val[2]);
         *row_cos_theta = std::cos(theta);
         *row_sin_theta = std::sin(theta);
-        *row_phi = std::asin(row_points->val[1] / (*row_r));
-        *row_cos_phi = std::cos(*row_phi);
-        *row_sin_phi = std::sin(*row_phi);
+        float phi = std::asin(row_points->val[1] / (*row_r));
+        *row_cos_phi = std::cos(phi);
+        *row_sin_phi = std::sin(phi);
       }
     }
   }
@@ -110,15 +118,15 @@ namespace cv
     depthTo3d(depth_image, K_right_depth, points3d);
 
     // Compute theta and phi according to equation 3
-    cv::Mat cos_theta, sin_theta, phi, cos_phi, sin_phi;
+    cv::Mat cos_theta, sin_theta, cos_phi, sin_phi;
     std::vector<cv::Mat> xyz(3);
     cv::split(points3d, xyz);
     if (depth == CV_32F)
-      computeThetaPhi<float>(rows, cols, points3d, cos_theta, sin_theta, phi, cos_phi, sin_phi);
+      computeThetaPhi<float>(rows, cols, points3d, cos_theta, sin_theta, cos_phi, sin_phi);
     else
-      computeThetaPhi<double>(rows, cols, points3d, cos_theta, sin_theta, phi, cos_phi, sin_phi);
+      computeThetaPhi<double>(rows, cols, points3d, cos_theta, sin_theta, cos_phi, sin_phi);
 
-    cos_phi_inv_ = cv::Mat::ones(rows, cols, depth) / phi;
+    cv::divide(cv::Mat::ones(rows, cols, depth), cos_phi, cos_phi_inv_);
 
     R_hat_.resize(3);
     for (unsigned char i = 0; i < 3; ++i)
@@ -135,6 +143,20 @@ namespace cv
     cv::multiply(cos_theta, cos_phi, R_hat_[2][0]);
     R_hat_[2][1] = -sin_theta;
     cv::multiply(-cos_theta, sin_phi, R_hat_[2][2]);
+
+#if 0
+    // Test to make sure we have a rotation matrix
+    for (int y = 0; y < rows; ++y)
+    for (int x = 0; x < cols; ++x)
+    {
+      cv::Mat_<float> R =
+      (cv::Mat_<float>(3, 3) << R_hat_[0][0].at<float>(y, x), R_hat_[0][1].at<float>(y, x), R_hat_[0][2].at<float>(
+              y, x), R_hat_[1][0].at<float>(y, x), R_hat_[1][1].at<float>(y, x), R_hat_[1][2].at<float>(y, x), R_hat_[2][0].at<
+          float>(y, x), R_hat_[2][1].at<float>(y, x), R_hat_[2][2].at<float>(y, x));
+      if (cv::norm(R * R.t(), cv::Mat::eye(3, 3, CV_32F)) > 1e-4)
+      std::cout << R << std::endl;
+    }
+#endif
   }
 
   /** Given a set of 3d points in a depth image, compute the normals at each point
@@ -168,14 +190,8 @@ namespace cv
 
     std::vector<cv::Mat> res_channels(3);
     for (unsigned char i = 0; i < 3; ++i)
-    {
-      cv::Mat tmp1, tmp2;
-      cv::multiply(R_hat_[i][1], cos_phi_inv_, tmp1);
-      cv::multiply(tmp1, r_inv, tmp1);
-      cv::multiply(R_hat_[i][2], r_inv, tmp2);
-
-      res_channels[i] = R_hat_[i][0] + tmp1 + tmp2;
-    }
+      res_channels[i] = R_hat_[i][0] + R_hat_[i][1].mul(r_inv).mul(cos_phi_inv_).mul(r_theta)
+                        + R_hat_[i][2].mul(r_inv).mul(r_phi);
 
     // Create the result matrix
     cv::Mat res;
