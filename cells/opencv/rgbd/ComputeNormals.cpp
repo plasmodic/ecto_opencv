@@ -34,6 +34,7 @@
  */
 
 #include <ecto/ecto.hpp>
+#include <opencv2/calib3d/calib3d.hpp>
 #include <opencv2/rgbd/rgbd.hpp>
 
 using ecto::tendrils;
@@ -80,6 +81,8 @@ namespace rgbd
     declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
     {
       inputs.declare(&DrawNormals::image_in_, "image", "The input image").required(true);
+      inputs.declare(&DrawNormals::K_, "K", "The intrinsic matrix").required(true);
+      inputs.declare(&DrawNormals::points3d_, "points3d", "The 3d points").required(true);
       inputs.declare(&DrawNormals::normals_, "normals", "The normals").required(true);
 
       outputs.declare(&DrawNormals::image_out_, "image", "The output image");
@@ -94,32 +97,36 @@ namespace rgbd
       for (int y = *step_; y < (image_in_->rows - (*step_)); y += *step_)
         for (int x = *step_; x < (image_in_->cols - (*step_)); x += *step_)
         {
-          float angle1, angle2;
           cv::Vec3f normal;
           if (normals_->depth() == CV_32F)
             normal = normals_->at<cv::Vec3f>(y, x);
           else
             normal = normals_->at<cv::Vec3d>(y, x);
           normal = normal / cv::norm(normal);
-          angle1 = std::atan2(normal.val[1], normal.val[0]);
-          angle2 = std::atan2(normal.val[2], std::sqrt(normal.val[0] * normal.val[0] + normal.val[1] * normal.val[1]));
 
-          std::cout << normals_->at<cv::Vec3f>(y, x)[0] << " " << normals_->at<cv::Vec3f>(y, x)[1] << " "
-                    << normals_->at<cv::Vec3f>(y, x)[1] << std::endl;
+          cv::Vec3f point3d;
+          if (points3d_->depth() == CV_32F)
+            point3d = points3d_->at<cv::Vec3f>(y, x);
+          else
+            point3d = points3d_->at<cv::Vec3d>(y, x);
 
-          if (cvIsNaN(angle1))
+          if (cvIsNaN(normal[0]))
             continue;
+          int len = (*step_) / 2 - 2;
 
-          int len = (*step_) * cos(angle2);
-          cv::line(*image_out_, cv::Point2i(x, y), cv::Point2i(x + len * std::cos(angle1), y - len * std::sin(angle1)),
-                   cv::Scalar(255, 0, 0));
+          std::vector<cv::Point3f> points(
+              1, cv::Point3f(point3d[0] + len * normal[0], point3d[1] + len * normal[1], point3d[2] + len * normal[2]));
+          std::vector<cv::Point2f> points2d;
+          cv::Vec3f rvec(0, 0, 0), tvec(0, 0, 0);
+          cv::projectPoints(points, rvec, tvec, *K_, cv::Mat(), points2d);
+          cv::line(*image_out_, cv::Point2i(x, y), points2d[0], cv::Scalar(255, 0, 0));
         }
 
       return ecto::OK;
     }
 
     ecto::spore<int> step_;
-    ecto::spore<cv::Mat> image_in_, image_out_, normals_;
+    ecto::spore<cv::Mat> image_in_, image_out_, normals_, points3d_, K_;
   };
 }
 
