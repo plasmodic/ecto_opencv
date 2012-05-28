@@ -73,7 +73,7 @@ namespace cv
      * @return normals a rows x cols x 3 matrix
      */
     cv::Mat
-    operator()(const cv::Mat &points);
+    operator()(const cv::Mat &points) const;
   private:
     std::vector<std::vector<cv::Mat> > R_hat_;
     /** The cached 1/cos(phi) */
@@ -89,7 +89,8 @@ namespace cv
   void
   depthTo3dSparse(const cv::Mat& depth, const cv::Mat& in_K, const cv::InputArray in_points, cv::Mat& points3d);
 
-  /** Converts a depth image to an organized set of 3d points
+  /** Converts a depth image to an organized set of 3d points.
+   * The coordinate system is x pointing left, y down and z away from the camera
    * @param depth the depth image (if given as short int CV_U, it is assumed to be the depth in millimeters
    *              (as done with the Microsoft Kinect), otherwise, if given as CV_32F, it is assumed in meters)
    * @param K The calibration matrix
