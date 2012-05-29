@@ -70,14 +70,13 @@ namespace cv
 
     /** Given a set of 3d points in a depth image, compute the normals at each point.
      * @param points a rows x cols x 3 matrix
+     * @param window_size the window size on which to compute the derivatives
      * @return normals a rows x cols x 3 matrix
      */
     cv::Mat
-    operator()(const cv::Mat &points) const;
+    operator()(const cv::Mat &points, int window_size = 5) const;
   private:
     std::vector<std::vector<cv::Mat> > R_hat_;
-    /** The cached 1/cos(phi) */
-    cv::Mat cos_phi_inv_;
   };
 
   /**

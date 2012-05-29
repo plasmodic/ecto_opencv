@@ -34,6 +34,7 @@
  */
 
 #include <iostream>
+#include <opencv2/contrib/contrib.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/rgbd/rgbd.hpp>
 
@@ -47,9 +48,8 @@ namespace
   computeR(const cv::Mat &points)
   {
     cv::Mat r;
-    points.copyTo(r);
+    cv::multiply(points, points, r);
     r = r.reshape(1, points.cols * points.rows);
-    cv::multiply(r, r, r);
     cv::reduce(r, r, 1, CV_REDUCE_SUM);
     cv::sqrt(r, r);
     r = r.reshape(1, points.rows);
@@ -126,8 +126,6 @@ namespace cv
     else
       computeThetaPhi<double>(rows, cols, points3d, cos_theta, sin_theta, cos_phi, sin_phi);
 
-    cv::divide(cv::Mat::ones(rows, cols, depth), cos_phi, cos_phi_inv_);
-
     R_hat_.resize(3);
     for (unsigned char i = 0; i < 3; ++i)
       R_hat_[i].resize(3);
@@ -143,6 +141,9 @@ namespace cv
     cv::multiply(cos_theta, cos_phi, R_hat_[2][0]);
     R_hat_[2][1] = -sin_theta;
     cv::multiply(-cos_theta, sin_phi, R_hat_[2][2]);
+
+    for (unsigned char i = 0; i < 3; ++i)
+      R_hat_[i][1] = R_hat_[i][1] / cos_phi;
 
 #if 0
     // Test to make sure we have a rotation matrix
@@ -164,38 +165,48 @@ namespace cv
    * ``Fast and Accurate Computation of Surface Normals from Range Images``
    * by H. Badino, D. Huber, Y. Park and T. Kanade
    * @param points a rows x cols x 3 matrix
+   * @param window_size the window size on which to compute the derivatives
    * @return normals a rows x cols x 3 matrix
    */
   cv::Mat
-  RgbdNormals::operator()(const cv::Mat &points) const
+  RgbdNormals::operator()(const cv::Mat &points, int window_size) const
   {
+    cv::TickMeter tm1, tm2, tm3;
+    tm1.start();
+
     CV_Assert(points.channels()==3 && points.dims==2);
     CV_Assert(points.depth()==CV_32F || points.depth()==CV_64F);
 
-    int rows = points.rows, cols = points.cols, depth = points.depth();
-    std::vector<cv::Mat> xyz(3);
-    cv::split(points, xyz);
+    int depth = points.depth();
 
     // Compute r
     cv::Mat r = computeR(points);
+    tm1.stop();
 
     // Compute the derivatives with respect to theta and phi
+    tm2.start();
     cv::Mat r_theta, r_phi;
-    cv::Scharr(r, r_theta, depth, 1, 0);
-    cv::Scharr(r, r_phi, depth, 0, 1);
+    cv::Sobel(r, r_theta, depth, 1, 0, window_size);
+    cv::Sobel(r, r_phi, depth, 0, 1, window_size);
+    tm2.stop();
 
     // Fill the result matrix
-    cv::Mat r_inv;
-    cv::divide(cv::Mat::ones(rows, cols, depth), r, r_inv);
-
+    tm3.start();
     std::vector<cv::Mat> res_channels(3);
-    for (unsigned char i = 0; i < 3; ++i)
-      res_channels[i] = R_hat_[i][0] + R_hat_[i][1].mul(r_inv).mul(cos_phi_inv_).mul(r_theta)
-                        + R_hat_[i][2].mul(r_inv).mul(r_phi);
+    cv::divide(r_theta, r, r_theta);
+    cv::divide(r_phi, r, r_phi);
+    res_channels[0] = R_hat_[0][0] + R_hat_[0][1].mul(r_theta) + R_hat_[0][2].mul(r_phi);
+    // R[1][1] is zero
+    res_channels[1] = R_hat_[1][0] + R_hat_[1][2].mul(r_phi);
+    res_channels[2] = R_hat_[2][0] + R_hat_[2][1].mul(r_theta) + R_hat_[2][2].mul(r_phi);
+    tm3.stop();
 
     // Create the result matrix
     cv::Mat res;
     cv::merge(res_channels, res);
+
+    //std::cout << "Time = " << tm1.getTimeMilli() << " " << tm2.getTimeMilli() << " " << tm3.getTimeMilli() << " msec."
+    //          << tm1.getTimeMilli() + tm2.getTimeMilli() + tm3.getTimeMilli() << std::endl;
 
     return res;
   }
