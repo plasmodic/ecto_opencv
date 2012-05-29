@@ -113,7 +113,10 @@ namespace
       if (depth.depth() == CV_16S)
         n_points = convertDepthToFloat<int16_t>(depth, mask, 1.0 / 1000.0f, u_mat, v_mat, z_mat);
       else
-        n_points = convertDepthToFloat<int16_t>(depth, mask, 1.0f, u_mat, v_mat, z_mat);
+      {
+        CV_Assert(depth.type() == CV_32F);
+        n_points = convertDepthToFloat<float>(depth, mask, 1.0f, u_mat, v_mat, z_mat);
+      }
 
     if (n_points == 0)
       return;
@@ -217,7 +220,10 @@ namespace cv
       if (depth.depth() == CV_16U)
         convertDepthToFloat<int16_t>(depth, 1.0 / 1000.0f, points_float, z_mat);
       else
+      {
+        CV_Assert(depth.type() == CV_32F);
         convertDepthToFloat<float>(depth, 1.0f, points_float, z_mat);
+      }
 
     std::vector<cv::Mat> channels(2);
     cv::split(points_float, channels);
