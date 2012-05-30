@@ -1,0 +1,18 @@
+<stack>
+  <name>ecto_opencv</name>
+  <version>0.3.7</version>
+  <description>Ecto bindings for common opencv functionality.</description>
+  <author>Ethan Rublee erublee@willowgarage.com, Troy Straszheim straszheim@willowgarage.com</author>
+  <maintainer>Vincent Rabaud vrabaud@willowgarage.com</maintainer>
+  <license>BSD</license>
+  <copyright>Willow Garage</copyright>
+
+  <url>http://ecto.willowgarage.com</url>
+  <build_depends>catkin</build_depends>
+  <build_depends>boost</build_depends>
+  <build_depends>ecto</build_depends>
+  <build_depends>opencv2</build_depends>
+  <depends>boost</depends>
+  <depends>ecto</depends>
+  <depends>opencv2</depends>
+</stack>
