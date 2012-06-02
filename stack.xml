@@ -2,8 +2,9 @@
   <name>ecto_opencv</name>
   <version>0.3.7</version>
   <description>Ecto bindings for common opencv functionality.</description>
-  <author>Ethan Rublee erublee@willowgarage.com, Troy Straszheim straszheim@willowgarage.com</author>
-  <maintainer>Vincent Rabaud vrabaud@willowgarage.com</maintainer>
+  <author email="erublee@willowgarage.com">Ethan Rublee</author>
+  <author email="straszheim@willowgarage.com">Troy Straszheim</author>
+  <maintainer email="vrabaud@willowgarage.com">Vincent Rabaud</maintainer>
   <license>BSD</license>
   <copyright>Willow Garage</copyright>
 
