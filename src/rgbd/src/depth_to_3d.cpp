@@ -52,7 +52,8 @@ namespace
                      cv::Mat& points3d)
   {
     CV_Assert((u_mat.size() == z_mat.size()) && (v_mat.size() == z_mat.size()));
-    if (u_mat.empty()) {
+    if (u_mat.empty())
+    {
       points3d = cv::Mat();
       return;
     }
@@ -77,10 +78,10 @@ namespace
     coordinates[0] = (u_mat - cx) / fx;
 
     if (s != 0)
-      coordinates[0] = coordinates[0] + ( - (s / fy) * v_mat + cy * s / fy) / fx;
+      coordinates[0] = coordinates[0] + (-(s / fy) * v_mat + cy * s / fy) / fx;
 
     coordinates[0] = coordinates[0].mul(z_mat);
-    coordinates[1] = (v_mat - cy).mul(z_mat)  * (1. / fy);
+    coordinates[1] = (v_mat - cy).mul(z_mat) * (1. / fy);
     coordinates[2] = z_mat;
     cv::merge(coordinates, points3d);
   }
@@ -97,7 +98,7 @@ namespace
     // Create 3D points in one go.
     cv::Size depth_size = depth.size();
     cv::Mat_<float> u_mat = cv::Mat_<float>(depth_size.area(), 1), v_mat = cv::Mat_<float>(depth_size.area(), 1),
-                    z_mat = cv::Mat_<float>(depth_size.area(), 1);
+        z_mat = cv::Mat_<float>(depth_size.area(), 1);
 
     cv::Mat_<uchar> uchar_mask = mask;
 
@@ -109,14 +110,13 @@ namespace
 
     if (depth.depth() == CV_16U)
       n_points = convertDepthToFloat<uint16_t>(depth, mask, 1.0 / 1000.0f, u_mat, v_mat, z_mat);
+    else if (depth.depth() == CV_16S)
+      n_points = convertDepthToFloat<int16_t>(depth, mask, 1.0 / 1000.0f, u_mat, v_mat, z_mat);
     else
-      if (depth.depth() == CV_16S)
-        n_points = convertDepthToFloat<int16_t>(depth, mask, 1.0 / 1000.0f, u_mat, v_mat, z_mat);
-      else
-      {
-        CV_Assert(depth.type() == CV_32F);
-        n_points = convertDepthToFloat<float>(depth, mask, 1.0f, u_mat, v_mat, z_mat);
-      }
+    {
+      CV_Assert(depth.type() == CV_32F);
+      n_points = convertDepthToFloat<float>(depth, mask, 1.0f, u_mat, v_mat, z_mat);
+    }
 
     if (n_points == 0)
       return;
@@ -134,31 +134,27 @@ namespace
    * @param depth the depth image
    * @param points3d the resulting 3d points
    */
+  template<typename T>
   void
-  depthTo3dNoMask(const cv::Mat& in_depth, const cv::Mat& in_K, cv::Mat& points3d)
+  depthTo3dNoMask(const cv::Mat& in_depth, const cv::Mat_<T>& K, cv::Mat& points3d)
   {
     // Create 3D points in one go.
     cv::Size depth_size = in_depth.size();
-    cv::Mat_<float> u_mat = cv::Mat_<float>(depth_size), v_mat = cv::Mat_<float>(depth_size), z_mat = cv::Mat_<float>(
-                              depth_size);
-
-    // If we compute on the whole matrix
-    cv::Mat_<float> K;
-    in_K.convertTo(K, CV_32F);
 
     //grab camera params
-    float fx = K.at<float>(0, 0);
-    float fy = K.at<float>(1, 1);
-    float s = K.at<float>(0, 1);
-    float cx = K.at<float>(0, 2);
-    float cy = K.at<float>(1, 2);
+    float fx = K(0, 0);
+    float fy = K(1, 1);
+    float s = K(0, 1);
+    float cx = K(0, 2);
+    float cy = K(1, 2);
 
     // Build z
+    cv::Mat_<T> u_mat = cv::Mat_<T>(depth_size), v_mat = cv::Mat_<T>(depth_size), z_mat = cv::Mat_<T>(depth_size);
     rescaleDepth(in_depth, z_mat);
 
     // Build the set of v's
-    cv::Mat_<float> us = cv::Mat_<float>(1, depth_size.width), vs = cv::Mat_<float>(depth_size.height, 1);
-    float* u_data = us.ptr<float>(0, 0), *v_data = vs.ptr<float>(0, 0);
+    cv::Mat_<T> us = cv::Mat_<T>(1, depth_size.width), vs = cv::Mat_<T>(depth_size.height, 1);
+    T* u_data = reinterpret_cast<T*>(us.data), *v_data = reinterpret_cast<T*>(vs.data);
 
     for (int u = 0; u < depth_size.width; ++u, ++u_data)
       *u_data = u;
@@ -178,14 +174,13 @@ namespace
     }
 
     // Compute all the coordinates
-    cv::Mat_<float> coordinates[3] =
+    cv::Mat_<T> coordinates[3] =
     { u_mat.mul(z_mat), v_mat.mul(z_mat), z_mat };
     cv::Mat tmp_points;
     cv::merge(coordinates, 3, tmp_points);
     points3d = tmp_points.reshape(3, in_depth.rows);
   }
 }
-
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -216,14 +211,13 @@ namespace cv
 
     if (depth.depth() == CV_16U)
       convertDepthToFloat<uint16_t>(depth, 1.0 / 1000.0f, points_float, z_mat);
+    else if (depth.depth() == CV_16U)
+      convertDepthToFloat<int16_t>(depth, 1.0 / 1000.0f, points_float, z_mat);
     else
-      if (depth.depth() == CV_16U)
-        convertDepthToFloat<int16_t>(depth, 1.0 / 1000.0f, points_float, z_mat);
-      else
-      {
-        CV_Assert(depth.type() == CV_32F);
-        convertDepthToFloat<float>(depth, 1.0f, points_float, z_mat);
-      }
+    {
+      CV_Assert(depth.type() == CV_32F);
+      convertDepthToFloat<float>(depth, 1.0f, points_float, z_mat);
+    }
 
     std::vector<cv::Mat> channels(2);
     cv::split(points_float, channels);
@@ -232,23 +226,33 @@ namespace cv
   }
 
   /**
-  * @param depth the depth image (if given as short int CV_U, it is assumed to be the depth in millimeters
-  *              (as done with the Microsoft Kinect), otherwise, if given as CV_32F, it is assumed in meters)
-  * @param K The calibration matrix
-  * @param points3d the resulting 3d points as a cv::Mat of the same size but containing cv::Vec3f
-  * @param mask the mask of the points to consider (can be empty)
-  */
+   * @param depth the depth image (if given as short int CV_U, it is assumed to be the depth in millimeters
+   *              (as done with the Microsoft Kinect), otherwise, if given as CV_32F, it is assumed in meters)
+   * @param K The calibration matrix
+   * @param points3d the resulting 3d points as a cv::Mat of the same size but containing cv::Vec3f
+   * @param mask the mask of the points to consider (can be empty)
+   */
   void
-  depthTo3d (const cv::Mat& depth, const cv::Mat& K, cv::Mat& points3d, const cv::Mat& mask)
+  depthTo3d(const cv::Mat& depth, const cv::Mat& K, cv::Mat& points3d, const cv::Mat& mask)
   {
-    CV_Assert (K.cols == 3 && K.rows == 3);
-    CV_Assert (depth.type() == CV_32FC1 || depth.type() == CV_16UC1 || depth.type() == CV_16SC1);
-    CV_Assert (mask.channels() == 1);
+    CV_Assert(K.cols == 3 && K.rows == 3 && (K.depth() == CV_64F || K.depth()==CV_32F));
+    CV_Assert(
+        depth.type() == CV_64FC1 || depth.type() == CV_32FC1 || depth.type() == CV_16UC1 || depth.type() == CV_16SC1);
+    CV_Assert(K.cols == 3 && K.rows == 3);
+    CV_Assert(mask.channels() == 1);
+    CV_Assert(
+        ((depth.depth()==CV_32F || depth.depth()==CV_64F) && depth.depth() == K.depth()) || (depth.depth()!=CV_32F && depth.depth()!=CV_64F));
 
     // Create 3D points in one go.
     if (!mask.empty())
-      depthTo3dMask (depth, K, mask, points3d);
+      depthTo3dMask(depth, K, mask, points3d);
     else
-      depthTo3dNoMask (depth, K, points3d);
+    {
+      if (K.depth() == CV_64F)
+        depthTo3dNoMask<double>(depth, K, points3d);
+      else
+        depthTo3dNoMask<float>(depth, K, points3d);
+    }
+
   }
 }
