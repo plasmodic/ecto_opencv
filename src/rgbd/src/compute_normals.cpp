@@ -137,7 +137,7 @@ namespace
   class FALS: public cv::RgbdNormals::RgbdNormalsImpl
   {
   public:
-    FALS(int rows, int cols, int window_size, const cv::Mat &K)
+    FALS(int rows, int cols, int window_size, const cv::Matx<T, 3, 3> &K)
         :
           rows_(rows),
           cols_(cols),
@@ -192,7 +192,6 @@ namespace
         {
           // We have a semi-definite matrix
           cv::invert(cv::Matx<T, 3, 3>(M(y, x).val), M_inv);
-          M_inv = cv::Matx<T, 3, 3>(M(y, x).val).inv();
           for (unsigned char i = 0; i < 3; ++i)
             M_inv_[i](y, x) = cv::Vec<T, 3>(M_inv(i, 0), M_inv(i, 1), M_inv(i, 2));
         }
@@ -253,26 +252,26 @@ namespace
 
       //TODO test for speed
 #if 0
-            normals = cv::Mat_<cv::Vec<T, 3> >(rows_, cols_);
-       for (int y = 0; y < V_.rows; ++y)
-       for (int x = 0; x < V_.cols; ++x)
-       {
+      normals = cv::Mat_<cv::Vec<T, 3> >(rows_, cols_);
+      for (int y = 0; y < V_.rows; ++y)
+      for (int x = 0; x < V_.cols; ++x)
+      {
 
-       cv::Matx33d mat;
-       for (unsigned int j = 0, k = 0; j < 3; ++j)
-       for (unsigned int i = 0; i < 3; ++i, ++k)
-       mat(j, i) = M_inv_[j](y, x).val[i];
+        cv::Matx33d mat;
+        for (unsigned int j = 0, k = 0; j < 3; ++j)
+        for (unsigned int i = 0; i < 3; ++i, ++k)
+        mat(j, i) = M_inv_[j](y, x).val[i];
 
-       cv::Matx31d vec1(3, 1);
-       for (int i = 0; i < 3; ++i)
-       vec1(i, 0) = B.at<cv::Vec<T, 3> >(y, x).val[i];
+        cv::Matx31d vec1(3, 1);
+        for (int i = 0; i < 3; ++i)
+        vec1(i, 0) = B.at<cv::Vec<T, 3> >(y, x).val[i];
 
-       cv::Matx31d vec2 = mat * vec1;
-       for (int i = 0; i < 3; ++i)
-       {
-       normals.at<cv::Vec<T, 3> >(y, x).val[i] = vec2(i, 0);
-       }
-       }
+        cv::Matx31d vec2 = mat * vec1;
+        for (int i = 0; i < 3; ++i)
+        {
+          normals.at<cv::Vec<T, 3> >(y, x).val[i] = vec2(i, 0);
+        }
+      }
 #endif
 
       return normals;
@@ -330,20 +329,6 @@ namespace
       cv::multiply(cos_theta, cos_phi, R_hat_[2][0]);
       R_hat_[2][1] = -sin_theta;
       cv::multiply(-cos_theta, sin_phi, R_hat_[2][2]);
-
-#if 0
-// Test to make sure we have a rotation matrix
-      for (int y = 0; y < rows; ++y)
-      for (int x = 0; x < cols; ++x)
-      {
-        cv::Mat_<float> R =
-        (cv::Mat_<float>(3, 3) << R_hat_[0][0].at<float>(y, x), R_hat_[0][1].at<float>(y, x), R_hat_[0][2].at<float>(
-                y, x), R_hat_[1][0].at<float>(y, x), R_hat_[1][1].at<float>(y, x), R_hat_[1][2].at<float>(y, x), R_hat_[2][0].at<
-            float>(y, x), R_hat_[2][1].at<float>(y, x), R_hat_[2][2].at<float>(y, x));
-        if (cv::norm(R * R.t(), cv::Mat::eye(3, 3, CV_32F)) > 1e-4)
-        std::cout << R << std::endl;
-      }
-#endif
 
       for (unsigned char i = 0; i < 3; ++i)
         R_hat_[i][1] = R_hat_[i][1] / cos_phi;
@@ -410,10 +395,9 @@ namespace cv
   RgbdNormals::RgbdNormals(int rows, int cols, int depth, const cv::Mat & K, RGBD_NORMALS_METHOD method)
       :
         method_(method)
-
   {
-    if (depth != CV_64F)
-      depth = CV_32F;
+    CV_Assert(depth == CV_32F || depth == CV_64F);
+
     cv::Mat K_right_depth;
     K.convertTo(K_right_depth, depth);
     K_ = K_right_depth;
@@ -430,10 +414,7 @@ namespace cv
     else if (method_ == RGBD_NORMALS_METHOD_FALS)
     {
       if (depth == CV_32F)
-      {
-        std::cout << "**************";
         rgbd_normals_impl_ = new FALS<float>(rows, cols, window_size, K_right_depth);
-      }
       else
         rgbd_normals_impl_ = new FALS<double>(rows, cols, window_size, K_right_depth);
     }
@@ -455,10 +436,10 @@ namespace cv
     CV_Assert(in_points3d.channels() == 3 && in_points3d.dims == 2);
     CV_Assert(in_points3d.depth() == CV_32F || in_points3d.depth() == CV_64F);
 
+    tm_all.start();
     cv::Mat points3d;
     in_points3d.convertTo(points3d, K_.depth());
 
-    tm_all.start();
     cv::Mat normals;
 
     tm1.start();
