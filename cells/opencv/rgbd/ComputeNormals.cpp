@@ -57,14 +57,14 @@ namespace rgbd
     process(const tendrils& inputs, const tendrils& outputs)
     {
       if (normals_computer_.empty())
-        normals_computer_ = cv::Ptr<cv::RgbdNormals>(
-            new cv::RgbdNormals(points3d_->rows, points3d_->cols, points3d_->depth(), *K_));
+        normals_computer_ = new cv::RgbdNormals(points3d_->rows, points3d_->cols, points3d_->depth(), *K_,
+                                                cv::RgbdNormals::RGBD_NORMALS_METHOD_FALS);
       *normals_ = (*normals_computer_)(*points3d_);
 
       return ecto::OK;
     }
     cv::Ptr<cv::RgbdNormals> normals_computer_;
-    ecto::spore<cv::Mat> points3d_, normals_, K_;
+    ecto::spore<cv::Mat> points3d_, normals_, K_, depth_;
   };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -86,12 +86,15 @@ namespace rgbd
       inputs.declare(&DrawNormals::normals_, "normals", "The normals").required(true);
 
       outputs.declare(&DrawNormals::image_out_, "image", "The output image");
+      outputs.declare(&DrawNormals::normal_intensity_, "normal_intensity",
+                      "The output image with the normal intensity");
     }
 
     int
     process(const tendrils& inputs, const tendrils& outputs)
     {
       image_in_->copyTo(*image_out_);
+      cv::Mat normal_intensity = cv::Mat(image_in_->rows, image_in_->cols, CV_8U);
 
       // Draw the normals at given steps
       for (int y = *step_; y < (image_in_->rows - (*step_)); y += *step_)
@@ -112,21 +115,36 @@ namespace rgbd
 
           if (cvIsNaN(normal[0]))
             continue;
-          int len = (*step_) / 2 - 2;
+          int len = (*step_) / 4 - 2;
 
           std::vector<cv::Point3f> points(
               1, cv::Point3f(point3d[0] + len * normal[0], point3d[1] + len * normal[1], point3d[2] + len * normal[2]));
+
           std::vector<cv::Point2f> points2d;
           cv::Vec3f rvec(0, 0, 0), tvec(0, 0, 0);
           cv::projectPoints(points, rvec, tvec, *K_, cv::Mat(), points2d);
           cv::line(*image_out_, cv::Point2i(x, y), points2d[0], cv::Scalar(255, 0, 0));
+
         }
+      for (int y = 0; y < image_in_->rows; ++y)
+        for (int x = 0; x < image_in_->cols; ++x)
+        {
+          cv::Vec3f normal;
+          if (normals_->depth() == CV_32F)
+            normal = normals_->at<cv::Vec3f>(y, x);
+          else
+            normal = normals_->at<cv::Vec3d>(y, x);
+          normal = normal / cv::norm(normal);
+
+          normal_intensity.at<uchar>(y, x) = 255 * std::abs(normal[2]);
+        }
+      normal_intensity.copyTo(*normal_intensity_);
 
       return ecto::OK;
     }
 
     ecto::spore<int> step_;
-    ecto::spore<cv::Mat> image_in_, image_out_, normals_, points3d_, K_;
+    ecto::spore<cv::Mat> image_in_, image_out_, normals_, points3d_, K_, normal_intensity_;
   };
 }
 
