@@ -70,8 +70,18 @@ namespace calib
 	  *out_i++ = (*begin++ != 0)*255;
       }
 
+    else if (input.depth() == CV_16S)
+      {
+  output.create(input.size(), CV_8UC1);
+  output = cv::Scalar::all(255);
+  cv::Mat_<int16_t>::const_iterator begin(input.begin<int16_t>()), end(input.end<int16_t>());
+  cv::Mat_<uint8_t>::iterator out_i(output.begin<uint8_t>());
+  while (begin != end)
+    *out_i++ = (*begin++ != 0)*255;
+      }
+
     else
-      throw std::runtime_error("Expected input to be of floating point (CV_32F) or 16-bit depth (CV_16U)");
+      throw std::runtime_error("Expected input to be of floating point (CV_32F) or 16-bit depth (CV_16U, CV_16S)");
 
   }
 
