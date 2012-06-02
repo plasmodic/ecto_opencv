@@ -70,29 +70,33 @@ namespace
   // Compute theta and phi according to equation 3
   template<typename T>
   void
-  computeThetaPhi(int rows, int cols, const cv::Mat& points, cv::Mat &cos_theta, cv::Mat &sin_theta, cv::Mat &cos_phi,
-                  cv::Mat &sin_phi)
+  computeThetaPhi(int rows, int cols, const cv::Matx<T, 3, 3>& K, cv::Mat &cos_theta, cv::Mat &sin_theta,
+                  cv::Mat &cos_phi, cv::Mat &sin_phi)
   {
+    // Create some bogus coordinates
+    cv::Mat depth_image = K(0,0)*cv::Mat_<T>::ones(rows, cols);
+    cv::Mat points3d;
+    depthTo3d(depth_image, cv::Mat(K), points3d);
+
     typedef cv::Matx<T, 3, 1> Vec_T;
 
     cos_theta = cv::Mat_<T>(rows, cols);
     sin_theta = cv::Mat_<T>(rows, cols);
     cos_phi = cv::Mat_<T>(rows, cols);
     sin_phi = cv::Mat_<T>(rows, cols);
-    cv::Mat r = computeR(points);
+    cv::Mat r = computeR(points3d);
     for (int y = 0; y < rows; ++y)
     {
       T *row_cos_theta = cos_theta.ptr<T>(y), *row_sin_theta = sin_theta.ptr<T>(y);
       T *row_cos_phi = cos_phi.ptr<T>(y), *row_sin_phi = sin_phi.ptr<T>(y);
-      const Vec_T * row_points = points.ptr<Vec_T>(y), *row_points_end = points.ptr<Vec_T>(y) + points.cols;
+      const Vec_T * row_points = points3d.ptr<Vec_T>(y), *row_points_end = points3d.ptr<Vec_T>(y) + points3d.cols;
       const T * row_r = r.ptr<T>(y);
       for (; row_points < row_points_end;
           ++row_cos_theta, ++row_sin_theta, ++row_cos_phi, ++row_sin_phi, ++row_points, ++row_r)
       {
-        // In the paper, x goes away from the camera, y goes down, z goes left
-        // In our convention, x goes right, y goes down, z goes away from the camera
-        // We therefore need to replace the following paper notations:
-        // x->z, y->y, z->-x
+        // In the paper, z goes away from the camera, y goes down, x goes right
+        // OpenCV has the same conventions
+        // Theta goes from z to x (and actually goes from -pi/2 to pi/2, phi goes from z to y
         float theta = std::atan2(row_points->val[0], row_points->val[2]);
         *row_cos_theta = std::cos(theta);
         *row_sin_theta = std::sin(theta);
@@ -102,112 +106,405 @@ namespace
       }
     }
   }
+
+  /** Modify normals to make sure they point towards the camera
+   * @param normals
+   */
+  template<typename T>
+  void
+  signNormals(cv::Mat & normals)
+  {
+    for (int y = 0; y < normals.rows; ++y)
+    {
+      T* row = normals.ptr<T>(y), *row_end = normals.ptr<T>(y) + normals.cols;
+      for (; row != row_end; ++row) {
+        *row = (*row) / cv::norm(*row);
+        if ((*row)[2] > 0)
+          *row = -(*row);
+      }
+    }
+  }
 }
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+namespace
+{
+  template<typename T>
+  class FALS: public cv::RgbdNormals::RgbdNormalsImpl
+  {
+  public:
+    FALS(int rows, int cols, int window_size, const cv::Mat &K)
+        :
+          rows_(rows),
+          cols_(cols),
+          window_size_(window_size),
+          K_(K)
+    {
+    }
+    ~FALS()
+    {
+    }
+
+    /** Compute cached data
+     */
+    virtual void
+    cache()
+    {
+      // Compute theta and phi according to equation 3
+      cv::Mat cos_theta, sin_theta, cos_phi, sin_phi;
+      computeThetaPhi<T>(rows_, cols_, K_, cos_theta, sin_theta, cos_phi, sin_phi);
+
+      // Compute all the v_i for every points
+      std::vector<cv::Mat> channels(3);
+      channels[0] = sin_theta.mul(cos_phi);
+      channels[1] = sin_phi;
+      channels[2] = cos_theta.mul(cos_phi);
+      cv::Mat V;
+      cv::merge(channels, V);
+      V_ = V;
+
+      // Compute M and its inverse
+      cv::Mat_<cv::Vec<T, 9> > M(rows_, cols_);
+      cv::Matx<T, 3, 3> VVt;
+      for (int y = 0; y < rows_; ++y)
+      {
+        for (int x = 0; x < cols_; ++x)
+        {
+          cv::Vec<T, 3> vec(channels[0].at<T>(y, x), channels[1].at<T>(y, x), channels[2].at<T>(y, x));
+          V_(y, x) = vec;
+          VVt = vec * vec.t();
+          M(y, x) = cv::Vec<T, 9>(VVt.val);
+        }
+      }
+
+      cv::boxFilter(M, M, M.depth(), cv::Size(window_size_, window_size_), cv::Point(-1, -1), false);
+      M.copyTo(M2_);
+      cv::Matx<T, 3, 3> M_inv;
+      M_inv_.resize(3);
+      for (unsigned char i = 0; i < 3; ++i)
+        M_inv_[i] = cv::Mat_<cv::Vec<T, 3> >(rows_, cols_);
+      for (int y = 0; y < rows_; ++y)
+        for (int x = 0; x < cols_; ++x)
+        {
+          // We have a semi-definite matrix
+          cv::invert(cv::Matx<T, 3, 3>(M(y, x).val), M_inv);
+          M_inv = cv::Matx<T, 3, 3>(M(y, x).val).inv();
+          for (unsigned char i = 0; i < 3; ++i)
+            M_inv_[i](y, x) = cv::Vec<T, 3>(M_inv(i, 0), M_inv(i, 1), M_inv(i, 2));
+        }
+    }
+
+    /** Compute the normals
+     * @param r
+     * @return
+     */
+    virtual cv::Mat
+    compute(const cv::Mat &r) const
+    {
+      // Compute B
+#if 0
+      std::vector<cv::Mat> channels(3);
+      cv::split(V_, channels);
+      std::cout << channels.size() << " channels" << std::endl;
+      for (unsigned char i = 0; i < 3; ++i)
+      {
+        for (int y = 0; y < rows_; ++y)
+        for (int x = 0; x < cols_; ++x)
+        if (cvIsNaN(channels[i].at<T>(y, x)))
+        std::cout << "0";
+
+        cv::Mat channels_ini;
+        channels[i].copyTo(channels_ini);
+        cv::divide(channels[i], r, channels[i]);
+
+        for (int y = 0; y < rows_; ++y)
+        for (int x = 0; x < cols_; ++x)
+        {
+          if (cvIsNaN(r.at<T>(y, x)))
+          continue;
+          std::cout << x << " " << y << " " << channels_ini.at<T>(y, x) / r.at<T>(y, x) << " " <<channels[i].at<T>(y, x)<<std::endl;
+        }
+        /*if ((cvIsNaN(channels[i].at<T>(y, x))) && (!cvIsNaN(r.at<T>(y, x))))
+         std::cout << "2" << " " << channels_ini.at<T>(y, x) << " " << r.at<T>(y, x) << " "
+         << channels_ini.at<T>(y, x) / r.at<T>(y, x) << " ";*/
+
+        std::cout << channels_ini.depth() << " " << r.depth() << " " << rows_ << " " << cols_ << " " << channels[i].rows
+        << " " << channels[i].cols << std::endl;
+
+      }
+      cv::Mat B;
+      cv::merge(channels, B);
+#endif
+
+      cv::Mat B = cv::Mat_<cv::Vec<T, 3> >(rows_, cols_);
+      for (int y = 0; y < rows_; ++y)
+      {
+        const T* row_r = r.ptr<T>(y), *row_r_end = r.ptr<T>(y) + cols_;
+        cv::Vec<T, 3> *row_B = B.ptr<cv::Vec<T, 3> >(y);
+        const cv::Vec<T, 3> *row_V = (cv::Vec<T, 3> *) V_.ptr(y);
+        for (; row_r != row_r_end; ++row_r, ++row_B, ++row_V)
+        {
+          if (cvIsNaN(*row_r))
+            *row_B = cv::Vec<T, 3>();
+          else
+            *row_B = (*row_V) / (*row_r);
+        }
+      }
+
+      cv::boxFilter(B, B, B.depth(), cv::Size(window_size_, window_size_), cv::Point(-1, -1), false);
+      B.copyTo(const_cast<cv::Mat_<cv::Vec<T, 3> > &>(B_));
+
+      /*std::vector<cv::Mat> channels(3);
+      for (unsigned char i = 0; i < 3; ++i)
+      {
+        cv::Mat product = M_inv_[i].mul(B);
+        product = product.reshape(1, cols_ * rows_);
+        cv::reduce(product, product, 2, CV_REDUCE_SUM);
+        channels[i] = product.reshape(1, rows_);
+      }*/
+      cv::Mat normals;
+      //cv::merge(channels, normals);
+
+      normals = cv::Mat_<cv::Vec<T, 3> >(rows_,cols_);
+      for(int y=0;y<V_.rows; ++y)
+        for(int x=0;x<V_.cols; ++x) {
+
+          if (B.at<cv::Vec<T, 3> >(y,x).val[2] < 1e-5)
+                    {
+            for (int i = 0; i < 3; ++i)
+            {
+              normals.at<cv::Vec<T, 3> >(y, x).val[i] = 0;
+            }
+            continue;
+                    }
+
+          cv::Matx33d mat;
+          for(unsigned int j=0,k=0;j<3;++j)
+            for(unsigned int i=0;i<3;++i,++k)
+              mat(j,i) = M_inv_[j](y,x).val[i];
+
+          cv::Matx31d vec1(3,1);
+          for (int i = 0; i < 3; ++i)
+            vec1(i,0) = B.at<cv::Vec<T, 3> >(y, x).val[i];
+
+          cv::Matx31d vec2 = mat*vec1;
+          for (int i = 0; i < 3; ++i)
+          {
+            normals.at<cv::Vec<T, 3> >(y, x).val[i] = vec2(i,0);
+          }
+        }
+
+      return normals;
+    }
+    //TODO
+    //private:
+    int rows_;
+    int cols_;
+    int window_size_;
+    cv::Matx<T, 3, 3> K_;
+
+    cv::Mat_<cv::Vec<T, 3> > V_;
+    // Each of the three elements is a row in M_inv
+    std::vector<cv::Mat_<cv::Vec<T, 3> > > M_inv_;
+    cv::Mat_<cv::Vec<T, 9> > M2_;
+
+    cv::Mat_<cv::Vec<T, 3> > B_;
+  };
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+namespace
+{
+  template<typename T>
+  class SRI: public cv::RgbdNormals::RgbdNormalsImpl
+  {
+  public:
+    SRI(int rows, int cols, int window_size, const cv::Mat &K)
+        :
+          rows_(rows),
+          cols_(cols),
+          window_size_(window_size),
+          K_(K)
+    {
+    }
+
+    /** Compute cached data
+     */
+    virtual void
+    cache()
+    {
+      cv::Mat cos_theta, sin_theta, cos_phi, sin_phi;
+      computeThetaPhi<T>(rows_, cols_, K_, cos_theta, sin_theta, cos_phi, sin_phi);
+
+      R_hat_.resize(3);
+      for (unsigned char i = 0; i < 3; ++i)
+        R_hat_[i].resize(3);
+
+      cv::multiply(sin_theta, cos_phi, R_hat_[0][0]);
+      R_hat_[0][1] = cos_theta;
+      cv::multiply(-sin_theta, sin_phi, R_hat_[0][2]);
+
+      R_hat_[1][0] = sin_phi;
+      R_hat_[1][1] = cv::Mat_<T>::zeros(rows_, cols_);
+      R_hat_[1][2] = cos_phi;
+
+      cv::multiply(cos_theta, cos_phi, R_hat_[2][0]);
+      R_hat_[2][1] = -sin_theta;
+      cv::multiply(-cos_theta, sin_phi, R_hat_[2][2]);
+
+#if 0
+// Test to make sure we have a rotation matrix
+      for (int y = 0; y < rows; ++y)
+      for (int x = 0; x < cols; ++x)
+      {
+        cv::Mat_<float> R =
+        (cv::Mat_<float>(3, 3) << R_hat_[0][0].at<float>(y, x), R_hat_[0][1].at<float>(y, x), R_hat_[0][2].at<float>(
+                y, x), R_hat_[1][0].at<float>(y, x), R_hat_[1][1].at<float>(y, x), R_hat_[1][2].at<float>(y, x), R_hat_[2][0].at<
+            float>(y, x), R_hat_[2][1].at<float>(y, x), R_hat_[2][2].at<float>(y, x));
+        if (cv::norm(R * R.t(), cv::Mat::eye(3, 3, CV_32F)) > 1e-4)
+        std::cout << R << std::endl;
+      }
+#endif
+
+      for (unsigned char i = 0; i < 3; ++i)
+        R_hat_[i][1] = R_hat_[i][1] / cos_phi;
+    }
+
+    virtual cv::Mat
+    compute(const cv::Mat &r) const
+    {
+      const cv::Mat_<T>& r_T(r);
+      return compute(r_T);
+    }
+
+    /** Compute the normals
+     * @param r
+     * @return
+     */
+    cv::Mat
+    compute(const cv::Mat_<T> &r) const
+    {
+      cv::TickMeter tm1, tm2;
+
+      // Compute the derivatives with respect to theta and phi
+      tm1.start();
+      cv::Mat r_theta, r_phi;
+      cv::Sobel(r, r_theta, r.depth(), 1, 0, window_size_);
+      cv::Sobel(r, r_phi, r.depth(), 0, 1, window_size_);
+      tm1.stop();
+
+      // Fill the result matrix
+      tm2.start();
+      std::vector<cv::Mat> res_channels(3);
+      cv::divide(r_theta, r, r_theta);
+      cv::divide(r_phi, r, r_phi);
+      res_channels[0] = R_hat_[0][0] + R_hat_[0][1].mul(r_theta) + R_hat_[0][2].mul(r_phi);
+      // R[1][1] is zero
+      res_channels[1] = R_hat_[1][0] + R_hat_[1][2].mul(r_phi);
+      res_channels[2] = R_hat_[2][0] + R_hat_[2][1].mul(r_theta) + R_hat_[2][2].mul(r_phi);
+      tm2.stop();
+
+      // Create the result matrix
+      cv::Mat normals;
+      cv::merge(res_channels, normals);
+
+      std::cout << tm1.getTimeMilli() << " " << tm2.getTimeMilli() << " ";
+      return normals;
+    }
+  private:
+    int rows_;
+    int cols_;
+    int window_size_;
+    cv::Matx<T, 3, 3> K_;
+
+    /** Stores R */
+    std::vector<std::vector<cv::Mat> > R_hat_;
+  };
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 namespace cv
 {
   /** Default constructor
    */
-  RgbdNormals::RgbdNormals(int rows, int cols, int depth, const cv::Mat & K)
+  RgbdNormals::RgbdNormals(int rows, int cols, int depth, const cv::Mat & K, RGBD_NORMALS_METHOD method)
+      :
+        method_(method)
+
   {
-    // Create some bogus coordinates
-    cv::Mat depth_image = cv::Mat::ones(rows, cols, depth);
+    if (depth != CV_64F)
+      depth = CV_32F;
     cv::Mat K_right_depth;
     K.convertTo(K_right_depth, depth);
-    cv::Mat points3d;
-    depthTo3d(depth_image, K_right_depth, points3d);
+    K_ = K_right_depth;
 
-    // Compute theta and phi according to equation 3
-    cv::Mat cos_theta, sin_theta, cos_phi, sin_phi;
-    std::vector<cv::Mat> xyz(3);
-    cv::split(points3d, xyz);
-    if (depth == CV_32F)
-      computeThetaPhi<float>(rows, cols, points3d, cos_theta, sin_theta, cos_phi, sin_phi);
-    else
-      computeThetaPhi<double>(rows, cols, points3d, cos_theta, sin_theta, cos_phi, sin_phi);
-
-    R_hat_.resize(3);
-    for (unsigned char i = 0; i < 3; ++i)
-      R_hat_[i].resize(3);
-
-    cv::multiply(sin_theta, cos_phi, R_hat_[0][0]);
-    R_hat_[0][1] = cos_theta;
-    cv::multiply(-sin_theta, sin_phi, R_hat_[0][2]);
-
-    R_hat_[1][0] = sin_phi;
-    R_hat_[1][1] = cv::Mat::zeros(rows, cols, depth);
-    R_hat_[1][2] = cos_phi;
-
-    cv::multiply(cos_theta, cos_phi, R_hat_[2][0]);
-    R_hat_[2][1] = -sin_theta;
-    cv::multiply(-cos_theta, sin_phi, R_hat_[2][2]);
-
-    for (unsigned char i = 0; i < 3; ++i)
-      R_hat_[i][1] = R_hat_[i][1] / cos_phi;
-
-#if 0
-    // Test to make sure we have a rotation matrix
-    for (int y = 0; y < rows; ++y)
-    for (int x = 0; x < cols; ++x)
+    // TODO make it a parameter
+    int window_size = 5;
+    if (method_ == RGBD_NORMALS_METHOD_SRI)
     {
-      cv::Mat_<float> R =
-      (cv::Mat_<float>(3, 3) << R_hat_[0][0].at<float>(y, x), R_hat_[0][1].at<float>(y, x), R_hat_[0][2].at<float>(
-              y, x), R_hat_[1][0].at<float>(y, x), R_hat_[1][1].at<float>(y, x), R_hat_[1][2].at<float>(y, x), R_hat_[2][0].at<
-          float>(y, x), R_hat_[2][1].at<float>(y, x), R_hat_[2][2].at<float>(y, x));
-      if (cv::norm(R * R.t(), cv::Mat::eye(3, 3, CV_32F)) > 1e-4)
-      std::cout << R << std::endl;
+      if (depth == CV_32F)
+        rgbd_normals_impl_ = new SRI<float>(rows, cols, window_size, K_right_depth);
+      else
+        rgbd_normals_impl_ = new SRI<double>(rows, cols, window_size, K_right_depth);
     }
-#endif
+    else if (method_ == RGBD_NORMALS_METHOD_FALS)
+    {
+      if (depth == CV_32F)
+      {
+        std::cout << "**************";
+        rgbd_normals_impl_ = new FALS<float>(rows, cols, window_size, K_right_depth);
+      }
+      else
+        rgbd_normals_impl_ = new FALS<double>(rows, cols, window_size, K_right_depth);
+    }
+    rgbd_normals_impl_->cache();
   }
 
   /** Given a set of 3d points in a depth image, compute the normals at each point
    * using the SRI method described in
    * ``Fast and Accurate Computation of Surface Normals from Range Images``
    * by H. Badino, D. Huber, Y. Park and T. Kanade
-   * @param points a rows x cols x 3 matrix
+   * @param depth depth a float depth image. Or it can be rows x cols x 3 is they are 3d points
    * @param window_size the window size on which to compute the derivatives
    * @return normals a rows x cols x 3 matrix
    */
   cv::Mat
-  RgbdNormals::operator()(const cv::Mat &points, int window_size) const
+  RgbdNormals::operator()(const cv::Mat &in_points3d, int window_size) const
   {
-    cv::TickMeter tm1, tm2, tm3;
+    cv::TickMeter tm1, tm2, tm_all;
+    CV_Assert(in_points3d.channels() == 3 && in_points3d.dims == 2);
+    CV_Assert(in_points3d.depth() == CV_32F || in_points3d.depth() == CV_64F);
+
+    cv::Mat points3d;
+    in_points3d.convertTo(points3d, K_.depth());
+
+    tm_all.start();
+    cv::Mat normals;
+
     tm1.start();
-
-    CV_Assert(points.channels()==3 && points.dims==2);
-    CV_Assert(points.depth()==CV_32F || points.depth()==CV_64F);
-
-    int depth = points.depth();
-
-    // Compute r
-    cv::Mat r = computeR(points);
+    cv::Mat r;
+    r = computeR(points3d);
     tm1.stop();
+    std::cout << "Time = " << tm1.getTimeMilli() << " ";
 
-    // Compute the derivatives with respect to theta and phi
+    if (method_ == RGBD_NORMALS_METHOD_SRI)
+      normals = rgbd_normals_impl_->compute(r);
+    else if (method_ == RGBD_NORMALS_METHOD_FALS)
+      normals = rgbd_normals_impl_->compute(r);
+
+    // Make sure the normals point towards the camera
     tm2.start();
-    cv::Mat r_theta, r_phi;
-    cv::Sobel(r, r_theta, depth, 1, 0, window_size);
-    cv::Sobel(r, r_phi, depth, 0, 1, window_size);
+    if (normals.depth() == CV_32F)
+      signNormals<cv::Vec3f>(normals);
+    else
+      signNormals<cv::Vec3d>(normals);
     tm2.stop();
+    tm_all.stop();
 
-    // Fill the result matrix
-    tm3.start();
-    std::vector<cv::Mat> res_channels(3);
-    cv::divide(r_theta, r, r_theta);
-    cv::divide(r_phi, r, r_phi);
-    res_channels[0] = R_hat_[0][0] + R_hat_[0][1].mul(r_theta) + R_hat_[0][2].mul(r_phi);
-    // R[1][1] is zero
-    res_channels[1] = R_hat_[1][0] + R_hat_[1][2].mul(r_phi);
-    res_channels[2] = R_hat_[2][0] + R_hat_[2][1].mul(r_theta) + R_hat_[2][2].mul(r_phi);
-    tm3.stop();
+    std::cout << tm2.getTimeMilli() << " msec." << tm_all.getTimeMilli() << std::endl;
 
-    // Create the result matrix
-    cv::Mat res;
-    cv::merge(res_channels, res);
-
-    //std::cout << "Time = " << tm1.getTimeMilli() << " " << tm2.getTimeMilli() << " " << tm3.getTimeMilli() << " msec."
-    //          << tm1.getTimeMilli() + tm2.getTimeMilli() + tm3.getTimeMilli() << std::endl;
-
-    return res;
+    return normals;
   }
 }

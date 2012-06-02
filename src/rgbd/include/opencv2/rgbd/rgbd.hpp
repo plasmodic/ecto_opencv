@@ -61,12 +61,17 @@ namespace cv
   /** Object that can compute the normals in an image.
    * It is an object as it can cache data for speed efficiency
    */
-  class RgbdNormals
+  class RgbdNormals // : public cv::Algorithm
   {
   public:
+    enum RGBD_NORMALS_METHOD
+    {
+      RGBD_NORMALS_METHOD_SRI, RGBD_NORMALS_METHOD_FALS
+    };
+
     /** Constructor
      */
-    RgbdNormals(int rows, int cols, int depth, const cv::Mat & K);
+    RgbdNormals(int rows, int cols, int depth, const cv::Mat & K, RGBD_NORMALS_METHOD method = RGBD_NORMALS_METHOD_SRI);
 
     /** Given a set of 3d points in a depth image, compute the normals at each point.
      * @param points a rows x cols x 3 matrix
@@ -75,8 +80,27 @@ namespace cv
      */
     cv::Mat
     operator()(const cv::Mat &points, int window_size = 5) const;
-  private:
-    std::vector<std::vector<cv::Mat> > R_hat_;
+
+  protected:
+    class RgbdNormalsImpl
+    {
+    public:
+      RgbdNormalsImpl()
+      {
+      }
+      virtual
+      ~RgbdNormalsImpl()
+      {
+      }
+      virtual void
+      cache()=0;
+      virtual cv::Mat
+      compute(const cv::Mat &r) const=0;
+    };
+
+    cv::Mat K_;
+    cv::Ptr<RgbdNormalsImpl> rgbd_normals_impl_;
+    RGBD_NORMALS_METHOD method_;
   };
 
   /**
