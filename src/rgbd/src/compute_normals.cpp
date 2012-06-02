@@ -47,12 +47,24 @@ namespace
   cv::Mat
   computeR(const cv::Mat &points)
   {
+    // Test for speed
     cv::Mat r;
+#if 1
     cv::multiply(points, points, r);
     r = r.reshape(1, points.cols * points.rows);
     cv::reduce(r, r, 1, CV_REDUCE_SUM);
     cv::sqrt(r, r);
     r = r.reshape(1, points.rows);
+#else
+    for (int y = 0; y < points.rows; ++y)
+    for (int x = 0; x < points.cols; ++x)
+    {
+      cv::Vec3f point = points.at<cv::Vec3f>(y, x);
+      if (std::abs(r.at<float>(y, x) - cv::norm(point)) / cv::norm(point) > 1e-4)
+      std::cout << "r badly computed: " << r.at<float>(y, x) << " for " << cv::norm(point) << ", vec: " << point[0]
+      << " " << point[1] << " " << point[2] << std::endl;
+    }
+#endif
 
     return r;
   }
@@ -194,39 +206,22 @@ namespace
     compute(const cv::Mat &r) const
     {
       // Compute B
-#if 0
       std::vector<cv::Mat> channels(3);
+//TODO test for speed
+#if 0
       cv::split(V_, channels);
-      std::cout << channels.size() << " channels" << std::endl;
       for (unsigned char i = 0; i < 3; ++i)
       {
         for (int y = 0; y < rows_; ++y)
         for (int x = 0; x < cols_; ++x)
         if (cvIsNaN(channels[i].at<T>(y, x)))
-        std::cout << "0";
 
         cv::Mat channels_ini;
-        channels[i].copyTo(channels_ini);
         cv::divide(channels[i], r, channels[i]);
-
-        for (int y = 0; y < rows_; ++y)
-        for (int x = 0; x < cols_; ++x)
-        {
-          if (cvIsNaN(r.at<T>(y, x)))
-          continue;
-          std::cout << x << " " << y << " " << channels_ini.at<T>(y, x) / r.at<T>(y, x) << " " <<channels[i].at<T>(y, x)<<std::endl;
-        }
-        /*if ((cvIsNaN(channels[i].at<T>(y, x))) && (!cvIsNaN(r.at<T>(y, x))))
-         std::cout << "2" << " " << channels_ini.at<T>(y, x) << " " << r.at<T>(y, x) << " "
-         << channels_ini.at<T>(y, x) / r.at<T>(y, x) << " ";*/
-
-        std::cout << channels_ini.depth() << " " << r.depth() << " " << rows_ << " " << cols_ << " " << channels[i].rows
-        << " " << channels[i].cols << std::endl;
-
       }
       cv::Mat B;
       cv::merge(channels, B);
-#endif
+#else
 
       cv::Mat B = cv::Mat_<cv::Vec<T, 3> >(rows_, cols_);
       for (int y = 0; y < rows_; ++y)
@@ -242,49 +237,43 @@ namespace
             *row_B = (*row_V) / (*row_r);
         }
       }
+#endif
 
       cv::boxFilter(B, B, B.depth(), cv::Size(window_size_, window_size_), cv::Point(-1, -1), false);
 
-      /*std::vector<cv::Mat> channels(3);
-       for (unsigned char i = 0; i < 3; ++i)
-       {
-       cv::Mat product = M_inv_[i].mul(B);
-       product = product.reshape(1, cols_ * rows_);
-       cv::reduce(product, product, 2, CV_REDUCE_SUM);
-       channels[i] = product.reshape(1, rows_);
-       }*/
+      for (unsigned char i = 0; i < 3; ++i)
+      {
+        cv::Mat product = M_inv_[i].mul(B);
+        product = product.reshape(1, cols_ * rows_);
+        cv::reduce(product, product, 2, CV_REDUCE_SUM);
+        channels[i] = product.reshape(1, rows_);
+      }
       cv::Mat normals;
-      //cv::merge(channels, normals);
+      cv::merge(channels, normals);
 
-      normals = cv::Mat_<cv::Vec<T, 3> >(rows_, cols_);
-      for (int y = 0; y < V_.rows; ++y)
-        for (int x = 0; x < V_.cols; ++x)
-        {
+      //TODO test for speed
+#if 0
+            normals = cv::Mat_<cv::Vec<T, 3> >(rows_, cols_);
+       for (int y = 0; y < V_.rows; ++y)
+       for (int x = 0; x < V_.cols; ++x)
+       {
 
-          if (B.at<cv::Vec<T, 3> >(y, x).val[2] < 1e-5)
-          {
-            for (int i = 0; i < 3; ++i)
-            {
-              normals.at<cv::Vec<T, 3> >(y, x).val[i] = 0;
-            }
-            continue;
-          }
+       cv::Matx33d mat;
+       for (unsigned int j = 0, k = 0; j < 3; ++j)
+       for (unsigned int i = 0; i < 3; ++i, ++k)
+       mat(j, i) = M_inv_[j](y, x).val[i];
 
-          cv::Matx33d mat;
-          for (unsigned int j = 0, k = 0; j < 3; ++j)
-            for (unsigned int i = 0; i < 3; ++i, ++k)
-              mat(j, i) = M_inv_[j](y, x).val[i];
+       cv::Matx31d vec1(3, 1);
+       for (int i = 0; i < 3; ++i)
+       vec1(i, 0) = B.at<cv::Vec<T, 3> >(y, x).val[i];
 
-          cv::Matx31d vec1(3, 1);
-          for (int i = 0; i < 3; ++i)
-            vec1(i, 0) = B.at<cv::Vec<T, 3> >(y, x).val[i];
-
-          cv::Matx31d vec2 = mat * vec1;
-          for (int i = 0; i < 3; ++i)
-          {
-            normals.at<cv::Vec<T, 3> >(y, x).val[i] = vec2(i, 0);
-          }
-        }
+       cv::Matx31d vec2 = mat * vec1;
+       for (int i = 0; i < 3; ++i)
+       {
+       normals.at<cv::Vec<T, 3> >(y, x).val[i] = vec2(i, 0);
+       }
+       }
+#endif
 
       return normals;
     }
