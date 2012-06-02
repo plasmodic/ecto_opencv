@@ -128,10 +128,11 @@ namespace cv
    * Otherwise, the image is simply converted to floats
    * @param in the depth image (if given as short int CV_U, it is assumed to be the depth in millimeters
    *              (as done with the Microsoft Kinect), it is assumed in meters)
+   * @param the desired output depth (floats or double)
    * @param out The rescaled float depth image
    */
   void
-  rescaleDepth(const cv::Mat& in, cv::Mat& out);
+  rescaleDepth(const cv::Mat& in, int depth, cv::Mat& out);
 } /* namespace cv */
 
 #endif /* __cplusplus */

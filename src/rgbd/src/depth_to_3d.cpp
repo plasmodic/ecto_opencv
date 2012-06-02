@@ -38,6 +38,7 @@
 #include <limits>
 
 #include "depth_to_3d.h"
+#include "utils.h"
 
 namespace
 {
@@ -150,7 +151,7 @@ namespace
 
     // Build z
     cv::Mat_<T> u_mat = cv::Mat_<T>(depth_size), v_mat = cv::Mat_<T>(depth_size), z_mat = cv::Mat_<T>(depth_size);
-    rescaleDepth(in_depth, z_mat);
+    rescaleDepthTemplated<T>(in_depth, z_mat);
 
     // Build the set of v's
     cv::Mat_<T> us = cv::Mat_<T>(1, depth_size.width), vs = cv::Mat_<T>(depth_size.height, 1);
@@ -240,8 +241,13 @@ namespace cv
         depth.type() == CV_64FC1 || depth.type() == CV_32FC1 || depth.type() == CV_16UC1 || depth.type() == CV_16SC1);
     CV_Assert(K.cols == 3 && K.rows == 3);
     CV_Assert(mask.channels() == 1);
-    CV_Assert(
-        ((depth.depth()==CV_32F || depth.depth()==CV_64F) && depth.depth() == K.depth()) || (depth.depth()!=CV_32F && depth.depth()!=CV_64F));
+
+    // TODO figure out what to do when types are different: convert or reject ?
+    if ((depth.depth() == CV_32F || depth.depth() == CV_64F) && depth.depth() != K.depth())
+    {
+      if (K.depth() == CV_32F)
+        K.convertTo(K, CV_32F);
+    }
 
     // Create 3D points in one go.
     if (!mask.empty())

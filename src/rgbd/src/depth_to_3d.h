@@ -33,6 +33,11 @@
  *
  */
 
+#ifndef __OPENCV_RGBD_DEPTH_TO_3D_HPP__
+#define __OPENCV_RGBD_DEPTH_TO_3D_HPP__
+
+#ifdef __cplusplus
+
 #include <opencv2/core/core.hpp>
 #include <opencv2/core/types_c.h>
 #include <limits>
@@ -109,3 +114,9 @@ convertDepthToFloat(const cv::Mat& depth, float scale, const cv::Mat &uv_mat, cv
       *z_mat_iter = depth_i * scale;
   }
 }
+
+#endif /* __cplusplus */
+
+#endif
+
+/* End of file. */

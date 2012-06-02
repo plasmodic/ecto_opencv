@@ -36,6 +36,8 @@
 #include <opencv2/rgbd/rgbd.hpp>
 #include <limits>
 
+#include "utils.h"
+
 namespace cv
 {
   /** Specialization for floats
@@ -54,30 +56,30 @@ namespace cv
    * Otherwise, the image is simply converted to floats
    * @param in the depth image (if given as short int CV_U, it is assumed to be the depth in millimeters
    *              (as done with the Microsoft Kinect), it is assumed in meters)
+   * @param the desired output depth (floats or double)
    * @param out The rescaled float depth image
    */
   void
-  rescaleDepth(const cv::Mat& in, cv::Mat& out)
+  rescaleDepth(const cv::Mat& in, int depth, cv::Mat& out)
   {
     CV_Assert(in.type() == CV_64FC1 || in.type() == CV_32FC1 || in.type() == CV_16UC1 || in.type() == CV_16SC1);
-    CV_Assert(out.type() == CV_64FC1 || out.type() == CV_32FC1);
+    CV_Assert(depth == CV_64FC1 || depth == CV_32FC1);
 
-    int in_depth = out.depth();
-    int out_depth = out.depth();
+    int in_depth = in.depth();
 
     if (in_depth == CV_16U)
     {
-      in.convertTo(out, out_depth, 1 / 1000.0); //convert to float so that it is in meters
+      in.convertTo(out, depth, 1 / 1000.0); //convert to float so that it is in meters
       cv::Mat valid_mask = in == std::numeric_limits<uint16_t>::min(); // Should we do std::numeric_limits<uint16_t>::max() too ?
       out.setTo(std::numeric_limits<float>::quiet_NaN(), valid_mask); //set a$
     }
     if (in_depth == CV_16S)
     {
-      in.convertTo(out, out_depth, 1 / 1000.0); //convert to float so tha$
+      in.convertTo(out, depth, 1 / 1000.0); //convert to float so tha$
       cv::Mat valid_mask = (in == std::numeric_limits<int16_t>::min()) | (in == std::numeric_limits<int16_t>::max()); // Should we do std::numeric_limits<uint16_t>::max() too ?
       out.setTo(std::numeric_limits<float>::quiet_NaN(), valid_mask); //set a$
     }
     if ((in_depth == CV_32F) || (in_depth == CV_64F))
-      in.convertTo(out, out_depth);
+      in.convertTo(out, depth);
   }
 }
