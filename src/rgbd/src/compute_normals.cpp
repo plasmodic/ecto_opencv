@@ -54,16 +54,6 @@ namespace
     cv::sqrt(r, r);
     r = r.reshape(1, points.rows);
 
-#if 0
-    for (int y = 0; y < points.rows; ++y)
-    for (int x = 0; x < points.cols; ++x)
-    {
-      cv::Vec3f point = points.at<cv::Vec3f>(y, x);
-      if (std::abs(r.at<float>(y, x) - cv::norm(point)) / cv::norm(point) > 1e-4)
-      std::cout << "r badly computed: " << r.at<float>(y, x) << " for " << cv::norm(point) << ", vec: " << point[0]
-      << " " << point[1] << " " << point[2] << std::endl;
-    }
-#endif
     return r;
   }
 
@@ -74,7 +64,7 @@ namespace
                   cv::Mat &cos_phi, cv::Mat &sin_phi)
   {
     // Create some bogus coordinates
-    cv::Mat depth_image = K(0,0)*cv::Mat_<T>::ones(rows, cols);
+    cv::Mat depth_image = K(0, 0) * cv::Mat_<T>::ones(rows, cols);
     cv::Mat points3d;
     depthTo3d(depth_image, cv::Mat(K), points3d);
 
@@ -117,10 +107,12 @@ namespace
     for (int y = 0; y < normals.rows; ++y)
     {
       T* row = normals.ptr<T>(y), *row_end = normals.ptr<T>(y) + normals.cols;
-      for (; row != row_end; ++row) {
-        *row = (*row) / cv::norm(*row);
+      for (; row != row_end; ++row)
+      {
         if ((*row)[2] > 0)
-          *row = -(*row);
+          *row = -(*row) / cv::norm(*row);
+        else
+          *row = (*row) / cv::norm(*row);
       }
     }
   }
@@ -178,7 +170,7 @@ namespace
       }
 
       cv::boxFilter(M, M, M.depth(), cv::Size(window_size_, window_size_), cv::Point(-1, -1), false);
-      M.copyTo(M2_);
+
       cv::Matx<T, 3, 3> M_inv;
       M_inv_.resize(3);
       for (unsigned char i = 0; i < 3; ++i)
@@ -252,45 +244,45 @@ namespace
       }
 
       cv::boxFilter(B, B, B.depth(), cv::Size(window_size_, window_size_), cv::Point(-1, -1), false);
-      B.copyTo(const_cast<cv::Mat_<cv::Vec<T, 3> > &>(B_));
 
       /*std::vector<cv::Mat> channels(3);
-      for (unsigned char i = 0; i < 3; ++i)
-      {
-        cv::Mat product = M_inv_[i].mul(B);
-        product = product.reshape(1, cols_ * rows_);
-        cv::reduce(product, product, 2, CV_REDUCE_SUM);
-        channels[i] = product.reshape(1, rows_);
-      }*/
+       for (unsigned char i = 0; i < 3; ++i)
+       {
+       cv::Mat product = M_inv_[i].mul(B);
+       product = product.reshape(1, cols_ * rows_);
+       cv::reduce(product, product, 2, CV_REDUCE_SUM);
+       channels[i] = product.reshape(1, rows_);
+       }*/
       cv::Mat normals;
       //cv::merge(channels, normals);
 
-      normals = cv::Mat_<cv::Vec<T, 3> >(rows_,cols_);
-      for(int y=0;y<V_.rows; ++y)
-        for(int x=0;x<V_.cols; ++x) {
+      normals = cv::Mat_<cv::Vec<T, 3> >(rows_, cols_);
+      for (int y = 0; y < V_.rows; ++y)
+        for (int x = 0; x < V_.cols; ++x)
+        {
 
-          if (B.at<cv::Vec<T, 3> >(y,x).val[2] < 1e-5)
-                    {
+          if (B.at<cv::Vec<T, 3> >(y, x).val[2] < 1e-5)
+          {
             for (int i = 0; i < 3; ++i)
             {
               normals.at<cv::Vec<T, 3> >(y, x).val[i] = 0;
             }
             continue;
-                    }
+          }
 
           cv::Matx33d mat;
-          for(unsigned int j=0,k=0;j<3;++j)
-            for(unsigned int i=0;i<3;++i,++k)
-              mat(j,i) = M_inv_[j](y,x).val[i];
+          for (unsigned int j = 0, k = 0; j < 3; ++j)
+            for (unsigned int i = 0; i < 3; ++i, ++k)
+              mat(j, i) = M_inv_[j](y, x).val[i];
 
-          cv::Matx31d vec1(3,1);
+          cv::Matx31d vec1(3, 1);
           for (int i = 0; i < 3; ++i)
-            vec1(i,0) = B.at<cv::Vec<T, 3> >(y, x).val[i];
+            vec1(i, 0) = B.at<cv::Vec<T, 3> >(y, x).val[i];
 
-          cv::Matx31d vec2 = mat*vec1;
+          cv::Matx31d vec2 = mat * vec1;
           for (int i = 0; i < 3; ++i)
           {
-            normals.at<cv::Vec<T, 3> >(y, x).val[i] = vec2(i,0);
+            normals.at<cv::Vec<T, 3> >(y, x).val[i] = vec2(i, 0);
           }
         }
 
@@ -306,9 +298,6 @@ namespace
     cv::Mat_<cv::Vec<T, 3> > V_;
     // Each of the three elements is a row in M_inv
     std::vector<cv::Mat_<cv::Vec<T, 3> > > M_inv_;
-    cv::Mat_<cv::Vec<T, 9> > M2_;
-
-    cv::Mat_<cv::Vec<T, 3> > B_;
   };
 }
 
@@ -503,7 +492,7 @@ namespace cv
     tm2.stop();
     tm_all.stop();
 
-    std::cout << tm2.getTimeMilli() << " msec." << tm_all.getTimeMilli() << std::endl;
+    std::cout << tm2.getTimeMilli() << " all: " << tm_all.getTimeMilli() << " msec." << std::endl;
 
     return normals;
   }
