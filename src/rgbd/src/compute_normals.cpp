@@ -205,11 +205,21 @@ namespace
     virtual cv::Mat
     compute(const cv::Mat &r) const
     {
+      cv::TickMeter tm1, tm2, tm3;
+      tm1.start();
       // Compute B
       cv::Mat B = cv::Mat_<PointT>(rows_, cols_);
-      for (int y = 0; y < rows_; ++y)
+
+      cv::Size size(cols_, rows_);
+      if (B.isContinuous() && V_.isContinuous() && r.isContinuous())
       {
-        const T* row_r = r.ptr<T>(y), *row_r_end = row_r + cols_;
+        size.width *= size.height;
+        size.height = 1;
+      }
+
+      for (int y = 0; y < size.height; ++y)
+      {
+        const T* row_r = r.ptr<T>(y), *row_r_end = row_r + size.width;
         const PointT *row_V = reinterpret_cast<const PointT *>(V_.ptr(y));
         PointT *row_B = B.ptr<PointT>(y);
         for (; row_r != row_r_end; ++row_r, ++row_B, ++row_V)
@@ -220,20 +230,33 @@ namespace
             *row_B = (*row_V) / (*row_r);
         }
       }
+      tm1.stop();
 
       // Apply a box filter to B
+      tm2.start();
       cv::boxFilter(B, B, B.depth(), cv::Size(window_size_, window_size_), cv::Point(-1, -1), false);
+      tm2.stop();
 
       // compute the Minv*B products
+      tm3.start();
       cv::Mat normals = cv::Mat_<PointT>(rows_, cols_);
-      for (int y = 0; y < V_.rows; ++y)
+       size = cv::Size(cols_, rows_);
+      if (B.isContinuous() && M_inv_.isContinuous() && normals.isContinuous())
       {
-        const PointT * B_vec = B.ptr<PointT>(y), *B_vec_end = B_vec + cols_;
+        size.width *= size.height;
+        size.height = 1;
+      }
+      for (int y = 0; y < size.height; ++y)
+      {
+        const PointT * B_vec = B.ptr<PointT>(y), *B_vec_end = B_vec + size.width;
         const Mat33T * M_inv = reinterpret_cast<const Mat33T *>(M_inv_.ptr(y));
         PointT *normal = normals.ptr<PointT>(y);
         for (; B_vec != B_vec_end; ++B_vec, ++normal, ++M_inv)
           *normal = (*M_inv) * (*B_vec);
       }
+      tm3.stop();
+
+      std::cout << tm1.getTimeMilli() << " " << tm2.getTimeMilli() << " " << tm3.getTimeMilli() << " ";
 
       return normals;
     }
@@ -257,7 +280,7 @@ namespace
   class SRI: public cv::RgbdNormals::RgbdNormalsImpl
   {
   public:
-    SRI(int rows, int cols, int window_size, const cv::Mat &K)
+    SRI(int rows, int cols, int window_size, const cv::Matx<T, 3, 3> &K)
         :
           rows_(rows),
           cols_(cols),
@@ -271,27 +294,47 @@ namespace
     virtual void
     cache()
     {
-      cv::Mat cos_theta, sin_theta, cos_phi, sin_phi;
+      cv::Mat_<T> cos_theta, sin_theta, cos_phi, sin_phi;
       computeThetaPhi<T>(rows_, cols_, K_, cos_theta, sin_theta, cos_phi, sin_phi);
 
-      R_hat_.resize(3);
+#if 0
+      std::vector<std::vector<cv::Mat> > R_hat;
+      R_hat.resize(3);
       for (unsigned char i = 0; i < 3; ++i)
-        R_hat_[i].resize(3);
+        R_hat[i].resize(3);
 
-      cv::multiply(sin_theta, cos_phi, R_hat_[0][0]);
-      R_hat_[0][1] = cos_theta;
-      cv::multiply(-sin_theta, sin_phi, R_hat_[0][2]);
+      cv::multiply(sin_theta, cos_phi, R_hat[0][0]);
+      R_hat[0][1] = cos_theta;
+      cv::multiply(-sin_theta, sin_phi, R_hat[0][2]);
 
-      R_hat_[1][0] = sin_phi;
-      R_hat_[1][1] = cv::Mat_<T>::zeros(rows_, cols_);
-      R_hat_[1][2] = cos_phi;
+      R_hat[1][0] = sin_phi;
+      R_hat[1][1] = cv::Mat_<T>::zeros(rows_, cols_);
+      R_hat[1][2] = cos_phi;
 
-      cv::multiply(cos_theta, cos_phi, R_hat_[2][0]);
-      R_hat_[2][1] = -sin_theta;
-      cv::multiply(-cos_theta, sin_phi, R_hat_[2][2]);
+      cv::multiply(cos_theta, cos_phi, R_hat[2][0]);
+      R_hat[2][1] = -sin_theta;
+      cv::multiply(-cos_theta, sin_phi, R_hat[2][2]);
 
       for (unsigned char i = 0; i < 3; ++i)
-        R_hat_[i][1] = R_hat_[i][1] / cos_phi;
+        R_hat[i][1] = R_hat[i][1] / cos_phi;
+#endif
+      R_hat_ = cv::Mat_<cv::Vec<T, 9> >(rows_, cols_);
+      for (int y = 0; y < rows_; ++y)
+        for (int x = 0; x < cols_; ++x)
+        {
+          cv::Mat_<T> mat =
+              (cv::Mat_<T>(3, 3) << 0, 1, 0, 0, 0, 1, 1, 0, 0)
+              * ((cv::Mat_<T>(3, 3) << cos_theta(y, x), -sin_theta(y, x), 0, sin_theta(y, x), cos_theta(y, x), 0, 0, 0, 1))
+              * ((cv::Mat_<T>(3, 3) << cos_phi(y, x), 0, -sin_phi(y, x), 0, 1, 0, sin_phi(y, x), 0, cos_phi(y, x)));
+          for (unsigned char i = 0; i < 3; ++i)
+            mat(i, 1) = mat(i, 1) / cos_phi(y, x);
+
+          cv::Vec<T, 9> &vec = R_hat_(y, x);
+          /*for (unsigned char j = 0, k = 0; j < 3; ++j)
+           for (unsigned char i = 0; i < 3; ++i, ++k)
+           vec[k] = R_hat[j][i].at<T>(y, x);*/
+          vec = cv::Vec<T, 9>((T*) (mat.data));
+        }
     }
 
     virtual cv::Mat
@@ -319,18 +362,32 @@ namespace
 
       // Fill the result matrix
       tm2.start();
-      std::vector<cv::Mat> res_channels(3);
-      cv::divide(r_theta, r, r_theta);
-      cv::divide(r_phi, r, r_phi);
-      res_channels[0] = R_hat_[0][0] + R_hat_[0][1].mul(r_theta) + R_hat_[0][2].mul(r_phi);
-      // R[1][1] is zero
-      res_channels[1] = R_hat_[1][0] + R_hat_[1][2].mul(r_phi);
-      res_channels[2] = R_hat_[2][0] + R_hat_[2][1].mul(r_theta) + R_hat_[2][2].mul(r_phi);
-      tm2.stop();
+      cv::Mat_<cv::Vec<T, 3> > normals(rows_, cols_);
+      cv::Size size(cols_, rows_);
+      if (r_theta.isContinuous() && r_phi.isContinuous() && R_hat_.isContinuous() && r.isContinuous()
+          && normals.isContinuous())
+      {
+        size.width *= size.height;
+        size.height = 1;
+      }
 
-      // Create the result matrix
-      cv::Mat normals;
-      cv::merge(res_channels, normals);
+      for (int y = 0; y < size.height; ++y)
+      {
+        const T* r_theta_ptr = r_theta.ptr<T>(y), *r_theta_ptr_end = r_theta.ptr<T>(y) + size.width;
+        const T* r_phi_ptr = r_phi.ptr<T>(y);
+        const cv::Matx<T, 3, 3> * R = reinterpret_cast<const cv::Matx<T, 3, 3> *>(R_hat_.ptr(y));
+        const T* r_ptr = reinterpret_cast<const T*>(r.ptr(y));
+        cv::Vec<T, 3> * normal = reinterpret_cast<cv::Vec<T, 3> *>(normals.ptr(y));
+        for (; r_theta_ptr != r_theta_ptr_end; ++r_theta_ptr, ++r_phi_ptr, ++R, ++r_ptr, ++normal)
+        {
+          T r_theta_over_r = (*r_theta_ptr) / (*r_ptr);
+          T r_phi_over_r = (*r_phi_ptr) / (*r_ptr);
+          normal[0] = (*R)(0, 0) + (*R)(0, 1) * r_theta_over_r + (*R)(0, 2) * r_phi_over_r;
+          normal[1] = (*R)(1, 0) + (*R)(1, 1) * r_theta_over_r + (*R)(1, 2) * r_phi_over_r;
+          normal[2] = (*R)(2, 0) + (*R)(2, 1) * r_theta_over_r + (*R)(2, 2) * r_phi_over_r;
+        }
+      }
+      tm2.stop();
 
       std::cout << tm1.getTimeMilli() << " " << tm2.getTimeMilli() << " ";
       return normals;
@@ -342,7 +399,7 @@ namespace
     cv::Matx<T, 3, 3> K_;
 
     /** Stores R */
-    std::vector<std::vector<cv::Mat> > R_hat_;
+    cv::Mat_<cv::Vec<T, 9> > R_hat_;
   };
 }
 
@@ -401,13 +458,12 @@ namespace cv
     CV_Assert(in_points3d.channels() == 3 && in_points3d.dims == 2);
     CV_Assert(in_points3d.depth() == CV_32F || in_points3d.depth() == CV_64F);
 
+    // Make the points have the right depth
     tm_all.start();
     cv::Mat points3d;
-
     in_points3d.convertTo(points3d, K_.depth());
 
-    cv::Mat normals;
-
+    // Compute the distance to the points
     tm1.start();
     cv::Mat r;
     if (K_.depth() == CV_32F)
@@ -417,10 +473,8 @@ namespace cv
     tm1.stop();
     std::cout << "Time = " << tm1.getTimeMilli() << " ";
 
-    if (method_ == RGBD_NORMALS_METHOD_SRI)
-      normals = rgbd_normals_impl_->compute(r);
-    else if (method_ == RGBD_NORMALS_METHOD_FALS)
-      normals = rgbd_normals_impl_->compute(r);
+    // Get the normals
+    cv::Mat normals = rgbd_normals_impl_->compute(r);
 
     // Make sure the normals point towards the camera
     tm2.start();
