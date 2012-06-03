@@ -382,9 +382,9 @@ namespace
         {
           T r_theta_over_r = (*r_theta_ptr) / (*r_ptr);
           T r_phi_over_r = (*r_phi_ptr) / (*r_ptr);
-          normal[0] = (*R)(0, 0) + (*R)(0, 1) * r_theta_over_r + (*R)(0, 2) * r_phi_over_r;
-          normal[1] = (*R)(1, 0) + (*R)(1, 1) * r_theta_over_r + (*R)(1, 2) * r_phi_over_r;
-          normal[2] = (*R)(2, 0) + (*R)(2, 1) * r_theta_over_r + (*R)(2, 2) * r_phi_over_r;
+          (*normal)[0] = (*R)(0, 0) + (*R)(0, 1) * r_theta_over_r + (*R)(0, 2) * r_phi_over_r;
+          (*normal)[1] = (*R)(1, 0) + (*R)(1, 1) * r_theta_over_r + (*R)(1, 2) * r_phi_over_r;
+          (*normal)[2] = (*R)(2, 0) + (*R)(2, 1) * r_theta_over_r + (*R)(2, 2) * r_phi_over_r;
         }
       }
       tm2.stop();
