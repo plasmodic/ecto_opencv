@@ -51,6 +51,7 @@ namespace cv
    * @param in_points
    * @param points3d
    */
+  CV_EXPORTS
   template<typename T>
   bool
   isValidDepth(const T & depth)
@@ -61,6 +62,7 @@ namespace cv
   /** Object that can compute the normals in an image.
    * It is an object as it can cache data for speed efficiency
    */
+  CV_EXPORTS
   class RgbdNormals // : public cv::Algorithm
   {
   public:
@@ -109,6 +111,7 @@ namespace cv
    * @param in_points the list of xy coordinates
    * @param points3d the resulting 3d points
    */
+  CV_EXPORTS
   void
   depthTo3dSparse(const cv::Mat& depth, const cv::Mat& in_K, const cv::InputArray in_points, cv::Mat& points3d);
 
@@ -120,6 +123,7 @@ namespace cv
    * @param points3d the resulting 3d points
    * @param mask the mask of the points to consider (can be empty)
    */
+  CV_EXPORTS
   void
   depthTo3d(const cv::Mat& depth, const cv::Mat& K, cv::Mat& points3d, const cv::Mat& mask = cv::Mat());
 
@@ -131,6 +135,7 @@ namespace cv
    * @param the desired output depth (floats or double)
    * @param out The rescaled float depth image
    */
+  CV_EXPORTS
   void
   rescaleDepth(const cv::Mat& in, int depth, cv::Mat& out);
 } /* namespace cv */
