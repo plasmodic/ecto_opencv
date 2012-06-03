@@ -40,31 +40,33 @@
 
 namespace
 {
+  template<typename T>
+  T
+  inline
+  norm_vec(const cv::Vec<T, 3> &vec)
+  {
+    return std::sqrt(vec[0] * vec[0] + vec[1] * vec[1] + vec[2] * vec[2]);
+  }
+
   /** Given 3d points, compute their distance to the origin
    * @param points
    * @return
    */
+  template<typename T>
   cv::Mat
   computeR(const cv::Mat &points)
   {
+    typedef cv::Vec<T, 3> PointT;
+
     // Test for speed
-    cv::Mat r;
-#if 1
-    cv::multiply(points, points, r);
-    r = r.reshape(1, points.cols * points.rows);
-    cv::reduce(r, r, 1, CV_REDUCE_SUM);
-    cv::sqrt(r, r);
-    r = r.reshape(1, points.rows);
-#else
+    cv::Mat r = cv::Mat_<T>(points.rows, points.cols);
     for (int y = 0; y < points.rows; ++y)
-    for (int x = 0; x < points.cols; ++x)
     {
-      cv::Vec3f point = points.at<cv::Vec3f>(y, x);
-      if (std::abs(r.at<float>(y, x) - cv::norm(point)) / cv::norm(point) > 1e-4)
-      std::cout << "r badly computed: " << r.at<float>(y, x) << " for " << cv::norm(point) << ", vec: " << point[0]
-      << " " << point[1] << " " << point[2] << std::endl;
+      const PointT* point = points.ptr<PointT>(y), *point_end = points.ptr<PointT>(y) + points.cols;
+      T * row = r.ptr<T>(y);
+      for (; point != point_end; ++point, ++row)
+        *row = norm_vec(*point);
     }
-#endif
 
     return r;
   }
@@ -86,7 +88,7 @@ namespace
     sin_theta = cv::Mat_<T>(rows, cols);
     cos_phi = cv::Mat_<T>(rows, cols);
     sin_phi = cv::Mat_<T>(rows, cols);
-    cv::Mat r = computeR(points3d);
+    cv::Mat r = computeR<T>(points3d);
     for (int y = 0; y < rows; ++y)
     {
       T *row_cos_theta = cos_theta.ptr<T>(y), *row_sin_theta = sin_theta.ptr<T>(y);
@@ -122,9 +124,9 @@ namespace
       for (; row != row_end; ++row)
       {
         if ((*row)[2] > 0)
-          *row = -(*row) / cv::norm(*row);
+          *row = -(*row) / norm_vec(*row);
         else
-          *row = (*row) / cv::norm(*row);
+          *row = (*row) / norm_vec(*row);
       }
     }
   }
@@ -137,6 +139,9 @@ namespace
   class FALS: public cv::RgbdNormals::RgbdNormalsImpl
   {
   public:
+    typedef cv::Matx<T, 3, 3> Mat33T;
+    typedef cv::Vec<T, 3> PointT;
+
     FALS(int rows, int cols, int window_size, const cv::Matx<T, 3, 3> &K)
         :
           rows_(rows),
@@ -174,8 +179,7 @@ namespace
       {
         for (int x = 0; x < cols_; ++x)
         {
-          cv::Vec<T, 3> vec(channels[0].at<T>(y, x), channels[1].at<T>(y, x), channels[2].at<T>(y, x));
-          V_(y, x) = vec;
+          PointT vec(channels[0].at<T>(y, x), channels[1].at<T>(y, x), channels[2].at<T>(y, x));
           VVt = vec * vec.t();
           M(y, x) = cv::Vec<T, 9>(VVt.val);
         }
@@ -183,17 +187,14 @@ namespace
 
       cv::boxFilter(M, M, M.depth(), cv::Size(window_size_, window_size_), cv::Point(-1, -1), false);
 
-      cv::Matx<T, 3, 3> M_inv;
-      M_inv_.resize(3);
-      for (unsigned char i = 0; i < 3; ++i)
-        M_inv_[i] = cv::Mat_<cv::Vec<T, 3> >(rows_, cols_);
+      Mat33T M_inv;
+      M_inv_ = cv::Mat_<cv::Vec<T, 9> >(rows_, cols_);
       for (int y = 0; y < rows_; ++y)
         for (int x = 0; x < cols_; ++x)
         {
           // We have a semi-definite matrix
-          cv::invert(cv::Matx<T, 3, 3>(M(y, x).val), M_inv);
-          for (unsigned char i = 0; i < 3; ++i)
-            M_inv_[i](y, x) = cv::Vec<T, 3>(M_inv(i, 0), M_inv(i, 1), M_inv(i, 2));
+          cv::invert(Mat33T(M(y, x).val), M_inv, cv::DECOMP_CHOLESKY);
+          M_inv_(y, x) = cv::Vec<T, 9>(M_inv.val);
         }
     }
 
@@ -205,74 +206,34 @@ namespace
     compute(const cv::Mat &r) const
     {
       // Compute B
-      std::vector<cv::Mat> channels(3);
-//TODO test for speed
-#if 0
-      cv::split(V_, channels);
-      for (unsigned char i = 0; i < 3; ++i)
-      {
-        for (int y = 0; y < rows_; ++y)
-        for (int x = 0; x < cols_; ++x)
-        if (cvIsNaN(channels[i].at<T>(y, x)))
-
-        cv::Mat channels_ini;
-        cv::divide(channels[i], r, channels[i]);
-      }
-      cv::Mat B;
-      cv::merge(channels, B);
-#else
-
-      cv::Mat B = cv::Mat_<cv::Vec<T, 3> >(rows_, cols_);
+      cv::Mat B = cv::Mat_<PointT>(rows_, cols_);
       for (int y = 0; y < rows_; ++y)
       {
-        const T* row_r = r.ptr<T>(y), *row_r_end = r.ptr<T>(y) + cols_;
-        cv::Vec<T, 3> *row_B = B.ptr<cv::Vec<T, 3> >(y);
-        const cv::Vec<T, 3> *row_V = (cv::Vec<T, 3> *) V_.ptr(y);
+        const T* row_r = r.ptr<T>(y), *row_r_end = row_r + cols_;
+        const PointT *row_V = reinterpret_cast<const PointT *>(V_.ptr(y));
+        PointT *row_B = B.ptr<PointT>(y);
         for (; row_r != row_r_end; ++row_r, ++row_B, ++row_V)
         {
           if (cvIsNaN(*row_r))
-            *row_B = cv::Vec<T, 3>();
+            *row_B = PointT();
           else
             *row_B = (*row_V) / (*row_r);
         }
       }
-#endif
 
+      // Apply a box filter to B
       cv::boxFilter(B, B, B.depth(), cv::Size(window_size_, window_size_), cv::Point(-1, -1), false);
 
-      for (unsigned char i = 0; i < 3; ++i)
-      {
-        cv::Mat product = M_inv_[i].mul(B);
-        product = product.reshape(1, cols_ * rows_);
-        cv::reduce(product, product, 2, CV_REDUCE_SUM);
-        channels[i] = product.reshape(1, rows_);
-      }
-      cv::Mat normals;
-      cv::merge(channels, normals);
-
-      //TODO test for speed
-#if 0
-      normals = cv::Mat_<cv::Vec<T, 3> >(rows_, cols_);
+      // compute the Minv*B products
+      cv::Mat normals = cv::Mat_<PointT>(rows_, cols_);
       for (int y = 0; y < V_.rows; ++y)
-      for (int x = 0; x < V_.cols; ++x)
       {
-
-        cv::Matx33d mat;
-        for (unsigned int j = 0, k = 0; j < 3; ++j)
-        for (unsigned int i = 0; i < 3; ++i, ++k)
-        mat(j, i) = M_inv_[j](y, x).val[i];
-
-        cv::Matx31d vec1(3, 1);
-        for (int i = 0; i < 3; ++i)
-        vec1(i, 0) = B.at<cv::Vec<T, 3> >(y, x).val[i];
-
-        cv::Matx31d vec2 = mat * vec1;
-        for (int i = 0; i < 3; ++i)
-        {
-          normals.at<cv::Vec<T, 3> >(y, x).val[i] = vec2(i, 0);
-        }
+        const PointT * B_vec = B.ptr<PointT>(y), *B_vec_end = B_vec + cols_;
+        const Mat33T * M_inv = reinterpret_cast<const Mat33T *>(M_inv_.ptr(y));
+        PointT *normal = normals.ptr<PointT>(y);
+        for (; B_vec != B_vec_end; ++B_vec, ++normal, ++M_inv)
+          *normal = (*M_inv) * (*B_vec);
       }
-#endif
 
       return normals;
     }
@@ -281,11 +242,10 @@ namespace
     int rows_;
     int cols_;
     int window_size_;
-    cv::Matx<T, 3, 3> K_;
+    Mat33T K_;
 
-    cv::Mat_<cv::Vec<T, 3> > V_;
-    // Each of the three elements is a row in M_inv
-    std::vector<cv::Mat_<cv::Vec<T, 3> > > M_inv_;
+    cv::Mat_<PointT> V_;
+    cv::Mat_<cv::Vec<T, 9> > M_inv_;
   };
 }
 
@@ -404,19 +364,24 @@ namespace cv
 
     // TODO make it a parameter
     int window_size = 5;
-    if (method_ == RGBD_NORMALS_METHOD_SRI)
+    switch (method_)
     {
-      if (depth == CV_32F)
-        rgbd_normals_impl_ = new SRI<float>(rows, cols, window_size, K_right_depth);
-      else
-        rgbd_normals_impl_ = new SRI<double>(rows, cols, window_size, K_right_depth);
-    }
-    else if (method_ == RGBD_NORMALS_METHOD_FALS)
-    {
-      if (depth == CV_32F)
-        rgbd_normals_impl_ = new FALS<float>(rows, cols, window_size, K_right_depth);
-      else
-        rgbd_normals_impl_ = new FALS<double>(rows, cols, window_size, K_right_depth);
+      case RGBD_NORMALS_METHOD_SRI:
+      {
+        if (depth == CV_32F)
+          rgbd_normals_impl_ = new SRI<float>(rows, cols, window_size, K_right_depth);
+        else
+          rgbd_normals_impl_ = new SRI<double>(rows, cols, window_size, K_right_depth);
+        break;
+      }
+      case (RGBD_NORMALS_METHOD_FALS):
+      {
+        if (depth == CV_32F)
+          rgbd_normals_impl_ = new FALS<float>(rows, cols, window_size, K_right_depth);
+        else
+          rgbd_normals_impl_ = new FALS<double>(rows, cols, window_size, K_right_depth);
+        break;
+      }
     }
     rgbd_normals_impl_->cache();
   }
@@ -438,13 +403,17 @@ namespace cv
 
     tm_all.start();
     cv::Mat points3d;
+
     in_points3d.convertTo(points3d, K_.depth());
 
     cv::Mat normals;
 
     tm1.start();
     cv::Mat r;
-    r = computeR(points3d);
+    if (K_.depth() == CV_32F)
+      r = computeR<float>(points3d);
+    else
+      r = computeR<double>(points3d);
     tm1.stop();
     std::cout << "Time = " << tm1.getTimeMilli() << " ";
 
