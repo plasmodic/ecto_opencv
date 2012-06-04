@@ -311,6 +311,10 @@ namespace
 
           R_hat_(y, x) = cv::Vec<T, 9>((T*) (mat.data));
         }
+
+      // Create the derivative kernels
+      getDerivKernels(kx_dx_, ky_dx_, 1, 0, window_size_, true, K_.depth);
+      getDerivKernels(kx_dy_, ky_dy_, 0, 1, window_size_, true, K_.depth);
     }
 
     /** Compute the normals
@@ -334,10 +338,11 @@ namespace
       cv::TickMeter tm1, tm2;
 
       // Compute the derivatives with respect to theta and phi
+      // TODO addd bilateral filtering (as done in kinfu)
       tm1.start();
       cv::Mat_<T> r_theta, r_phi;
-      cv::Sobel(r, r_theta, r.depth(), 1, 0, window_size_);
-      cv::Sobel(r, r_phi, r.depth(), 0, 1, window_size_);
+      sepFilter2D(r, r_theta, r.depth(), kx_dx_, ky_dx_);
+      sepFilter2D(r, r_phi, r.depth(), kx_dy_, ky_dy_);
       tm1.stop();
 
       // Fill the result matrix
@@ -355,11 +360,10 @@ namespace
         const Mat33T * R = reinterpret_cast<const Mat33T *>(R_hat_.ptr(y));
         const T* r_ptr = r[y];
         PointT * normal = normals[y];
-        for (int x = 0; r_theta_ptr != r_theta_ptr_end; ++r_theta_ptr, ++r_phi_ptr, ++R, ++r_ptr, ++normal, ++x)
+        for (; r_theta_ptr != r_theta_ptr_end; ++r_theta_ptr, ++r_phi_ptr, ++R, ++r_ptr, ++normal)
         {
           if (cvIsNaN(*r_ptr))
           {
-            std::cout << std::endl;
             (*normal)[0] = *r_ptr;
             (*normal)[1] = *r_ptr;
             (*normal)[2] = *r_ptr;
@@ -387,6 +391,9 @@ namespace
     /** Stores R */
     cv::Mat_<cv::Vec<T, 9> > R_hat_;
     cv::Mat_<T> cos_theta_, sin_theta_, cos_phi_, sin_phi_;
+
+    /** Derivative kernels */
+    cv::Mat kx_dx_, ky_dx_, kx_dy_, ky_dy_;
   };
 }
 
