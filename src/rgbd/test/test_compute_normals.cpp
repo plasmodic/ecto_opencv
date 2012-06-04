@@ -170,14 +170,11 @@ testit(cv::Mat points3d, cv::Mat in_ground_normals, const cv::RgbdNormals & norm
       float dot = vec1.dot(vec2);
       // Just for rounding errors
       if (std::abs(dot) < 1)
-        err += std::asin(dot);
+        err += std::acos(dot);
     }
 
-  cv::Mat diff = cv::abs(ground_normals - normals);
-  cv::Scalar mean, stddev;
-  cv::meanStdDev(diff, mean, stddev);
-  double nmean = cv::norm(mean);
-  ASSERT_LE(nmean, thresh) << "mean diff: " << nmean << " thresh: " << thresh << std::endl;
+  err /= normals.rows * normals.cols;
+  ASSERT_LE(err, thresh) << "mean diff: " << err << " thresh: " << thresh << std::endl;
 }
 
 class CV_RgbdNormalsTest: public cvtest::BaseTest
@@ -262,7 +259,7 @@ protected:
        ASSERT_LE(avg_diff / rows / cols, 1e-4) << "Case " << i<< " fails. Average error for normals is: " << (avg_diff / rows / cols);
        */
 
-      for (unsigned char i = 1; i < 2; ++i)
+      for (unsigned char i = 0; i < 2; ++i)
       {
         cv::RgbdNormals::RGBD_NORMALS_METHOD method;
         if (i == 0)
@@ -283,7 +280,7 @@ protected:
           for (int ii = 0; ii < 10; ii++)
           {
             gen_points_3d(plane_params, points3d, ground_normals, 3); //three planes
-            testit(points3d, ground_normals, normals_computer, 0.02); // 3 discontinuities, more error expected.
+            testit(points3d, ground_normals, normals_computer, 0.04); // 3 discontinuities, more error expected.
           }
         }
       }
