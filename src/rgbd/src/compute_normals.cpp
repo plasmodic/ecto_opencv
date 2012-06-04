@@ -53,17 +53,20 @@ namespace
    * @return
    */
   template<typename T>
-  cv::Mat
+  cv::Mat_<T>
   computeR(const cv::Mat &points)
   {
     typedef cv::Vec<T, 3> PointT;
 
-    // Test for speed
-    cv::Mat r = cv::Mat_<T>(points.rows, points.cols);
-    for (int y = 0; y < points.rows; ++y)
+    // Compute the
+    cv::Size size(points.cols, points.rows);
+    cv::Mat_<T> r = cv::Mat_<T>(size);
+    if (points.isContinuous())
+      size = cv::Size(points.cols * points.rows, 1);
+    for (int y = 0; y < size.height; ++y)
     {
-      const PointT* point = points.ptr<PointT>(y), *point_end = points.ptr<PointT>(y) + points.cols;
-      T * row = r.ptr<T>(y);
+      const PointT* point = points.ptr<PointT>(y), *point_end = points.ptr<PointT>(y) + size.width;
+      T * row = r[y];
       for (; point != point_end; ++point, ++row)
         *row = norm_vec(*point);
     }
@@ -118,16 +121,19 @@ namespace
   void
   signNormals(cv::Mat & normals)
   {
-    for (int y = 0; y < normals.rows; ++y)
+    // Check whether we can process the image as a big row.
+    cv::Size size(normals.cols, normals.rows);
+    if (normals.isContinuous())
+      size = cv::Size(size.width * size.height, 1);
+
+    for (int y = 0; y < size.height; ++y)
     {
-      T* row = normals.ptr<T>(y), *row_end = normals.ptr<T>(y) + normals.cols;
+      T* row = normals.ptr<T>(y), *row_end = normals.ptr<T>(y) + size.width;
       for (; row != row_end; ++row)
-      {
         if ((*row)[2] > 0)
           *row = -(*row) / norm_vec(*row);
         else
           *row = (*row) / norm_vec(*row);
-      }
     }
   }
 }
@@ -174,7 +180,7 @@ namespace
 
       // Compute M and its inverse
       cv::Mat_<cv::Vec<T, 9> > M(rows_, cols_);
-      cv::Matx<T, 3, 3> VVt;
+      Mat33T VVt;
       for (int y = 0; y < rows_; ++y)
       {
         for (int x = 0; x < cols_; ++x)
@@ -208,20 +214,17 @@ namespace
       cv::TickMeter tm1, tm2, tm3;
       tm1.start();
       // Compute B
-      cv::Mat B = cv::Mat_<PointT>(rows_, cols_);
+      cv::Mat_<PointT> B = cv::Mat_<PointT>(rows_, cols_);
 
       cv::Size size(cols_, rows_);
       if (B.isContinuous() && V_.isContinuous() && r.isContinuous())
-      {
-        size.width *= size.height;
-        size.height = 1;
-      }
+        size = cv::Size(cols_ * rows_, 1);
 
       for (int y = 0; y < size.height; ++y)
       {
         const T* row_r = r.ptr<T>(y), *row_r_end = row_r + size.width;
-        const PointT *row_V = reinterpret_cast<const PointT *>(V_.ptr(y));
-        PointT *row_B = B.ptr<PointT>(y);
+        const PointT *row_V = V_[y];
+        PointT *row_B = B[y];
         for (; row_r != row_r_end; ++row_r, ++row_B, ++row_V)
         {
           if (cvIsNaN(*row_r))
@@ -239,18 +242,15 @@ namespace
 
       // compute the Minv*B products
       tm3.start();
-      cv::Mat normals = cv::Mat_<PointT>(rows_, cols_);
-       size = cv::Size(cols_, rows_);
+      cv::Mat_<PointT> normals(rows_, cols_);
+      size = cv::Size(cols_, rows_);
       if (B.isContinuous() && M_inv_.isContinuous() && normals.isContinuous())
-      {
-        size.width *= size.height;
-        size.height = 1;
-      }
+        size = cv::Size(cols_ * rows_, 1);
       for (int y = 0; y < size.height; ++y)
       {
-        const PointT * B_vec = B.ptr<PointT>(y), *B_vec_end = B_vec + size.width;
+        const PointT * B_vec = B[y], *B_vec_end = B_vec + size.width;
         const Mat33T * M_inv = reinterpret_cast<const Mat33T *>(M_inv_.ptr(y));
-        PointT *normal = normals.ptr<PointT>(y);
+        PointT *normal = normals[y];
         for (; B_vec != B_vec_end; ++B_vec, ++normal, ++M_inv)
           *normal = (*M_inv) * (*B_vec);
       }
@@ -260,8 +260,7 @@ namespace
 
       return normals;
     }
-    //TODO
-    //private:
+  private:
     int rows_;
     int cols_;
     int window_size_;
@@ -280,6 +279,9 @@ namespace
   class SRI: public cv::RgbdNormals::RgbdNormalsImpl
   {
   public:
+    typedef cv::Matx<T, 3, 3> Mat33T;
+    typedef cv::Vec<T, 3> PointT;
+
     SRI(int rows, int cols, int window_size, const cv::Matx<T, 3, 3> &K)
         :
           rows_(rows),
@@ -297,28 +299,7 @@ namespace
       cv::Mat_<T> cos_theta, sin_theta, cos_phi, sin_phi;
       computeThetaPhi<T>(rows_, cols_, K_, cos_theta, sin_theta, cos_phi, sin_phi);
 
-#if 0
-      std::vector<std::vector<cv::Mat> > R_hat;
-      R_hat.resize(3);
-      for (unsigned char i = 0; i < 3; ++i)
-        R_hat[i].resize(3);
-
-      cv::multiply(sin_theta, cos_phi, R_hat[0][0]);
-      R_hat[0][1] = cos_theta;
-      cv::multiply(-sin_theta, sin_phi, R_hat[0][2]);
-
-      R_hat[1][0] = sin_phi;
-      R_hat[1][1] = cv::Mat_<T>::zeros(rows_, cols_);
-      R_hat[1][2] = cos_phi;
-
-      cv::multiply(cos_theta, cos_phi, R_hat[2][0]);
-      R_hat[2][1] = -sin_theta;
-      cv::multiply(-cos_theta, sin_phi, R_hat[2][2]);
-
-      for (unsigned char i = 0; i < 3; ++i)
-        R_hat[i][1] = R_hat[i][1] / cos_phi;
-#endif
-      R_hat_ = cv::Mat_<cv::Vec<T, 9> >(rows_, cols_);
+      R_hat_.create(rows_, cols_);
       for (int y = 0; y < rows_; ++y)
         for (int x = 0; x < cols_; ++x)
         {
@@ -330,13 +311,14 @@ namespace
             mat(i, 1) = mat(i, 1) / cos_phi(y, x);
 
           cv::Vec<T, 9> &vec = R_hat_(y, x);
-          /*for (unsigned char j = 0, k = 0; j < 3; ++j)
-           for (unsigned char i = 0; i < 3; ++i, ++k)
-           vec[k] = R_hat[j][i].at<T>(y, x);*/
           vec = cv::Vec<T, 9>((T*) (mat.data));
         }
     }
 
+    /** Compute the normals
+     * @param r
+     * @return
+     */
     virtual cv::Mat
     compute(const cv::Mat &r) const
     {
@@ -355,29 +337,26 @@ namespace
 
       // Compute the derivatives with respect to theta and phi
       tm1.start();
-      cv::Mat r_theta, r_phi;
+      cv::Mat_<T> r_theta, r_phi;
       cv::Sobel(r, r_theta, r.depth(), 1, 0, window_size_);
       cv::Sobel(r, r_phi, r.depth(), 0, 1, window_size_);
       tm1.stop();
 
       // Fill the result matrix
       tm2.start();
-      cv::Mat_<cv::Vec<T, 3> > normals(rows_, cols_);
+      cv::Mat_<PointT> normals(rows_, cols_);
       cv::Size size(cols_, rows_);
       if (r_theta.isContinuous() && r_phi.isContinuous() && R_hat_.isContinuous() && r.isContinuous()
           && normals.isContinuous())
-      {
-        size.width *= size.height;
-        size.height = 1;
-      }
+        size = cv::Size(rows_ * cols_, 1);
 
       for (int y = 0; y < size.height; ++y)
       {
-        const T* r_theta_ptr = r_theta.ptr<T>(y), *r_theta_ptr_end = r_theta.ptr<T>(y) + size.width;
-        const T* r_phi_ptr = r_phi.ptr<T>(y);
+        const T* r_theta_ptr = r_theta[y], *r_theta_ptr_end = r_theta_ptr + size.width;
+        const T* r_phi_ptr = r_phi[y];
         const cv::Matx<T, 3, 3> * R = reinterpret_cast<const cv::Matx<T, 3, 3> *>(R_hat_.ptr(y));
-        const T* r_ptr = reinterpret_cast<const T*>(r.ptr(y));
-        cv::Vec<T, 3> * normal = reinterpret_cast<cv::Vec<T, 3> *>(normals.ptr(y));
+        const T* r_ptr = r[y];
+        PointT * normal = normals[y];
         for (; r_theta_ptr != r_theta_ptr_end; ++r_theta_ptr, ++r_phi_ptr, ++R, ++r_ptr, ++normal)
         {
           T r_theta_over_r = (*r_theta_ptr) / (*r_ptr);
