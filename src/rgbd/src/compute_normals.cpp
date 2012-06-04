@@ -174,9 +174,7 @@ namespace
       channels[0] = sin_theta.mul(cos_phi);
       channels[1] = sin_phi;
       channels[2] = cos_theta.mul(cos_phi);
-      cv::Mat V;
-      cv::merge(channels, V);
-      V_ = V;
+      cv::merge(channels, V_);
 
       // Compute M and its inverse
       cv::Mat_<cv::Vec<T, 9> > M(rows_, cols_);
@@ -298,6 +296,7 @@ namespace
     {
       cv::Mat_<T> cos_theta, sin_theta, cos_phi, sin_phi;
       computeThetaPhi<T>(rows_, cols_, K_, cos_theta, sin_theta, cos_phi, sin_phi);
+      cos_theta_ = cos_theta, sin_theta_ = sin_theta, cos_phi_ = cos_phi, sin_phi_ = sin_phi;
 
       R_hat_.create(rows_, cols_);
       for (int y = 0; y < rows_; ++y)
@@ -310,8 +309,7 @@ namespace
           for (unsigned char i = 0; i < 3; ++i)
             mat(i, 1) = mat(i, 1) / cos_phi(y, x);
 
-          cv::Vec<T, 9> &vec = R_hat_(y, x);
-          vec = cv::Vec<T, 9>((T*) (mat.data));
+          R_hat_(y, x) = cv::Vec<T, 9>((T*) (mat.data));
         }
     }
 
@@ -354,11 +352,20 @@ namespace
       {
         const T* r_theta_ptr = r_theta[y], *r_theta_ptr_end = r_theta_ptr + size.width;
         const T* r_phi_ptr = r_phi[y];
-        const cv::Matx<T, 3, 3> * R = reinterpret_cast<const cv::Matx<T, 3, 3> *>(R_hat_.ptr(y));
+        const Mat33T * R = reinterpret_cast<const Mat33T *>(R_hat_.ptr(y));
         const T* r_ptr = r[y];
         PointT * normal = normals[y];
-        for (; r_theta_ptr != r_theta_ptr_end; ++r_theta_ptr, ++r_phi_ptr, ++R, ++r_ptr, ++normal)
+        for (int x = 0; r_theta_ptr != r_theta_ptr_end; ++r_theta_ptr, ++r_phi_ptr, ++R, ++r_ptr, ++normal, ++x)
         {
+          if (cvIsNaN(*r_ptr))
+          {
+            std::cout << std::endl;
+            (*normal)[0] = *r_ptr;
+            (*normal)[1] = *r_ptr;
+            (*normal)[2] = *r_ptr;
+            continue;
+          }
+
           T r_theta_over_r = (*r_theta_ptr) / (*r_ptr);
           T r_phi_over_r = (*r_phi_ptr) / (*r_ptr);
           (*normal)[0] = (*R)(0, 0) + (*R)(0, 1) * r_theta_over_r + (*R)(0, 2) * r_phi_over_r;
@@ -375,10 +382,11 @@ namespace
     int rows_;
     int cols_;
     int window_size_;
-    cv::Matx<T, 3, 3> K_;
+    Mat33T K_;
 
     /** Stores R */
     cv::Mat_<cv::Vec<T, 9> > R_hat_;
+    cv::Mat_<T> cos_theta_, sin_theta_, cos_phi_, sin_phi_;
   };
 }
 
@@ -394,9 +402,11 @@ namespace cv
   {
     CV_Assert(depth == CV_32F || depth == CV_64F);
 
-    cv::Mat K_right_depth;
-    K.convertTo(K_right_depth, depth);
-    K_ = K_right_depth;
+    {
+      cv::Mat K_right_depth;
+      K.convertTo(K_right_depth, depth);
+      K_ = K_right_depth;
+    }
 
     // TODO make it a parameter
     int window_size = 5;
@@ -405,20 +415,21 @@ namespace cv
       case RGBD_NORMALS_METHOD_SRI:
       {
         if (depth == CV_32F)
-          rgbd_normals_impl_ = new SRI<float>(rows, cols, window_size, K_right_depth);
+          rgbd_normals_impl_ = new SRI<float>(rows, cols, window_size, K_);
         else
-          rgbd_normals_impl_ = new SRI<double>(rows, cols, window_size, K_right_depth);
+          rgbd_normals_impl_ = new SRI<double>(rows, cols, window_size, K_);
         break;
       }
       case (RGBD_NORMALS_METHOD_FALS):
       {
         if (depth == CV_32F)
-          rgbd_normals_impl_ = new FALS<float>(rows, cols, window_size, K_right_depth);
+          rgbd_normals_impl_ = new FALS<float>(rows, cols, window_size, K_);
         else
-          rgbd_normals_impl_ = new FALS<double>(rows, cols, window_size, K_right_depth);
+          rgbd_normals_impl_ = new FALS<double>(rows, cols, window_size, K_);
         break;
       }
     }
+
     rgbd_normals_impl_->cache();
   }
 
@@ -440,7 +451,10 @@ namespace cv
     // Make the points have the right depth
     tm_all.start();
     cv::Mat points3d;
-    in_points3d.convertTo(points3d, K_.depth());
+    if (in_points3d.depth() == K_.depth())
+      points3d = in_points3d;
+    else
+      in_points3d.convertTo(points3d, K_.depth());
 
     // Compute the distance to the points
     tm1.start();
