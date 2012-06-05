@@ -34,6 +34,7 @@
  */
 
 #include <iostream>
+#include <opencv2/calib3d/calib3d.hpp>
 #include <opencv2/contrib/contrib.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/rgbd/rgbd.hpp>
@@ -296,7 +297,6 @@ namespace
     {
       cv::Mat_<T> cos_theta, sin_theta, cos_phi, sin_phi;
       computeThetaPhi<T>(rows_, cols_, K_, cos_theta, sin_theta, cos_phi, sin_phi);
-      cos_theta_ = cos_theta, sin_theta_ = sin_theta, cos_phi_ = cos_phi, sin_phi_ = sin_phi;
 
       R_hat_.create(rows_, cols_);
       for (int y = 0; y < rows_; ++y)
@@ -315,6 +315,31 @@ namespace
       // Create the derivative kernels
       getDerivKernels(kx_dx_, ky_dx_, 1, 0, window_size_, true, K_.depth);
       getDerivKernels(kx_dy_, ky_dy_, 0, 1, window_size_, true, K_.depth);
+
+      // Get the mapping function for SRI
+      float min_theta = std::asin(sin_theta(0, 0)), max_theta = std::asin(sin_theta(0, cols_ - 1));
+      float min_phi = std::asin(sin_phi(0, 0)), max_phi = std::asin(sin_phi(rows_ - 1, 0));
+      //std::cout << min_theta << " " << max_theta << " " << min_phi << " " << max_phi << std::endl;
+      cv::Mat rvec;
+      cv::Rodrigues(cv::Mat::eye(3, 3, CV_32F), rvec);
+      cv::Mat tvec = (cv::Mat_<float>(1, 3) << 0, 0, 0);
+
+      map_ = cv::Mat_<cv::Vec2f>(rows_, cols_);
+      for (int phi_int = 0; phi_int < rows_; ++phi_int)
+      {
+        float phi = min_phi + (phi_int * (max_phi - min_phi)) / (rows_ - 1);
+        std::vector<cv::Point2f> image_points;
+        for (int theta_int = 0; theta_int < cols_; ++theta_int)
+        {
+          float theta = min_theta + (theta_int * (max_theta - min_theta)) / (cols_ - 1);
+          // Project that 3d point to the image
+          std::vector<cv::Point3f> points(
+              1, cv::Point3f(std::sin(theta) * std::cos(phi), std::sin(phi), std::cos(theta) * std::cos(phi)));
+          cv::projectPoints(points, rvec, tvec, K_, cv::Mat(), image_points);
+          map_(phi_int, theta_int) = image_points[0];
+        }
+        //std::cout << image_points[0].x << " " << image_points[0].y << std::endl;
+      }
     }
 
     /** Compute the normals
@@ -333,20 +358,26 @@ namespace
      * @return
      */
     cv::Mat
-    compute(const cv::Mat_<T> &r) const
+    compute(const cv::Mat_<T> &r_non_interp) const
     {
-      cv::TickMeter tm1, tm2;
+      cv::TickMeter tm1, tm2, tm3;
+
+      // Interpolate the radial image to make derivatives meaningful
+      tm1.start();
+      cv::Mat_<T> r;
+      cv::remap(r_non_interp, r, map_, cv::Mat(), CV_INTER_LINEAR);
+      tm2.stop();
 
       // Compute the derivatives with respect to theta and phi
-      // TODO addd bilateral filtering (as done in kinfu)
-      tm1.start();
+      // TODO add bilateral filtering (as done in kinfu)
+      tm2.start();
       cv::Mat_<T> r_theta, r_phi;
-      sepFilter2D(r, r_theta, r.depth(), kx_dx_, ky_dx_);
-      sepFilter2D(r, r_phi, r.depth(), kx_dy_, ky_dy_);
-      tm1.stop();
+      cv::sepFilter2D(r, r_theta, r.depth(), kx_dx_, ky_dx_);
+      cv::sepFilter2D(r, r_phi, r.depth(), kx_dy_, ky_dy_);
+      tm2.stop();
 
       // Fill the result matrix
-      tm2.start();
+      tm3.start();
       cv::Mat_<PointT> normals(rows_, cols_);
       cv::Size size(cols_, rows_);
       if (r_theta.isContinuous() && r_phi.isContinuous() && R_hat_.isContinuous() && r.isContinuous()
@@ -377,9 +408,9 @@ namespace
           (*normal)[2] = (*R)(2, 0) + (*R)(2, 1) * r_theta_over_r + (*R)(2, 2) * r_phi_over_r;
         }
       }
-      tm2.stop();
+      tm3.stop();
 
-      std::cout << tm1.getTimeMilli() << " " << tm2.getTimeMilli() << " ";
+      std::cout << tm1.getTimeMilli() << " " << tm2.getTimeMilli() << " " << tm3.getTimeMilli() << " ";
       return normals;
     }
   private:
@@ -390,10 +421,11 @@ namespace
 
     /** Stores R */
     cv::Mat_<cv::Vec<T, 9> > R_hat_;
-    cv::Mat_<T> cos_theta_, sin_theta_, cos_phi_, sin_phi_;
 
     /** Derivative kernels */
     cv::Mat kx_dx_, ky_dx_, kx_dy_, ky_dy_;
+    /** mapping function to get an SRI image */
+    cv::Mat_<cv::Vec2f> map_;
   };
 }
 
