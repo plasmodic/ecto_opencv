@@ -36,6 +36,7 @@
 #include <iostream>
 #include <opencv2/calib3d/calib3d.hpp>
 #include <opencv2/contrib/contrib.hpp>
+#include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/rgbd/rgbd.hpp>
 
@@ -366,14 +367,23 @@ namespace
       tm1.start();
       cv::Mat_<T> r;
       cv::remap(r_non_interp, r, map_, cv::Mat(), CV_INTER_LINEAR);
-      tm2.stop();
+      /*cv::namedWindow("toto1");
+       cv::namedWindow("toto2");
+       cv::Mat r_u1, r_u2;
+       cv::Mat(100*r).convertTo(r_u1, CV_8U);
+       cv::Mat(100*r_non_interp).convertTo(r_u2, CV_8U);
+       cv::imshow("toto1", r_u1);
+       cv::imshow("toto2", r_u2);
+       tm2.stop();*/
 
       // Compute the derivatives with respect to theta and phi
       // TODO add bilateral filtering (as done in kinfu)
       tm2.start();
       cv::Mat_<T> r_theta, r_phi;
-      cv::sepFilter2D(r, r_theta, r.depth(), kx_dx_, ky_dx_);
-      cv::sepFilter2D(r, r_phi, r.depth(), kx_dy_, ky_dy_);
+      cv::Sobel(r, r_theta, r_theta.depth(),1, 0,  window_size_);
+      cv::Sobel(r, r_phi, r_theta.depth(), 0, 1, window_size_);
+      //cv::sepFilter2D(r, r_theta, r.depth(), kx_dx_, ky_dx_);
+      //cv::sepFilter2D(r, r_phi, r.depth(), kx_dy_, ky_dy_);
       tm2.stop();
 
       // Fill the result matrix
