@@ -97,6 +97,11 @@ namespace rgbd
       cv::Mat normal_intensity = cv::Mat(image_in_->rows, image_in_->cols, CV_8U);
 
       // Draw the normals at given steps
+      std::vector<cv::Point3f> points3d;
+      std::vector<cv::Point2f> points_beg;
+      size_t n_max_points = (image_in_->rows * image_in_->cols) / (*step_) / (*step_);
+      points3d.reserve(n_max_points);
+      points_beg.reserve(n_max_points);
       for (int y = *step_; y < (image_in_->rows - (*step_)); y += *step_)
         for (int x = *step_; x < (image_in_->cols - (*step_)); x += *step_)
         {
@@ -115,17 +120,29 @@ namespace rgbd
 
           if (cvIsNaN(normal[0]))
             continue;
-          int len = (*step_) / 4 - 2;
 
-          std::vector<cv::Point3f> points(
-              1, cv::Point3f(point3d[0] + len * normal[0], point3d[1] + len * normal[1], point3d[2] + len * normal[2]));
-
-          std::vector<cv::Point2f> points2d;
-          cv::Vec3f rvec(0, 0, 0), tvec(0, 0, 0);
-          cv::projectPoints(points, rvec, tvec, *K_, cv::Mat(), points2d);
-          cv::line(*image_out_, cv::Point2i(x, y), points2d[0], cv::Scalar(255, 0, 0));
-
+          points3d.push_back(
+              cv::Point3f(point3d[0] + 100 * normal[0], point3d[1] + 100 * normal[1], point3d[2] + 100 * normal[2]));
+          points_beg.push_back(cv::Point2f(x, y));
         }
+
+      std::vector<cv::Point2f> points_end;
+      cv::Vec3f rvec(0, 0, 0), tvec(0, 0, 0);
+      cv::projectPoints(points3d, rvec, tvec, *K_, cv::Mat(), points_end);
+      // Normalize the projected normals
+      std::vector<float> norms(points_end.size());
+      for (size_t i = 0; i < points_end.size(); ++i)
+        norms[i] = cv::norm(points_beg[i] - points_end[i]);
+      cv::Scalar mean, stddev;
+      cv::meanStdDev(norms, mean, stddev);
+      float scale = (float(*step_) / 1.2 - 1) / (mean[0] + stddev[0])*6;
+      for (size_t i = 0; i < points_end.size(); ++i)
+      {
+        cv::Point2f end_point(points_beg[i].x + (points_end[i].x - points_beg[i].x) * scale,
+                              points_beg[i].y + (points_end[i].y - points_beg[i].y) * scale);
+        cv::line(*image_out_, points_beg[i], end_point, cv::Scalar(255, 0, 0));
+      }
+
       for (int y = 0; y < image_in_->rows; ++y)
         for (int x = 0; x < image_in_->cols; ++x)
         {
