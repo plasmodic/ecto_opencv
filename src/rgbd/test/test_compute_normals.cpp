@@ -175,6 +175,7 @@ testit(cv::Mat points3d, cv::Mat in_ground_normals, const cv::RgbdNormals & norm
 
   err /= normals.rows * normals.cols;
   ASSERT_LE(err, thresh) << "mean diff: " << err << " thresh: " << thresh << std::endl;
+  std::cout << "Average error: " << err << std::endl;
 }
 
 class CV_RgbdNormalsTest: public cvtest::BaseTest
@@ -276,7 +277,7 @@ protected:
           std::vector<Plane> plane_params;
           cv::Mat points3d, ground_normals;
           gen_points_3d(plane_params, points3d, ground_normals, 1);
-          testit(points3d, ground_normals, normals_computer, 0.002); // 1 plane, continuous scene, very low error..
+          testit(points3d, ground_normals, normals_computer, 0.005); // 1 plane, continuous scene, very low error..
           for (int ii = 0; ii < 10; ii++)
           {
             gen_points_3d(plane_params, points3d, ground_normals, 3); //three planes
