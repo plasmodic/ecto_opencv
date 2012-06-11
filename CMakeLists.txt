@@ -32,7 +32,7 @@ catkin_python_setup()
 
 # install the include directory
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src/modules/rgbd/include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src/rgbd/include)
 
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/opencv_candidate
         DESTINATION include
