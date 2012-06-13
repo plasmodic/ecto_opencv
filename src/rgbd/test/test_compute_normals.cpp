@@ -170,7 +170,7 @@ testit(cv::Mat points3d, cv::Mat in_ground_normals, const cv::RgbdNormals & norm
       float dot = vec1.dot(vec2);
       // Just for rounding errors
       if (std::abs(dot) < 1)
-        err += std::acos(dot);
+        err += std::min(std::acos(dot), std::acos(-dot));
     }
 
   err /= normals.rows * normals.cols;
@@ -264,24 +264,30 @@ protected:
       {
         cv::RgbdNormals::RGBD_NORMALS_METHOD method;
         if (i == 0)
+        {
           method = cv::RgbdNormals::RGBD_NORMALS_METHOD_FALS;
-        if (i == 1)
+          std::cout << "FALS" << std::endl;
+        }
+        else if (i == 1)
+        {
           method = cv::RgbdNormals::RGBD_NORMALS_METHOD_SRI;
+          std::cout << "SRI" << std::endl;
+        }
 
         for (unsigned char j = 0; j < 2; ++j)
         {
           int depth = (j % 2 == 0) ? CV_32F : CV_64F;
 
-          cv::RgbdNormals normals_computer(H, W, depth, K, method);
+          cv::RgbdNormals normals_computer(H, W, depth, K, 5, method);
 
           std::vector<Plane> plane_params;
           cv::Mat points3d, ground_normals;
           gen_points_3d(plane_params, points3d, ground_normals, 1);
-          testit(points3d, ground_normals, normals_computer, 0.005); // 1 plane, continuous scene, very low error..
+          testit(points3d, ground_normals, normals_computer, 0.08); // 1 plane, continuous scene, very low error..
           for (int ii = 0; ii < 10; ii++)
           {
             gen_points_3d(plane_params, points3d, ground_normals, 3); //three planes
-            testit(points3d, ground_normals, normals_computer, 0.04); // 3 discontinuities, more error expected.
+            testit(points3d, ground_normals, normals_computer, 0.08); // 3 discontinuities, more error expected.
           }
         }
       }
