@@ -33,7 +33,9 @@
  *
  */
 
+#ifdef RGBD_DEBUG
 #include <iostream>
+#endif
 #include <opencv2/calib3d/calib3d.hpp>
 #include <opencv2/contrib/contrib.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -209,10 +211,12 @@ namespace
      * @return
      */
     virtual cv::Mat
-    compute(const cv::Mat &r) const
+    compute(const cv::Mat&, const cv::Mat &r) const
     {
+#ifdef RGBD_DEBUG
       cv::TickMeter tm1, tm2, tm3;
       tm1.start();
+#endif
       // Compute B
       cv::Mat_<PointT> B = cv::Mat_<PointT>(rows_, cols_);
 
@@ -233,15 +237,21 @@ namespace
             *row_B = (*row_V) / (*row_r);
         }
       }
+
+#ifdef RGBD_DEBUG
       tm1.stop();
+      tm2.start();
+#endif
 
       // Apply a box filter to B
-      tm2.start();
       cv::boxFilter(B, B, B.depth(), cv::Size(window_size_, window_size_), cv::Point(-1, -1), false);
+
+#ifdef RGBD_DEBUG
       tm2.stop();
+      tm3.start();
+#endif
 
       // compute the Minv*B products
-      tm3.start();
       cv::Mat_<PointT> normals(rows_, cols_);
       size = cv::Size(cols_, rows_);
       if (B.isContinuous() && M_inv_.isContinuous() && normals.isContinuous())
@@ -254,9 +264,10 @@ namespace
         for (; B_vec != B_vec_end; ++B_vec, ++normal, ++M_inv)
           *normal = (*M_inv) * (*B_vec);
       }
+#ifdef RGBD_DEBUG
       tm3.stop();
-
-      std::cout << tm1.getTimeMilli() << " " << tm2.getTimeMilli() << " " << tm3.getTimeMilli() << " ";
+      std::cout << "FALS: " << tm1.getTimeMilli() << " " << tm2.getTimeMilli() << " " << tm3.getTimeMilli() << " ";
+#endif
 
       return normals;
     }
@@ -299,20 +310,6 @@ namespace
       cv::Mat_<T> cos_theta, sin_theta, cos_phi, sin_phi;
       computeThetaPhi<T>(rows_, cols_, K_, cos_theta, sin_theta, cos_phi, sin_phi);
 
-      R_hat_.create(rows_, cols_);
-      for (int y = 0; y < rows_; ++y)
-        for (int x = 0; x < cols_; ++x)
-        {
-          cv::Mat_<T> mat =
-              (cv::Mat_<T>(3, 3) << 0, 1, 0, 0, 0, 1, 1, 0, 0)
-              * ((cv::Mat_<T>(3, 3) << cos_theta(y, x), -sin_theta(y, x), 0, sin_theta(y, x), cos_theta(y, x), 0, 0, 0, 1))
-              * ((cv::Mat_<T>(3, 3) << cos_phi(y, x), 0, -sin_phi(y, x), 0, 1, 0, sin_phi(y, x), 0, cos_phi(y, x)));
-          for (unsigned char i = 0; i < 3; ++i)
-            mat(i, 1) = mat(i, 1) / cos_phi(y, x);
-
-          R_hat_(y, x) = cv::Vec<T, 9>((T*) (mat.data));
-        }
-
       // Create the derivative kernels
       getDerivKernels(kx_dx_, ky_dx_, 1, 0, window_size_, true, K_.depth);
       getDerivKernels(kx_dy_, ky_dy_, 0, 1, window_size_, true, K_.depth);
@@ -320,27 +317,42 @@ namespace
       // Get the mapping function for SRI
       float min_theta = std::asin(sin_theta(0, 0)), max_theta = std::asin(sin_theta(0, cols_ - 1));
       float min_phi = std::asin(sin_phi(0, 0)), max_phi = std::asin(sin_phi(rows_ - 1, 0));
-      //std::cout << min_theta << " " << max_theta << " " << min_phi << " " << max_phi << std::endl;
+
       cv::Mat rvec;
       cv::Rodrigues(cv::Mat::eye(3, 3, CV_32F), rvec);
       cv::Mat tvec = (cv::Mat_<float>(1, 3) << 0, 0, 0);
 
-      map_ = cv::Mat_<cv::Vec2f>(rows_, cols_);
-      for (int phi_int = 0; phi_int < rows_; ++phi_int)
+      std::vector<cv::Point3f> points3d(cols_ * rows_);
+      R_hat_.create(rows_, cols_);
+      phi_step_ = float(max_phi - min_phi) / (rows_ - 1);
+      theta_step_ = float(max_theta - min_theta) / (cols_ - 1);
+      for (int phi_int = 0, k = 0; phi_int < rows_; ++phi_int)
       {
-        float phi = min_phi + (phi_int * (max_phi - min_phi)) / (rows_ - 1);
-        std::vector<cv::Point2f> image_points;
-        for (int theta_int = 0; theta_int < cols_; ++theta_int)
+        float phi = min_phi + phi_int * phi_step_;
+        for (int theta_int = 0; theta_int < cols_; ++theta_int, ++k)
         {
-          float theta = min_theta + (theta_int * (max_theta - min_theta)) / (cols_ - 1);
-          // Project that 3d point to the image
-          std::vector<cv::Point3f> points(
-              1, cv::Point3f(std::sin(theta) * std::cos(phi), std::sin(phi), std::cos(theta) * std::cos(phi)));
-          cv::projectPoints(points, rvec, tvec, K_, cv::Mat(), image_points);
-          map_(phi_int, theta_int) = image_points[0];
+          float theta = min_theta + theta_int * theta_step_;
+          // Store the 3d point to project it later
+          points3d[k] = cv::Point3f(std::sin(theta) * std::cos(phi), std::sin(phi), std::cos(theta) * std::cos(phi));
+
+          // Cache the rotation matrix and negate it
+          cv::Mat_<T> mat =
+              (cv::Mat_<T>(3, 3) << 0, 1, 0, 0, 0, 1, 1, 0, 0)
+              * ((cv::Mat_<T>(3, 3) << std::cos(theta), -std::sin(theta), 0, std::sin(theta), std::cos(theta), 0, 0, 0, 1))
+              * ((cv::Mat_<T>(3, 3) << std::cos(phi), 0, -std::sin(phi), 0, 1, 0, std::sin(phi), 0, std::cos(phi)));
+          for (unsigned char i = 0; i < 3; ++i)
+            mat(i, 1) = mat(i, 1) / std::cos(phi);
+          mat(0, 0) = mat(0, 0) - 2 * std::cos(phi) * std::sin(theta);
+          mat(1, 0) = mat(1, 0) - 2 * std::sin(phi);
+          mat(2, 0) = mat(2, 0) - 2 * std::cos(phi) * std::cos(theta);
+
+          R_hat_(phi_int, theta_int) = cv::Vec<T, 9>((T*) (mat.data));
         }
-        //std::cout << image_points[0].x << " " << image_points[0].y << std::endl;
       }
+
+      map_.create(rows_, cols_);
+      cv::projectPoints(points3d, rvec, tvec, K_, cv::Mat(), map_);
+      map_ = map_.reshape(2, rows_);
     }
 
     /** Compute the normals
@@ -348,10 +360,11 @@ namespace
      * @return
      */
     virtual cv::Mat
-    compute(const cv::Mat &r) const
+    compute(const cv::Mat& points3d, const cv::Mat &r) const
     {
       const cv::Mat_<T>& r_T(r);
-      return compute(r_T);
+      const cv::Mat_<cv::Vec<T, 3> > &points3d_T(points3d);
+      return compute(points3d_T, r_T);
     }
 
     /** Compute the normals
@@ -359,35 +372,34 @@ namespace
      * @return
      */
     cv::Mat
-    compute(const cv::Mat_<T> &r_non_interp) const
+    compute(const cv::Mat_<cv::Vec<T, 3> > &, const cv::Mat_<T> &r_non_interp) const
     {
+#ifdef RGBD_DEBUG
       cv::TickMeter tm1, tm2, tm3;
+      tm1.start();
+#endif
 
       // Interpolate the radial image to make derivatives meaningful
-      tm1.start();
       cv::Mat_<T> r;
       cv::remap(r_non_interp, r, map_, cv::Mat(), CV_INTER_LINEAR);
-      /*cv::namedWindow("toto1");
-       cv::namedWindow("toto2");
-       cv::Mat r_u1, r_u2;
-       cv::Mat(100*r).convertTo(r_u1, CV_8U);
-       cv::Mat(100*r_non_interp).convertTo(r_u2, CV_8U);
-       cv::imshow("toto1", r_u1);
-       cv::imshow("toto2", r_u2);
-       tm2.stop();*/
+
+#ifdef RGBD_DEBUG
+      tm1.stop();
+      tm2.start();
+#endif
 
       // Compute the derivatives with respect to theta and phi
       // TODO add bilateral filtering (as done in kinfu)
-      tm2.start();
       cv::Mat_<T> r_theta, r_phi;
-      cv::Sobel(r, r_theta, r_theta.depth(),1, 0,  window_size_);
-      cv::Sobel(r, r_phi, r_theta.depth(), 0, 1, window_size_);
-      //cv::sepFilter2D(r, r_theta, r.depth(), kx_dx_, ky_dx_);
-      //cv::sepFilter2D(r, r_phi, r.depth(), kx_dy_, ky_dy_);
+      cv::sepFilter2D(r, r_theta, r.depth(), kx_dx_, ky_dx_);
+      cv::sepFilter2D(r, r_phi, r.depth(), kx_dy_, ky_dy_);
+
+#ifdef RGBD_DEBUG
       tm2.stop();
+      tm3.start();
+#endif
 
       // Fill the result matrix
-      tm3.start();
       cv::Mat_<PointT> normals(rows_, cols_);
       cv::Size size(cols_, rows_);
       if (r_theta.isContinuous() && r_phi.isContinuous() && R_hat_.isContinuous() && r.isContinuous()
@@ -398,8 +410,9 @@ namespace
       {
         const T* r_theta_ptr = r_theta[y], *r_theta_ptr_end = r_theta_ptr + size.width;
         const T* r_phi_ptr = r_phi[y];
-        const Mat33T * R = reinterpret_cast<const Mat33T *>(R_hat_.ptr(y));
+        const Mat33T * R = reinterpret_cast<const Mat33T *>(R_hat_[y]);
         const T* r_ptr = r[y];
+
         PointT * normal = normals[y];
         for (; r_theta_ptr != r_theta_ptr_end; ++r_theta_ptr, ++r_phi_ptr, ++R, ++r_ptr, ++normal)
         {
@@ -411,16 +424,20 @@ namespace
             continue;
           }
 
-          T r_theta_over_r = (*r_theta_ptr) / (*r_ptr);
-          T r_phi_over_r = (*r_phi_ptr) / (*r_ptr);
+          // The step should be part of the derivative but we apply it here
+          T r_theta_over_r = (*r_theta_ptr) / ((*r_ptr) * theta_step_);
+          T r_phi_over_r = (*r_phi_ptr) / ((*r_ptr) * phi_step_);
           (*normal)[0] = (*R)(0, 0) + (*R)(0, 1) * r_theta_over_r + (*R)(0, 2) * r_phi_over_r;
           (*normal)[1] = (*R)(1, 0) + (*R)(1, 1) * r_theta_over_r + (*R)(1, 2) * r_phi_over_r;
           (*normal)[2] = (*R)(2, 0) + (*R)(2, 1) * r_theta_over_r + (*R)(2, 2) * r_phi_over_r;
         }
       }
-      tm3.stop();
 
-      std::cout << tm1.getTimeMilli() << " " << tm2.getTimeMilli() << " " << tm3.getTimeMilli() << " ";
+#ifdef RGBD_DEBUG
+      tm3.stop();
+      std::cout << "SRI: " << tm1.getTimeMilli() << " " << tm2.getTimeMilli() << " " << tm3.getTimeMilli() << " ";
+#endif
+
       return normals;
     }
   private:
@@ -431,6 +448,7 @@ namespace
 
     /** Stores R */
     cv::Mat_<cv::Vec<T, 9> > R_hat_;
+    float phi_step_, theta_step_;
 
     /** Derivative kernels */
     cv::Mat kx_dx_, ky_dx_, kx_dy_, ky_dy_;
@@ -445,8 +463,10 @@ namespace cv
 {
   /** Default constructor
    */
-  RgbdNormals::RgbdNormals(int rows, int cols, int depth, const cv::Mat & K, RGBD_NORMALS_METHOD method)
+  RgbdNormals::RgbdNormals(int rows, int cols, int depth, const cv::Mat & K, int window_size,
+                           RGBD_NORMALS_METHOD method)
       :
+        window_size_(window_size),
         method_(method)
   {
     CV_Assert(depth == CV_32F || depth == CV_64F);
@@ -457,24 +477,22 @@ namespace cv
       K_ = K_right_depth;
     }
 
-    // TODO make it a parameter
-    int window_size = 5;
     switch (method_)
     {
       case RGBD_NORMALS_METHOD_SRI:
       {
         if (depth == CV_32F)
-          rgbd_normals_impl_ = new SRI<float>(rows, cols, window_size, K_);
+          rgbd_normals_impl_ = new SRI<float>(rows, cols, window_size_, K_);
         else
-          rgbd_normals_impl_ = new SRI<double>(rows, cols, window_size, K_);
+          rgbd_normals_impl_ = new SRI<double>(rows, cols, window_size_, K_);
         break;
       }
       case (RGBD_NORMALS_METHOD_FALS):
       {
         if (depth == CV_32F)
-          rgbd_normals_impl_ = new FALS<float>(rows, cols, window_size, K_);
+          rgbd_normals_impl_ = new FALS<float>(rows, cols, window_size_, K_);
         else
-          rgbd_normals_impl_ = new FALS<double>(rows, cols, window_size, K_);
+          rgbd_normals_impl_ = new FALS<double>(rows, cols, window_size_, K_);
         break;
       }
     }
@@ -491,14 +509,16 @@ namespace cv
    * @return normals a rows x cols x 3 matrix
    */
   cv::Mat
-  RgbdNormals::operator()(const cv::Mat &in_points3d, int window_size) const
+  RgbdNormals::operator()(const cv::Mat &in_points3d) const
   {
-    cv::TickMeter tm1, tm2, tm_all;
     CV_Assert(in_points3d.channels() == 3 && in_points3d.dims == 2);
     CV_Assert(in_points3d.depth() == CV_32F || in_points3d.depth() == CV_64F);
 
     // Make the points have the right depth
+#ifdef RGBD_DEBUG
+    cv::TickMeter tm1, tm2, tm_all;
     tm_all.start();
+#endif
     cv::Mat points3d;
     if (in_points3d.depth() == K_.depth())
       points3d = in_points3d;
@@ -506,28 +526,37 @@ namespace cv
       in_points3d.convertTo(points3d, K_.depth());
 
     // Compute the distance to the points
+#ifdef RGBD_DEBUG
     tm1.start();
+#endif
     cv::Mat r;
     if (K_.depth() == CV_32F)
       r = computeR<float>(points3d);
     else
       r = computeR<double>(points3d);
+
+#ifdef RGBD_DEBUG
     tm1.stop();
     std::cout << "Time = " << tm1.getTimeMilli() << " ";
+#endif
 
     // Get the normals
-    cv::Mat normals = rgbd_normals_impl_->compute(r);
+    cv::Mat normals = rgbd_normals_impl_->compute(points3d, r);
 
     // Make sure the normals point towards the camera
+#ifdef RGBD_DEBUG
     tm2.start();
+#endif
     if (normals.depth() == CV_32F)
       signNormals<cv::Vec3f>(normals);
     else
       signNormals<cv::Vec3d>(normals);
+
+#ifdef RGBD_DEBUG
     tm2.stop();
     tm_all.stop();
-
     std::cout << tm2.getTimeMilli() << " all: " << tm_all.getTimeMilli() << " msec." << std::endl;
+#endif
 
     return normals;
   }

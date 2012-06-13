@@ -45,6 +45,13 @@ namespace rgbd
   struct ComputeNormals
   {
     static void
+    declare_params(tendrils & params)
+    {
+      params.declare(&ComputeNormals::method_, "method", "Conversion type.", cv::RgbdNormals::RGBD_NORMALS_METHOD_FALS);
+      params.declare(&ComputeNormals::window_size_, "window_size", "The window size for smoothing.", 5);
+    }
+
+    static void
     declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
     {
       inputs.declare(&ComputeNormals::points3d_, "points3d", "The 3d points from a depth image").required(true);
@@ -57,14 +64,15 @@ namespace rgbd
     process(const tendrils& inputs, const tendrils& outputs)
     {
       if (normals_computer_.empty())
-        normals_computer_ = new cv::RgbdNormals(points3d_->rows, points3d_->cols, points3d_->depth(), *K_,
-                                                cv::RgbdNormals::RGBD_NORMALS_METHOD_FALS);
+        normals_computer_ = new cv::RgbdNormals(points3d_->rows, points3d_->cols, points3d_->depth(), *K_, 5, *method_);
       *normals_ = (*normals_computer_)(*points3d_);
 
       return ecto::OK;
     }
     cv::Ptr<cv::RgbdNormals> normals_computer_;
     ecto::spore<cv::Mat> points3d_, normals_, K_, depth_;
+    ecto::spore<cv::RgbdNormals::RGBD_NORMALS_METHOD> method_;
+    ecto::spore<int> window_size_;
   };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -128,14 +136,16 @@ namespace rgbd
 
       std::vector<cv::Point2f> points_end;
       cv::Vec3f rvec(0, 0, 0), tvec(0, 0, 0);
-      cv::projectPoints(points3d, rvec, tvec, *K_, cv::Mat(), points_end);
+      if (!points3d.empty())
+        cv::projectPoints(points3d, rvec, tvec, *K_, cv::Mat(), points_end);
       // Normalize the projected normals
       std::vector<float> norms(points_end.size());
       for (size_t i = 0; i < points_end.size(); ++i)
         norms[i] = cv::norm(points_beg[i] - points_end[i]);
       cv::Scalar mean, stddev;
+
       cv::meanStdDev(norms, mean, stddev);
-      float scale = (float(*step_) / 1.2 - 1) / (mean[0] + stddev[0])*6;
+      float scale = (float(*step_) / 1.2 - 1) / (mean[0] + stddev[0]) * 6;
       for (size_t i = 0; i < points_end.size(); ++i)
       {
         cv::Point2f end_point(points_beg[i].x + (points_end[i].x - points_beg[i].x) * scale,

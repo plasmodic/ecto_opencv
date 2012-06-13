@@ -73,7 +73,8 @@ namespace cv
 
     /** Constructor
      */
-    RgbdNormals(int rows, int cols, int depth, const cv::Mat & K, RGBD_NORMALS_METHOD method = RGBD_NORMALS_METHOD_SRI);
+    RgbdNormals(int rows, int cols, int depth, const cv::Mat & K, int window_size, RGBD_NORMALS_METHOD method =
+        RGBD_NORMALS_METHOD_SRI);
 
     /** Given a set of 3d points in a depth image, compute the normals at each point.
      * @param points a rows x cols x 3 matrix
@@ -81,7 +82,7 @@ namespace cv
      * @return normals a rows x cols x 3 matrix
      */
     cv::Mat
-    operator()(const cv::Mat &points, int window_size = 5) const;
+    operator()(const cv::Mat &points) const;
 
   protected:
     class RgbdNormalsImpl
@@ -97,11 +98,12 @@ namespace cv
       virtual void
       cache()=0;
       virtual cv::Mat
-      compute(const cv::Mat &r) const=0;
+      compute(const cv::Mat & points3d, const cv::Mat &r) const=0;
     };
 
     cv::Mat K_;
     cv::Ptr<RgbdNormalsImpl> rgbd_normals_impl_;
+    int window_size_;
     RGBD_NORMALS_METHOD method_;
   };
 
@@ -138,6 +140,10 @@ namespace cv
   CV_EXPORTS
   void
   rescaleDepth(const cv::Mat& in, int depth, cv::Mat& out);
+
+// TODO Depth interpolation
+// ICP (Maria)
+// Curvature
 } /* namespace cv */
 
 #endif /* __cplusplus */
