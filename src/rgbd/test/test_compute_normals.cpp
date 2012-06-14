@@ -36,6 +36,7 @@
 #include <iostream>
 #include <stdexcept>
 
+#include <opencv2/contrib/contrib.hpp>
 #include <opencv2/rgbd/rgbd.hpp>
 
 #include "test_precomp.hpp"
@@ -153,7 +154,10 @@ gen_points_3d(std::vector<Plane>& planes_out, cv::Mat& points3d, cv::Mat& normal
 void
 testit(cv::Mat points3d, cv::Mat in_ground_normals, const cv::RgbdNormals & normals_computer, float thresh)
 {
+  cv::TickMeter tm;
+  tm.start();
   cv::Mat in_normals = normals_computer(points3d);
+  tm.stop();
 
   cv::Mat_<cv::Vec3f> normals, ground_normals;
   in_normals.convertTo(normals, CV_32FC3);
@@ -175,7 +179,7 @@ testit(cv::Mat points3d, cv::Mat in_ground_normals, const cv::RgbdNormals & norm
 
   err /= normals.rows * normals.cols;
   ASSERT_LE(err, thresh) << "mean diff: " << err << " thresh: " << thresh << std::endl;
-  std::cout << "Average error: " << err << std::endl;
+  std::cout << "Average error: " << err << " Speed: " << tm.getTimeMilli() << " ms" << std::endl;
 }
 
 class CV_RgbdNormalsTest: public cvtest::BaseTest

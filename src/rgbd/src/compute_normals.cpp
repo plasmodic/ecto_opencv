@@ -33,13 +33,7 @@
  *
  */
 
-#define RGBD_DEBUG
-#ifdef RGBD_DEBUG
-#include <iostream>
-#endif
 #include <opencv2/calib3d/calib3d.hpp>
-#include <opencv2/contrib/contrib.hpp>
-#include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/rgbd/rgbd.hpp>
 
@@ -227,10 +221,6 @@ namespace
     virtual cv::Mat
     compute(const cv::Mat&, const cv::Mat &r) const
     {
-#ifdef RGBD_DEBUG
-      cv::TickMeter tm1, tm2, tm3;
-      tm1.start();
-#endif
       // Compute B
       cv::Mat_<PointT> B = cv::Mat_<PointT>(rows_, cols_);
 
@@ -252,18 +242,8 @@ namespace
         }
       }
 
-#ifdef RGBD_DEBUG
-      tm1.stop();
-      tm2.start();
-#endif
-
       // Apply a box filter to B
       cv::boxFilter(B, B, B.depth(), cv::Size(window_size_, window_size_), cv::Point(-1, -1), false);
-
-#ifdef RGBD_DEBUG
-      tm2.stop();
-      tm3.start();
-#endif
 
       // compute the Minv*B products
       cv::Mat_<PointT> normals(rows_, cols_);
@@ -286,10 +266,6 @@ namespace
           else
             signNormal((*M_inv) * (*B_vec), *normal);
       }
-#ifdef RGBD_DEBUG
-      tm3.stop();
-      std::cout << "FALS: (" << tm1.getTimeMilli() << " " << tm2.getTimeMilli() << " " << tm3.getTimeMilli() << ") ";
-#endif
 
       return normals;
     }
@@ -401,31 +377,16 @@ namespace
     cv::Mat
     compute(const cv::Mat_<cv::Vec<T, 3> > &, const cv::Mat_<T> &r_non_interp) const
     {
-#ifdef RGBD_DEBUG
-      cv::TickMeter tm1, tm2, tm3;
-      tm1.start();
-#endif
-
       // Interpolate the radial image to make derivatives meaningful
       cv::Mat_<T> r;
       // higher quality remapping does not help here
       cv::remap(r_non_interp, r, map_, cv::Mat(), CV_INTER_LINEAR);
-
-#ifdef RGBD_DEBUG
-      tm1.stop();
-      tm2.start();
-#endif
 
       // Compute the derivatives with respect to theta and phi
       // TODO add bilateral filtering (as done in kinfu)
       cv::Mat_<T> r_theta, r_phi;
       cv::sepFilter2D(r, r_theta, r.depth(), kx_dx_, ky_dx_);
       cv::sepFilter2D(r, r_phi, r.depth(), kx_dy_, ky_dy_);
-
-#ifdef RGBD_DEBUG
-      tm2.stop();
-      tm3.start();
-#endif
 
       // Fill the result matrix
       cv::Mat_<PointT> normals(rows_, cols_);
@@ -461,11 +422,6 @@ namespace
           }
         }
       }
-
-#ifdef RGBD_DEBUG
-      tm3.stop();
-      std::cout << "SRI: (" << tm1.getTimeMilli() << " " << tm2.getTimeMilli() << " " << tm3.getTimeMilli() << ") ";
-#endif
 
       return normals;
     }
@@ -544,10 +500,6 @@ namespace cv
     CV_Assert(in_points3d.depth() == CV_32F || in_points3d.depth() == CV_64F);
 
     // Make the points have the right depth
-#ifdef RGBD_DEBUG
-    cv::TickMeter tm1, tm_all;
-    tm_all.start();
-#endif
     cv::Mat points3d;
     if (in_points3d.depth() == K_.depth())
       points3d = in_points3d;
@@ -555,27 +507,14 @@ namespace cv
       in_points3d.convertTo(points3d, K_.depth());
 
     // Compute the distance to the points
-#ifdef RGBD_DEBUG
-    tm1.start();
-#endif
     cv::Mat r;
     if (K_.depth() == CV_32F)
       r = computeR<float>(points3d);
     else
       r = computeR<double>(points3d);
 
-#ifdef RGBD_DEBUG
-    tm1.stop();
-    std::cout << "Time = " << tm1.getTimeMilli() << " ";
-#endif
-
     // Get the normals
     cv::Mat normals = rgbd_normals_impl_->compute(points3d, r);
-
-#ifdef RGBD_DEBUG
-    tm_all.stop();
-    std::cout << " all: " << tm_all.getTimeMilli() << " msec." << std::endl;
-#endif
 
     return normals;
   }
