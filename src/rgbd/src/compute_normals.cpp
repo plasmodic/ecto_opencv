@@ -342,6 +342,7 @@ namespace
               * ((cv::Mat_<T>(3, 3) << std::cos(phi), 0, -std::sin(phi), 0, 1, 0, std::sin(phi), 0, std::cos(phi)));
           for (unsigned char i = 0; i < 3; ++i)
             mat(i, 1) = mat(i, 1) / std::cos(phi);
+          // The second part of the matrix is never explained in the paper ... but look at the normal article wikipedia
           mat(0, 0) = mat(0, 0) - 2 * std::cos(phi) * std::sin(theta);
           mat(1, 0) = mat(1, 0) - 2 * std::sin(phi);
           mat(2, 0) = mat(2, 0) - 2 * std::cos(phi) * std::cos(theta);
@@ -353,6 +354,11 @@ namespace
       map_.create(rows_, cols_);
       cv::projectPoints(points3d, rvec, tvec, K_, cv::Mat(), map_);
       map_ = map_.reshape(2, rows_);
+
+      // Update the kernels: the steps are dues to the fact that derivatives will be computed on a grid where
+      // the step is not 1
+      kx_dx_ /= theta_step_;
+      ky_dy_ /= phi_step_;
     }
 
     /** Compute the normals
@@ -381,6 +387,7 @@ namespace
 
       // Interpolate the radial image to make derivatives meaningful
       cv::Mat_<T> r;
+      // higher quality remapping does not help here
       cv::remap(r_non_interp, r, map_, cv::Mat(), CV_INTER_LINEAR);
 
 #ifdef RGBD_DEBUG
@@ -424,11 +431,11 @@ namespace
             continue;
           }
 
-          // The step should be part of the derivative but we apply it here
-          T r_theta_over_r = (*r_theta_ptr) / ((*r_ptr) * theta_step_);
-          T r_phi_over_r = (*r_phi_ptr) / ((*r_ptr) * phi_step_);
+          T r_theta_over_r = (*r_theta_ptr) / (*r_ptr);
+          T r_phi_over_r = (*r_phi_ptr) / (*r_ptr);
           (*normal)[0] = (*R)(0, 0) + (*R)(0, 1) * r_theta_over_r + (*R)(0, 2) * r_phi_over_r;
-          (*normal)[1] = (*R)(1, 0) + (*R)(1, 1) * r_theta_over_r + (*R)(1, 2) * r_phi_over_r;
+          // R(1,1) is 0
+          (*normal)[1] = (*R)(1, 0) + (*R)(1, 2) * r_phi_over_r;
           (*normal)[2] = (*R)(2, 0) + (*R)(2, 1) * r_theta_over_r + (*R)(2, 2) * r_phi_over_r;
         }
       }
