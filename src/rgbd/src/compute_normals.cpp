@@ -33,6 +33,7 @@
  *
  */
 
+#define RGBD_DEBUG
 #ifdef RGBD_DEBUG
 #include <iostream>
 #endif
@@ -122,22 +123,35 @@ namespace
    * @param normals
    */
   template<typename T>
+  inline
   void
-  signNormals(cv::Mat & normals)
+  signNormal(const cv::Vec<T, 3> & normal_in, cv::Vec<T, 3> & normal_out)
   {
-    // Check whether we can process the image as a big row.
-    cv::Size size(normals.cols, normals.rows);
-    if (normals.isContinuous())
-      size = cv::Size(size.width * size.height, 1);
-
-    for (int y = 0; y < size.height; ++y)
+    if (normal_in[2] > 0)
+      normal_out = -normal_in / norm_vec(normal_in);
+    else
+      normal_out = normal_in / norm_vec(normal_in);
+  }
+  /** Modify normals to make sure they point towards the camera
+   * @param normals
+   */
+  template<typename T>
+  inline
+  void
+  signNormal(T a, T b, T c, cv::Vec<T, 3> & normal)
+  {
+    T norm = 1 / std::sqrt(a * a + b * b + c * c);
+    if (c > 0)
     {
-      T* row = normals.ptr<T>(y), *row_end = normals.ptr<T>(y) + size.width;
-      for (; row != row_end; ++row)
-        if ((*row)[2] > 0)
-          *row = -(*row) / norm_vec(*row);
-        else
-          *row = (*row) / norm_vec(*row);
+      normal[0] = -a * norm;
+      normal[1] = -b * norm;
+      normal[2] = -c * norm;
+    }
+    else
+    {
+      normal[0] = a * norm;
+      normal[1] = b * norm;
+      normal[2] = c * norm;
     }
   }
 }
@@ -258,15 +272,23 @@ namespace
         size = cv::Size(cols_ * rows_, 1);
       for (int y = 0; y < size.height; ++y)
       {
-        const PointT * B_vec = B[y], *B_vec_end = B_vec + size.width;
+        const T* row_r = r.ptr<T>(y), *row_r_end = row_r + size.width;
+        const PointT * B_vec = B[y];
         const Mat33T * M_inv = reinterpret_cast<const Mat33T *>(M_inv_.ptr(y));
         PointT *normal = normals[y];
-        for (; B_vec != B_vec_end; ++B_vec, ++normal, ++M_inv)
-          *normal = (*M_inv) * (*B_vec);
+        for (; row_r != row_r_end; ++row_r, ++B_vec, ++normal, ++M_inv)
+          if (cvIsNaN(*row_r))
+          {
+            (*normal)[0] = *row_r;
+            (*normal)[1] = *row_r;
+            (*normal)[2] = *row_r;
+          }
+          else
+            signNormal((*M_inv) * (*B_vec), *normal);
       }
 #ifdef RGBD_DEBUG
       tm3.stop();
-      std::cout << "FALS: " << tm1.getTimeMilli() << " " << tm2.getTimeMilli() << " " << tm3.getTimeMilli() << " ";
+      std::cout << "FALS: (" << tm1.getTimeMilli() << " " << tm2.getTimeMilli() << " " << tm3.getTimeMilli() << ") ";
 #endif
 
       return normals;
@@ -318,10 +340,6 @@ namespace
       float min_theta = std::asin(sin_theta(0, 0)), max_theta = std::asin(sin_theta(0, cols_ - 1));
       float min_phi = std::asin(sin_phi(0, 0)), max_phi = std::asin(sin_phi(rows_ - 1, 0));
 
-      cv::Mat rvec;
-      cv::Rodrigues(cv::Mat::eye(3, 3, CV_32F), rvec);
-      cv::Mat tvec = (cv::Mat_<float>(1, 3) << 0, 0, 0);
-
       std::vector<cv::Point3f> points3d(cols_ * rows_);
       R_hat_.create(rows_, cols_);
       phi_step_ = float(max_phi - min_phi) / (rows_ - 1);
@@ -342,7 +360,7 @@ namespace
               * ((cv::Mat_<T>(3, 3) << std::cos(phi), 0, -std::sin(phi), 0, 1, 0, std::sin(phi), 0, std::cos(phi)));
           for (unsigned char i = 0; i < 3; ++i)
             mat(i, 1) = mat(i, 1) / std::cos(phi);
-          // The second part of the matrix is never explained in the paper ... but look at the normal article wikipedia
+          // The second part of the matrix is never explained in the paper ... but look at the wikipedia normal article
           mat(0, 0) = mat(0, 0) - 2 * std::cos(phi) * std::sin(theta);
           mat(1, 0) = mat(1, 0) - 2 * std::sin(phi);
           mat(2, 0) = mat(2, 0) - 2 * std::cos(phi) * std::cos(theta);
@@ -352,11 +370,14 @@ namespace
       }
 
       map_.create(rows_, cols_);
+      cv::Mat rvec;
+      cv::Rodrigues(cv::Mat::eye(3, 3, CV_32F), rvec);
+      cv::Mat tvec = (cv::Mat_<float>(1, 3) << 0, 0, 0);
       cv::projectPoints(points3d, rvec, tvec, K_, cv::Mat(), map_);
       map_ = map_.reshape(2, rows_);
 
       // Update the kernels: the steps are dues to the fact that derivatives will be computed on a grid where
-      // the step is not 1
+      // the step is not 1. Only need to do it on one dimension as it computes derivatives in only one direction
       kx_dx_ /= theta_step_;
       ky_dy_ /= phi_step_;
     }
@@ -428,21 +449,22 @@ namespace
             (*normal)[0] = *r_ptr;
             (*normal)[1] = *r_ptr;
             (*normal)[2] = *r_ptr;
-            continue;
           }
-
-          T r_theta_over_r = (*r_theta_ptr) / (*r_ptr);
-          T r_phi_over_r = (*r_phi_ptr) / (*r_ptr);
-          (*normal)[0] = (*R)(0, 0) + (*R)(0, 1) * r_theta_over_r + (*R)(0, 2) * r_phi_over_r;
-          // R(1,1) is 0
-          (*normal)[1] = (*R)(1, 0) + (*R)(1, 2) * r_phi_over_r;
-          (*normal)[2] = (*R)(2, 0) + (*R)(2, 1) * r_theta_over_r + (*R)(2, 2) * r_phi_over_r;
+          else
+          {
+            T r_theta_over_r = (*r_theta_ptr) / (*r_ptr);
+            T r_phi_over_r = (*r_phi_ptr) / (*r_ptr);
+            // R(1,1) is 0
+            signNormal((*R)(0, 0) + (*R)(0, 1) * r_theta_over_r + (*R)(0, 2) * r_phi_over_r,
+                       (*R)(1, 0) + (*R)(1, 2) * r_phi_over_r,
+                       (*R)(2, 0) + (*R)(2, 1) * r_theta_over_r + (*R)(2, 2) * r_phi_over_r, *normal);
+          }
         }
       }
 
 #ifdef RGBD_DEBUG
       tm3.stop();
-      std::cout << "SRI: " << tm1.getTimeMilli() << " " << tm2.getTimeMilli() << " " << tm3.getTimeMilli() << " ";
+      std::cout << "SRI: (" << tm1.getTimeMilli() << " " << tm2.getTimeMilli() << " " << tm3.getTimeMilli() << ") ";
 #endif
 
       return normals;
@@ -523,7 +545,7 @@ namespace cv
 
     // Make the points have the right depth
 #ifdef RGBD_DEBUG
-    cv::TickMeter tm1, tm2, tm_all;
+    cv::TickMeter tm1, tm_all;
     tm_all.start();
 #endif
     cv::Mat points3d;
@@ -550,19 +572,9 @@ namespace cv
     // Get the normals
     cv::Mat normals = rgbd_normals_impl_->compute(points3d, r);
 
-    // Make sure the normals point towards the camera
 #ifdef RGBD_DEBUG
-    tm2.start();
-#endif
-    if (normals.depth() == CV_32F)
-      signNormals<cv::Vec3f>(normals);
-    else
-      signNormals<cv::Vec3d>(normals);
-
-#ifdef RGBD_DEBUG
-    tm2.stop();
     tm_all.stop();
-    std::cout << tm2.getTimeMilli() << " all: " << tm_all.getTimeMilli() << " msec." << std::endl;
+    std::cout << " all: " << tm_all.getTimeMilli() << " msec." << std::endl;
 #endif
 
     return normals;
