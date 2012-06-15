@@ -141,9 +141,16 @@ namespace cv
   void
   rescaleDepth(const cv::Mat& in, int depth, cv::Mat& out);
 
+  /** Find
+   * @param depth image. If it has 3 channels, it is assumed to be 2d points
+   * @param mask An image where each pixel is labeled with the plane it belongs to
+   */
+  void
+  findPlane(const cv::Mat & depth, cv::Mat &mask, std::vector<cv::Vec4f> & plane_coefficients);
 // TODO Depth interpolation
 // ICP (Maria)
 // Curvature
+// Get rescaleDepth return dubles if asked for
 } /* namespace cv */
 
 #endif /* __cplusplus */

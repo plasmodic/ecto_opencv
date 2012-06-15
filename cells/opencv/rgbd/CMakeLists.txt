@@ -1,5 +1,6 @@
 ectomodule(rgbd module.cpp
                 ComputeNormals.cpp
+                Plane.cpp
 )
 
 add_dependencies(rgbd_ectomodule opencv_rgbd)
