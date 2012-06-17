@@ -67,11 +67,8 @@ namespace rgbd
     static void
     declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
     {
-      inputs.declare(&PlaneFinder::image_, "image", "The current gray frame.").required(true);
       inputs.declare(&PlaneFinder::points3d_, "point3d", "The current depth frame.").required(true);
 
-      outputs.declare(&PlaneFinder::image_clusters_, "image_clusters",
-                      "The depth image with the convex hulls for the planes.");
       outputs.declare(&PlaneFinder::planes_, "planes",
                       "The different found planes (a,b,c,d) of equation ax+by+cz+d=0.");
       outputs.declare(&PlaneFinder::masks_, "masks", "The masks for each plane.");
@@ -85,7 +82,8 @@ namespace rgbd
     int
     process(const tendrils& inputs, const tendrils& outputs)
     {
-      cv::findPlane(*image_, *masks_, *planes_);
+      cv::RgbdPlane rgb_plane;
+      rgb_plane(*points3d_, *masks_, *planes_);
 
       return ecto::OK;
     }
@@ -98,8 +96,6 @@ namespace rgbd
     ecto::spore<size_t> n_samples_;
     ecto::spore<size_t> n_trials_;
 
-    /** Input image */
-    ecto::spore<cv::Mat> image_;
     /** Input 3d points */
     ecto::spore<cv::Mat> points3d_;
 
@@ -107,30 +103,20 @@ namespace rgbd
     ecto::spore<std::vector<cv::Vec4f> > planes_;
     /** Output mask of the planes */
     ecto::spore<cv::Mat> masks_;
-
-    /** An output image that contains dense clusters */
-    ecto::spore<cv::Mat> image_clusters_;
-
-    /** Store the previous resize masks for color consistency */
-    std::vector<cv::Mat> previous_resized_masks_;
-    /** The previously used indices, for "tracking". Map from color plane index to color index */
-    std::map<int, int> previous_color_index_;
   };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  struct PlaneVisualizer
+  struct PlaneDrawer
   {
     static void
     declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
     {
-      inputs.declare(&PlaneVisualizer::image_, "image", "The current gray frame.").required(true);
-      inputs.declare(&PlaneVisualizer::planes_, "planes",
-                     "The different found planes (a,b,c,d) of equation ax+by+cz+d=0.");
-      inputs.declare(&PlaneVisualizer::masks_, "masks", "The masks for each plane.");
+      inputs.declare(&PlaneDrawer::image_, "image", "The current gray frame.").required(true);
+      inputs.declare(&PlaneDrawer::planes_, "planes", "The different found planes (a,b,c,d) of equation ax+by+cz+d=0.");
+      inputs.declare(&PlaneDrawer::masks_, "masks", "The masks for each plane.");
 
-      outputs.declare(&PlaneVisualizer::image_clusters_, "image_clusters",
-                      "The depth image with the convex hulls for the planes.");
+      outputs.declare(&PlaneDrawer::image_clusters_, "image", "The depth image with the convex hulls for the planes.");
     }
 
     void
@@ -153,70 +139,89 @@ namespace rgbd
     process(const tendrils& inputs, const tendrils& outputs)
     {
       //// Perform some display
-      /*
-       // Compare each mask to the previous ones
-       cv::Mat_<int> overlap(masks_->size(), previous_resized_masks_.size());
+      // Compare each mask to the previous ones
+      std::map<int, int> color_index;
+      if (previous_planes_.empty())
+      {
+        for (size_t i = 0; i < planes_->size(); ++i)
+          color_index[i] = i;
+      }
+      else if (!planes_->empty())
+      {
+        cv::Mat_<int> overlap = cv::Mat_<int>::zeros(planes_->size(), previous_planes_.size());
 
-       for (size_t i = 0; i < masks.size(); ++i)
-       for (size_t j = 0; j < previous_resized_masks_.size(); ++j)
-       {
-       cv::Mat and_res;
-       cv::bitwise_and((*masks)[i].mask_mini(), previous_resized_masks_[j], and_res);
-       overlap(i, j) = cv::countNonZero(and_res);
-       }
+        for (int y = 0; y < masks_->rows; ++y)
+        {
+          unsigned char *mask = masks_->ptr(y), *previous_mask = previous_masks_.ptr(y);
+          for (int x = 0; x < masks_->cols; ++x)
+          {
+            if ((*mask) && (*previous_mask))
+              ++overlap(*mask, *previous_mask);
+          }
+        }
 
-       // Maps a new index to the corresponding old index
-       std::map<int, int> color_index;
-       std::set<int> previously_used_colors;
+        // Maps a new index to the corresponding old index
+        std::set<int> previously_used_colors;
 
-       while (true)
-       {
-       // Find the best overlap
-       int max_overlap = 0, max_i, max_j;
+        while (true)
+        {
+          // Find the best overlap
+          int max_overlap = 0, max_i, max_j;
 
-       for (size_t i = 0; i < masks.size(); ++i)
-       for (size_t j = 0; j < previous_resized_masks_.size(); ++j)
-       {
-       if (overlap(i, j) > max_overlap)
-       {
-       max_overlap = overlap(i, j);
-       max_i = i;
-       max_j = j;
-       }
-       }
+          for (int i = 0; i < overlap.rows; ++i)
+            for (int j = 0; j < overlap.cols; ++j)
+            {
+              if (overlap(i, j) > max_overlap)
+              {
+                max_overlap = overlap(i, j);
+                max_i = i;
+                max_j = j;
+              }
+            }
 
-       if (max_overlap == 0)
-       break;
+          if (max_overlap == 0)
+            break;
 
-       color_index[max_i] = previous_color_index_[max_j];
-       previously_used_colors.insert(color_index[max_i]);
+          color_index[max_i] = previous_color_index_[max_j];
+          previously_used_colors.insert(color_index[max_i]);
 
-       // Reset some overlap values
-       for (size_t i = 0; i < overlap.rows; ++i)
-       overlap(i, max_j) = 0;
+          // Reset some overlap values
+          for (int i = 0; i < overlap.rows; ++i)
+            overlap(i, max_j) = 0;
 
-       for (size_t j = 0; j < overlap.cols; ++j)
-       overlap(max_i, j) = 0;
-       }
+          for (int j = 0; j < overlap.cols; ++j)
+            overlap(max_i, j) = 0;
+        }
 
-       // Give a color to the blocks that were not assigned
-       for (size_t i = 0; i < masks.size(); ++i)
-       {
-       if (previous_color_index_.find(i) != previous_color_index_.end())
-       continue;
+        // Give a color to the blocks that were not assigned
+        for (int i = 0; i < overlap.rows; ++i)
+        {
+          if (previous_color_index_.find(i) != previous_color_index_.end())
+            continue;
 
-       // Look for a color that was not given
-       size_t j = 0;
+          // Look for a color that was not given
+          size_t j = 0;
 
-       while (previously_used_colors.find(j) != previously_used_colors.end())
-       ++j;
+          while (previously_used_colors.find(j) != previously_used_colors.end())
+            ++j;
 
-       color_index[i] = j;
-       previously_used_colors.insert(j);
-       }
+          color_index[i] = j;
+          previously_used_colors.insert(j);
+        }
 
-       previous_color_index_ = color_index;
-       */
+        previous_color_index_ = color_index;
+        previous_planes_ = *planes_;
+      }
+
+      // Draw the clusters
+      image_->copyTo(*image_clusters_);
+      for (size_t i = 0; i < planes_->size(); ++i)
+      {
+        cv::Mat mask;
+        cv::compare(*masks_, cv::Scalar(i), mask, cv::CMP_EQ);
+        image_clusters_->setTo(colors_[color_index[i]], mask);
+      }
+
       return ecto::OK;
     }
   private:
@@ -225,6 +230,8 @@ namespace rgbd
 
     /** Output planes */
     ecto::spore<std::vector<cv::Vec4f> > planes_;
+    /** Previous output planes */
+    std::vector<cv::Vec4f> previous_planes_;
     /** Output mask of the planes */
     ecto::spore<cv::Mat> masks_;
 
@@ -232,7 +239,7 @@ namespace rgbd
     ecto::spore<cv::Mat> image_clusters_;
 
     /** Store the previous resize masks for color consistency */
-    std::vector<cv::Mat> previous_resized_masks_;
+    cv::Mat previous_masks_;
     /** The previously used indices, for "tracking". Map from color plane index to color index */
     std::map<int, int> previous_color_index_;
 
@@ -241,4 +248,5 @@ namespace rgbd
   };
 }
 
-ECTO_CELL(rgbd, rgbd::PlaneFinder, "PlaneFinder", "Finds a plane very quickly.")
+ECTO_CELL(rgbd, rgbd::PlaneFinder, "PlaneFinder", "Finds several planes in a depth image.")
+ECTO_CELL(rgbd, rgbd::PlaneDrawer, "PlaneDrawer", "Draws planes.")

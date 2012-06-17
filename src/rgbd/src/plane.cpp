@@ -44,10 +44,11 @@
 
 #include <boost/foreach.hpp>
 
+#include <opencv2/contrib/contrib.hpp>
 #include <opencv2/core/core.hpp>
 #include <opencv2/core/types_c.h>
 #include <opencv2/calib3d/calib3d.hpp>
-#include <opencv2/contrib/contrib.hpp>
+#include <opencv2/rgbd/rgbd.hpp>
 
 /** Structure defining a plane */
 struct Plane
@@ -622,179 +623,176 @@ RefinePlane(const cv::Mat& points3d, const PlaneMask& mask, int n_inliers, Plane
 
 namespace cv
 {
-  struct PlaneFinder
+  /** Find
+   * @param depth image. If it has 3 channels, it is assumed to be 2d points
+   * @param mask An image where each pixel is labeled with the plane it belongs to
+   */
+  void
+  RgbdPlane::operator()(const cv::Mat & points3d_in, cv::Mat &mask_out, std::vector<cv::Vec4f> & plane_coefficients)
   {
+    // Size of a block to check if it belongs to a plane (in pixels)
+    size_t block_size_ = 40;
+    // Number of inliers to consider to define a plane.
+    size_t n_inliers_ = 50;
+    // Number of samples to draw to check if we have a plane.
+    size_t n_samples_ = 300;
+    // Number of trials to make to find a plane.
+    size_t n_trials_ = 100;
+    // Error (in meters) for how far a point is on a plane.
+    double error_ = 0.02;
 
-    /** Find
-     * @param depth image. If it has 3 channels, it is assumed to be 2d points
-     * @param mask An image where each pixel is labeled with the plane it belongs to
-     */
-    void
-    findPlane(const cv::Mat & depth, cv::Mat &mask, std::vector<cv::Vec4f> & plane_coefficients)
+    cv::Mat_<cv::Vec3f> points3d_;
+    points3d_in.convertTo(points3d_, CV_32F);
+    /** Output planes */
+    std::vector<cv::Vec4f> planes_;
+    /** Output mask of the planes */
+    std::vector<cv::Mat> masks_;
+    /** Output bouding rectangles of the masks of the planes */
+    std::vector<cv::Rect> rects_;
+
+    /** An output image that contains dense clusters */
+    cv::Mat image_clusters_;
+
+    cv::TickMeter tm;
+    tm.start();
+    //CALLGRIND_START_INSTRUMENTATION;
+
+    // Pre-computations
+    cv::Mat_<uchar> overall_mask = cv::Mat_<uchar>::zeros(points3d_.rows, points3d_.cols);
+    std::vector<PlaneMask> masks;
+
+    // Line 3-4
+    size_t index_plane = 1;
+
+    std::vector<cv::Point2i> d(3);
+    std::vector<cv::Point3f> p(3);
+    std::vector<cv::Vec4f> P_hat;
+    std::vector<Plane> planes;
+
+    plane_coefficients.clear();
+    mask_out.create(points3d_in.rows, points3d_in.cols, CV_8U);
+    for (size_t i_trial = 0; i_trial < n_trials_; ++i_trial)
     {
-      // Size of a block to check if it belongs to a plane (in pixels)
-      size_t block_size_ = 40;
-      // Number of inliers to consider to define a plane.
-      size_t n_inliers_ = 50;
-      // Number of samples to draw to check if we have a plane.
-      size_t n_samples_ = 300;
-      // Number of trials to make to find a plane.
-      size_t n_trials_ = 100;
-      // Error (in meters) for how far a point is on a plane.
-      double error_ = 0.02;
+      // Line 5-8
+      Sampler sampler(points3d_, overall_mask);
 
-      /** Input image */
-      cv::Mat image_;
-      /** Input 3d points */
-      cv::Mat points3d_;
+      if (!sampler.Find(d))
+        break;
 
-      /** Output planes */
-      std::vector<cv::Vec4f> planes_;
-      /** Output mask of the planes */
-      std::vector<cv::Mat> masks_;
-      /** Output bouding rectangles of the masks of the planes */
-      std::vector<cv::Rect> rects_;
+      // Line 9
+      P_hat.clear();
 
-      /** An output image that contains dense clusters */
-      cv::Mat image_clusters_;
-
-      cv::TickMeter tm;
-      tm.start();
-      //CALLGRIND_START_INSTRUMENTATION;
-
-      // Pre-computations
-      cv::Mat_<uchar> overall_mask = cv::Mat_<uchar>::zeros(points3d_.rows, points3d_.cols);
-      std::vector<PlaneMask> masks;
-
-      // Line 3-4
-      size_t index_plane = 1;
-
-      std::vector<cv::Point2i> d(3);
-      std::vector<cv::Point3f> p(3);
-      std::vector<cv::Vec4f> P_hat;
-      std::vector<Plane> planes;
-
-      for (size_t i_trial = 0; i_trial < n_trials_; ++i_trial)
+      for (unsigned char i = 0; i < 3; ++i)
       {
-        // Line 5-8
-        Sampler sampler(points3d_, overall_mask);
+        cv::Vec4f p;
+        const cv::Point3f& p3 = points3d_.at<cv::Point3f>(d[i].y, d[i].x);
+        p[0] = p3.x;
+        p[1] = p3.y;
+        p[2] = p3.z;
+        p[3] = 1;
+        P_hat.push_back(p);
+      }
 
-        if (!sampler.Find(d))
-          break;
+      // Construct the plane for those 3 points
+      Plane plane(P_hat, index_plane);
 
-        // Line 9
-        P_hat.clear();
+      // Define the boundaries for sampling
+      size_t numInliers = 0;
 
-        for (unsigned char i = 0; i < 3; ++i)
-        {
-          cv::Vec4f p;
-          const cv::Point3f& p3 = points3d_.at<cv::Point3f>(d[i].y, d[i].x);
-          p[0] = p3.x;
-          p[1] = p3.y;
-          p[2] = p3.z;
-          p[3] = 1;
-          P_hat.push_back(p);
-        }
+      int x_min = std::min(std::min(d[0].x, d[1].x), d[2].x);
+      int x_max = std::max(std::max(d[0].x, d[1].x), d[2].x);
+      int y_min = std::min(std::min(d[0].y, d[1].y), d[2].y);
+      int y_max = std::max(std::max(d[0].y, d[1].y), d[2].y);
+      // nu could be yet another parameter
+      int nu = block_size_;
+      x_min = std::max(0, x_min - nu);
+      x_max = std::min(overall_mask.cols, x_max + nu + 1);
+      y_min = std::max(0, y_min - nu);
+      y_max = std::min(overall_mask.rows, y_max + nu + 1);
 
-        // Construct the plane for those 3 points
-        Plane plane(P_hat, index_plane);
+      for (size_t i_sample = 3; i_sample < n_samples_; ++i_sample)
+      {
+        // Create a sample
+        cv::Point2i d_j;
+        static cv::RNG rng;
+        d_j.y = rng.uniform(y_min, y_max);
+        d_j.x = rng.uniform(x_min, x_max);
 
-        // Define the boundaries for sampling
-        size_t numInliers = 0;
-
-        int x_min = std::min(std::min(d[0].x, d[1].x), d[2].x);
-        int x_max = std::max(std::max(d[0].x, d[1].x), d[2].x);
-        int y_min = std::min(std::min(d[0].y, d[1].y), d[2].y);
-        int y_max = std::max(std::max(d[0].y, d[1].y), d[2].y);
-        // nu could be yet another parameter
-        int nu = block_size_;
-        x_min = std::max(0, x_min - nu);
-        x_max = std::min(overall_mask.cols, x_max + nu + 1);
-        y_min = std::max(0, y_min - nu);
-        y_max = std::min(overall_mask.rows, y_max + nu + 1);
-
-        for (size_t i_sample = 3; i_sample < n_samples_; ++i_sample)
-        {
-          // Create a sample
-          cv::Point2i d_j;
-          static cv::RNG rng;
-          d_j.y = rng.uniform(y_min, y_max);
-          d_j.x = rng.uniform(x_min, x_max);
-
-          // Make sure it was not used before and that its point is valid
-          if (overall_mask(d_j.y, d_j.x))
-            continue;
-
-          cv::Point3f p_j = points3d_.at<cv::Point3f>(d_j.y, d_j.x);
-
-          if (cvIsNaN(p_j.x))
-            continue;
-
-          if (d_j.x - nu < x_min)
-            x_min = std::max(0, d_j.x - nu);
-          else if (d_j.x + nu > x_max)
-            x_max = std::min(overall_mask.cols, d_j.x + nu);
-
-          if (d_j.y - nu < y_min)
-            y_min = std::max(0, d_j.y - nu);
-          else if (d_j.y + nu > y_max)
-            y_max = std::min(overall_mask.rows, d_j.y + nu);
-
-          // If the point is on the plane
-          if (plane.distance(p_j) < error_)
-          {
-            cv::Vec4f p_j4;
-            p_j4[0] = p_j.x;
-            p_j4[1] = p_j.y;
-            p_j4[2] = p_j.z;
-            p_j4[3] = 1;
-            P_hat.push_back(p_j4);
-            ++numInliers;
-          }
-        }
-
-        if (!(numInliers > n_inliers_))
+        // Make sure it was not used before and that its point is valid
+        if (overall_mask(d_j.y, d_j.x))
           continue;
 
-        // Refine the plane a bit
+        cv::Point3f p_j = points3d_.at<cv::Point3f>(d_j.y, d_j.x);
+
+        if (cvIsNaN(p_j.x))
+          continue;
+
+        if (d_j.x - nu < x_min)
+          x_min = std::max(0, d_j.x - nu);
+        else if (d_j.x + nu > x_max)
+          x_max = std::min(overall_mask.cols, d_j.x + nu);
+
+        if (d_j.y - nu < y_min)
+          y_min = std::max(0, d_j.y - nu);
+        else if (d_j.y + nu > y_max)
+          y_max = std::min(overall_mask.rows, d_j.y + nu);
+
+        // If the point is on the plane
+        if (plane.distance(p_j) < error_)
         {
-          cv::Mat samples = cv::Mat(P_hat);
-          samples = samples.reshape(1, P_hat.size());
-          RefinePlane(samples, plane);
+          cv::Vec4f p_j4;
+          p_j4[0] = p_j.x;
+          p_j4[1] = p_j.y;
+          p_j4[2] = p_j.z;
+          p_j4[3] = 1;
+          P_hat.push_back(p_j4);
+          ++numInliers;
         }
+      }
 
-        // Define the mask structure used during refinement
-        PlaneMask mask(points3d_.rows, points3d_.cols, block_size_);
-        masks.push_back(mask);
+      if (!(numInliers > n_inliers_))
+        continue;
 
-        int n_inliers = 0;
-        // std::cout << "*************** " << i << std::endl;
+      // Refine the plane a bit
+      {
+        cv::Mat samples = cv::Mat(P_hat);
+        samples = samples.reshape(1, P_hat.size());
+        RefinePlane(samples, plane);
+      }
+
+      // Define the mask structure used during refinement
+      PlaneMask mask(points3d_.rows, points3d_.cols, block_size_);
+      masks.push_back(mask);
+
+      int n_inliers = 0;
+      // std::cout << "*************** " << i << std::endl;
+      // std::cout << plane << std::endl;
+      // Two passes of refinement are usually enough (we could have an error based criterion)
+      InlierFinder inlier_finder(error_, plane, points3d_, overall_mask, mask);
+
+      for (unsigned char i = 0; i < 2; ++i)
+      {
+        if (i == 0)
+          // Process blocks starting at d[0]
+          inlier_finder.Find(d[0], n_inliers);
+        else
+          inlier_finder.Find(n_inliers);
+
+        // std::cout << "n inliers " << n_inliers << std::endl;
+
+        RefinePlane(points3d_, mask, n_inliers, plane);
         // std::cout << plane << std::endl;
-        // Two passes of refinement are usually enough (we could have an error based criterion)
-        InlierFinder inlier_finder(error_, plane, points3d_, overall_mask, mask);
+      }
+      mask_out.setTo(index_plane, mask.mask());
 
-        for (unsigned char i = 0; i < 2; ++i)
-        {
-          if (i == 0)
-            // Process blocks starting at d[0]
-            inlier_finder.Find(d[0], n_inliers);
-          else
-            inlier_finder.Find(n_inliers);
+      ++index_plane;
+      planes.push_back(plane);
+      plane_coefficients.push_back(plane.abcd_);
+    };
 
-          // std::cout << "n inliers " << n_inliers << std::endl;
+    //CALLGRIND_STOP_INSTRUMENTATION;
+    tm.stop();
 
-          RefinePlane(points3d_, mask, n_inliers, plane);
-          // std::cout << plane << std::endl;
-        }
-
-        ++index_plane;
-        planes.push_back(plane);
-      };
-
-      //CALLGRIND_STOP_INSTRUMENTATION;
-      tm.stop();
-
-      std::cout << "Time = " << tm.getTimeMilli() << " msec." << std::endl;
-    }
-  };
+    std::cout << "Time = " << tm.getTimeMilli() << " msec." << std::endl;
+  }
 }

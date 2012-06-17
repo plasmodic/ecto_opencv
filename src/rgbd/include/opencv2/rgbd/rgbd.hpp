@@ -141,12 +141,25 @@ namespace cv
   void
   rescaleDepth(const cv::Mat& in, int depth, cv::Mat& out);
 
-  /** Find
-   * @param depth image. If it has 3 channels, it is assumed to be 2d points
-   * @param mask An image where each pixel is labeled with the plane it belongs to
+  /** Object that can compute the normals in an image.
+   * It is an object as it can cache data for speed efficiency
    */
-  void
-  findPlane(const cv::Mat & depth, cv::Mat &mask, std::vector<cv::Vec4f> & plane_coefficients);
+  CV_EXPORTS
+  class RgbdPlane // : public cv::Algorithm
+  {
+  public:
+    enum RGBD_PLANE_METHOD
+    {
+      RGBD_PLANE_METHOD_NORMAL
+    };
+
+    /** Find
+     * @param depth image. If it has 3 channels, it is assumed to be 2d points
+     * @param mask An image where each pixel is labeled with the plane it belongs to
+     */
+    void
+    operator()(const cv::Mat & depth, cv::Mat &mask, std::vector<cv::Vec4f> & plane_coefficients);
+  };
 // TODO Depth interpolation
 // ICP (Maria)
 // Curvature
