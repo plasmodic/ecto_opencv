@@ -152,17 +152,14 @@ namespace rgbd
 
         for (int y = 0; y < masks_->rows; ++y)
         {
-          unsigned char *mask = masks_->ptr(y), *previous_mask = previous_masks_.ptr(y);
-          for (int x = 0; x < masks_->cols; ++x)
-          {
+          const unsigned char *mask = masks_->ptr(y), *mask_end = masks_->ptr(y) + masks_->cols;
+          const unsigned char *previous_mask = previous_masks_.ptr(y);
+          for (; mask != mask_end; ++mask, ++previous_mask)
             if ((*mask) && (*previous_mask))
               ++overlap(*mask, *previous_mask);
-          }
         }
 
         // Maps a new index to the corresponding old index
-        std::set<int> previously_used_colors;
-
         while (true)
         {
           // Find the best overlap
@@ -183,7 +180,6 @@ namespace rgbd
             break;
 
           color_index[max_i] = previous_color_index_[max_j];
-          previously_used_colors.insert(color_index[max_i]);
 
           // Reset some overlap values
           for (int i = 0; i < overlap.rows; ++i)
@@ -193,15 +189,16 @@ namespace rgbd
             overlap(max_i, j) = 0;
         }
 
+        // Add all the previously used colors
+        std::set<int> previously_used_colors;
+        for (size_t i = 0; i < previous_color_index_.size(); ++i)
+          previously_used_colors.insert(previous_color_index_[i]);
+
         // Give a color to the blocks that were not assigned
         for (int i = 0; i < overlap.rows; ++i)
         {
-          if (previous_color_index_.find(i) != previous_color_index_.end())
-            continue;
-
           // Look for a color that was not given
           size_t j = 0;
-
           while (previously_used_colors.find(j) != previously_used_colors.end())
             ++j;
 
