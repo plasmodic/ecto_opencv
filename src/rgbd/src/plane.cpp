@@ -623,12 +623,26 @@ RefinePlane(const cv::Mat& points3d, const PlaneMask& mask, int n_inliers, Plane
 
 namespace cv
 {
+  RgbdPlane::RgbdPlane(int rows, int cols, int depth, const cv::Mat & K, int window_size, RGBD_PLANE_METHOD method)
+  {
+    rgbd_normals_ = RgbdNormals(rows, cols, depth, K, window_size, RgbdNormals::RGBD_NORMALS_METHOD_FALS);
+  }
+
   /** Find
    * @param depth image. If it has 3 channels, it is assumed to be 2d points
    * @param mask An image where each pixel is labeled with the plane it belongs to
    */
   void
   RgbdPlane::operator()(const cv::Mat & points3d_in, cv::Mat &mask_out, std::vector<cv::Vec4f> & plane_coefficients)
+  {
+    CV_Assert(!rgbd_normals_.empty());
+    cv::Mat normals = rgbd_normals_(points3d_in);
+    this->operator()(points3d_in, normals, mask_out, plane_coefficients);
+  }
+
+  void
+  RgbdPlane::operator()(const cv::Mat & points3d_in, const cv::Mat & normals, cv::Mat &mask_out,
+                        std::vector<cv::Vec4f> & plane_coefficients)
   {
     // Size of a block to check if it belongs to a plane (in pixels)
     size_t block_size_ = 40;

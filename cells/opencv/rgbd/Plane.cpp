@@ -62,12 +62,14 @@ namespace rgbd
                      300);
       params.declare(&PlaneFinder::n_trials_, "n_trials", "Number of trials to make to find a plane.", 100);
       params.declare(&PlaneFinder::error_, "error", "Error (in meters) for how far a point is on a plane.", 0.02);
+      params.declare(&PlaneFinder::window_size_, "window_size", "The window size for smoothing.", 5);
     }
 
     static void
     declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
     {
       inputs.declare(&PlaneFinder::points3d_, "point3d", "The current depth frame.").required(true);
+      inputs.declare(&PlaneFinder::K_, "K", "The calibration matrix").required(true);
 
       outputs.declare(&PlaneFinder::planes_, "planes",
                       "The different found planes (a,b,c,d) of equation ax+by+cz+d=0.");
@@ -82,13 +84,16 @@ namespace rgbd
     int
     process(const tendrils& inputs, const tendrils& outputs)
     {
-      cv::RgbdPlane rgb_plane;
-      rgb_plane(*points3d_, *masks_, *planes_);
+      if (plane_computer_.empty())
+        plane_computer_ = new cv::RgbdPlane(points3d_->rows, points3d_->cols, points3d_->depth(), *K_, *window_size_);
+      (*plane_computer_)(*points3d_, *masks_, *planes_);
 
       return ecto::OK;
     }
 
   private:
+    cv::Ptr<cv::RgbdPlane> plane_computer_;
+
     /** If true, display some result */
     ecto::spore<float> error_;
     ecto::spore<size_t> block_size_;
@@ -103,6 +108,10 @@ namespace rgbd
     ecto::spore<std::vector<cv::Vec4f> > planes_;
     /** Output mask of the planes */
     ecto::spore<cv::Mat> masks_;
+
+    ecto::spore<cv::Mat> K_;
+
+    ecto::spore<int> window_size_;
   };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

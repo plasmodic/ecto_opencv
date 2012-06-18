@@ -498,6 +498,7 @@ namespace cv
   {
     CV_Assert(in_points3d.channels() == 3 && in_points3d.dims == 2);
     CV_Assert(in_points3d.depth() == CV_32F || in_points3d.depth() == CV_64F);
+    CV_Assert(!rgbd_normals_impl_.empty());
 
     // Make the points have the right depth
     cv::Mat points3d;

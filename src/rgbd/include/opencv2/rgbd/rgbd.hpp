@@ -71,10 +71,20 @@ namespace cv
       RGBD_NORMALS_METHOD_SRI, RGBD_NORMALS_METHOD_FALS
     };
 
+    RgbdNormals()
+    {
+    }
+
     /** Constructor
      */
     RgbdNormals(int rows, int cols, int depth, const cv::Mat & K, int window_size, RGBD_NORMALS_METHOD method =
         RGBD_NORMALS_METHOD_SRI);
+
+    bool
+    empty() const
+    {
+      return rgbd_normals_impl_.empty();
+    }
 
     /** Given a set of 3d points in a depth image, compute the normals at each point.
      * @param points a rows x cols x 3 matrix
@@ -150,8 +160,13 @@ namespace cv
   public:
     enum RGBD_PLANE_METHOD
     {
-      RGBD_PLANE_METHOD_NORMAL
+      RGBD_PLANE_METHOD_DEFAULT
     };
+
+    RgbdPlane();
+
+    RgbdPlane(int rows, int cols, int depth, const cv::Mat & K, int window_size, RGBD_PLANE_METHOD method =
+        RGBD_PLANE_METHOD_DEFAULT);
 
     /** Find
      * @param depth image. If it has 3 channels, it is assumed to be 2d points
@@ -159,6 +174,12 @@ namespace cv
      */
     void
     operator()(const cv::Mat & depth, cv::Mat &mask, std::vector<cv::Vec4f> & plane_coefficients);
+
+    void
+    operator()(const cv::Mat & depth, const cv::Mat & normals, cv::Mat &mask,
+               std::vector<cv::Vec4f> & plane_coefficients);
+  private:
+    RgbdNormals rgbd_normals_;
   };
 // TODO Depth interpolation
 // ICP (Maria)

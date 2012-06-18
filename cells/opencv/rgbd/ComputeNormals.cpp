@@ -64,7 +64,8 @@ namespace rgbd
     process(const tendrils& inputs, const tendrils& outputs)
     {
       if (normals_computer_.empty())
-        normals_computer_ = new cv::RgbdNormals(points3d_->rows, points3d_->cols, points3d_->depth(), *K_, *window_size_, *method_);
+        normals_computer_ = new cv::RgbdNormals(points3d_->rows, points3d_->cols, points3d_->depth(), *K_,
+                                                *window_size_, *method_);
       *normals_ = (*normals_computer_)(*points3d_);
 
       return ecto::OK;
