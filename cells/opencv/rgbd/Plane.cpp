@@ -163,7 +163,7 @@ namespace rgbd
         while (true)
         {
           // Find the best overlap
-          int max_overlap = 0, max_i, max_j;
+          int max_overlap = 0, max_i = -1, max_j = -1;
 
           for (int i = 0; i < overlap.rows; ++i)
             for (int j = 0; j < overlap.cols; ++j)
