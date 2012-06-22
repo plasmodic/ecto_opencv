@@ -181,8 +181,28 @@ namespace cv
   private:
     RgbdNormals rgbd_normals_;
   };
-// TODO Depth interpolation
+
 // ICP (Maria)
+   // TODO 1) refactor the interface (make it as a class?), 
+   //      2) add comments
+   //      3) put image and depth filtering into the function (?),
+   //      4) do not check and process rgb or depth if they are not needed 
+   //         (eg. rgb processing in case of ICP_ODOMETRY or some normals in case of RGBD_ODOMETRY)
+   enum{ RGBD_ODOMETRY   = 1,
+         ICP_ODOMETRY    = 2,
+         MERGED_ODOMETRY = RGBD_ODOMETRY + ICP_ODOMETRY };
+         
+   CV_EXPORTS bool RGBDICPOdometry(cv::Mat& Rt, const cv::Mat& initRt,
+     const cv::Mat& image0, const cv::Mat& _depth0, const cv::Mat& validMask0,
+     const cv::Mat& image1, const cv::Mat& _depth1, const cv::Mat& validMask1,
+     const cv::Mat& cameraMatrix,
+     std::vector<cv::Ptr<cv::RgbdNormals> >& normalComputers,
+     float minDepth=0.f, float maxDepth=4.f, float maxDepthDiff=0.07f,
+     const std::vector<int>& iterCounts=std::vector<int>(), 
+     const std::vector<float>& minGradientMagnitudes=std::vector<float>(), 
+     float icpPointsPart=0.07f, int methodType=RGBD_ODOMETRY);
+         
+// TODO Depth interpolation
 // Curvature
 // Get rescaleDepth return dubles if asked for
 } /* namespace cv */
