@@ -143,19 +143,22 @@ namespace
     cv::Size depth_size = in_depth.size();
 
     //grab camera params
-    float fx = K(0, 0);
-    float fy = K(1, 1);
-    float s = K(0, 1);
-    float cx = K(0, 2);
-    float cy = K(1, 2);
+    T fx = K(0, 0);
+    T fy = K(1, 1);
+    T s = K(0, 1);
+    T cx = K(0, 2);
+    T cy = K(1, 2);
 
     // Build z
-    cv::Mat_<T> u_mat = cv::Mat_<T>(depth_size), v_mat = cv::Mat_<T>(depth_size), z_mat = cv::Mat_<T>(depth_size);
-    rescaleDepthTemplated<T>(in_depth, z_mat);
+    cv::Mat_<T> u_mat(depth_size), v_mat(depth_size), z_mat(depth_size);
+    if (z_mat.depth() == in_depth.depth())
+      z_mat = in_depth;
+    else
+      rescaleDepthTemplated<T>(in_depth, z_mat);
 
     // Build the set of v's
-    cv::Mat_<T> us = cv::Mat_<T>(1, depth_size.width), vs = cv::Mat_<T>(depth_size.height, 1);
-    T* u_data = reinterpret_cast<T*>(us.data), *v_data = reinterpret_cast<T*>(vs.data);
+    cv::Mat_<T> us(1, depth_size.width), vs(depth_size.height, 1);
+    T* u_data = us[0], *v_data = vs[0];
 
     for (int u = 0; u < depth_size.width; ++u, ++u_data)
       *u_data = u;
@@ -175,6 +178,7 @@ namespace
     }
 
     // Compute all the coordinates
+    // (faster to do it this way than per pixel)
     cv::Mat_<T> coordinates[3] =
     { u_mat.mul(z_mat), v_mat.mul(z_mat), z_mat };
     cv::Mat tmp_points;
