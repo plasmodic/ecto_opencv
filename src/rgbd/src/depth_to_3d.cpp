@@ -243,25 +243,24 @@ namespace cv
     CV_Assert(K.cols == 3 && K.rows == 3 && (K.depth() == CV_64F || K.depth()==CV_32F));
     CV_Assert(
         depth.type() == CV_64FC1 || depth.type() == CV_32FC1 || depth.type() == CV_16UC1 || depth.type() == CV_16SC1);
-    CV_Assert(K.cols == 3 && K.rows == 3);
-    CV_Assert(mask.channels() == 1);
+    CV_Assert(mask.empty() || mask.channels() == 1);
 
     // TODO figure out what to do when types are different: convert or reject ?
-    if ((depth.depth() == CV_32F || depth.depth() == CV_64F) && depth.depth() != K.depth())
-    {
-      if (K.depth() == CV_32F)
-        K.convertTo(K, CV_32F);
-    }
+    cv::Mat K_new;
+    if ((depth.depth() == CV_32F || depth.depth() == CV_64F) && depth.depth() != K.depth()) {
+      K.convertTo(K_new, depth.depth());
+    } else
+      K_new = K;
 
     // Create 3D points in one go.
     if (!mask.empty())
       depthTo3dMask(depth, K, mask, points3d);
     else
     {
-      if (K.depth() == CV_64F)
-        depthTo3dNoMask<double>(depth, K, points3d);
+      if (K_new.depth() == CV_64F)
+        depthTo3dNoMask<double>(depth, K_new, points3d);
       else
-        depthTo3dNoMask<float>(depth, K, points3d);
+        depthTo3dNoMask<float>(depth, K_new, points3d);
     }
 
   }
