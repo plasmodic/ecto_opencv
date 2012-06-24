@@ -78,7 +78,8 @@ namespace cv
           depth_(0),
           K_(cv::Mat()),
           window_size_(0),
-          method_(RGBD_NORMALS_METHOD_FALS)
+          method_(RGBD_NORMALS_METHOD_FALS),
+          rgbd_normals_impl_(0)
     {
     }
 
@@ -93,7 +94,7 @@ namespace cv
     bool
     empty() const
     {
-      return rgbd_normals_impl_.empty();
+      return (rgbd_normals_impl_ == 0);
     }
 
     /** Given a set of 3d points in a depth image, compute the normals at each point.
@@ -105,41 +106,6 @@ namespace cv
     operator()(const cv::Mat &points) const;
 
   protected:
-    class RgbdNormalsImpl
-    {
-    public:
-      RgbdNormalsImpl(int rows, int cols, int window_size, int depth, const cv::Mat &K, RGBD_NORMALS_METHOD method)
-          :
-            rows_(rows),
-            cols_(cols),
-            depth_(depth),
-            window_size_(window_size),
-            method_(method)
-      {
-        K.convertTo(K_, depth);
-        K.copyTo(K_ori_);
-      }
-
-      virtual
-      ~RgbdNormalsImpl()
-      {
-      }
-
-      virtual void
-      cache()=0;
-
-      virtual cv::Mat
-      compute(const cv::Mat & points3d, const cv::Mat &r) const=0;
-
-      bool
-      validate(int rows, int cols, int depth, const cv::Mat &K_ori, int window_size, RGBD_NORMALS_METHOD method) const;
-    protected:
-      int rows_, cols_, depth_;
-      cv::Mat K_, K_ori_;
-      int window_size_;
-      RGBD_NORMALS_METHOD method_;
-    };
-
     void
     initialize_normals_impl(int rows, int cols, int depth, const cv::Mat & K, int window_size,
                             RGBD_NORMALS_METHOD method) const;
@@ -148,7 +114,7 @@ namespace cv
     cv::Mat K_;
     int window_size_;
     RGBD_NORMALS_METHOD method_;
-    mutable cv::Ptr<RgbdNormalsImpl> rgbd_normals_impl_;
+    mutable void* rgbd_normals_impl_;
   };
 
   /**

@@ -153,8 +153,52 @@ namespace
 
 namespace
 {
+  class RgbdNormalsImpl
+  {
+  public:
+    RgbdNormalsImpl(int rows, int cols, int window_size, int depth, const cv::Mat &K,
+                    cv::RgbdNormals::RGBD_NORMALS_METHOD method)
+        :
+          rows_(rows),
+          cols_(cols),
+          depth_(depth),
+          window_size_(window_size),
+          method_(method)
+    {
+      K.convertTo(K_, depth);
+      K.copyTo(K_ori_);
+    }
+
+    virtual
+    ~RgbdNormalsImpl()
+    {
+    }
+
+    virtual void
+    cache()=0;
+
+    virtual cv::Mat
+    compute(const cv::Mat & points3d, const cv::Mat &r) const=0;
+
+    bool
+    validate(int rows, int cols, int depth, const cv::Mat &K_ori, int window_size,
+             cv::RgbdNormals::RGBD_NORMALS_METHOD method) const
+    {
+      if ((K_ori.cols != K_ori_.cols) || (K_ori.rows != K_ori_.rows) || (K_ori.type() != K_ori_.type()))
+        return false;
+      bool K_test = !(cv::countNonZero(K_ori != K_ori_));
+      return (rows == rows_) && (cols = cols_) && (window_size == window_size_) && (depth == depth_) && (K_test)
+             && (method == method_);
+    }
+  protected:
+    int rows_, cols_, depth_;
+    cv::Mat K_, K_ori_;
+    int window_size_;
+    cv::RgbdNormals::RGBD_NORMALS_METHOD method_;
+  };
+
   template<typename T>
-  class FALS: public cv::RgbdNormals::RgbdNormalsImpl
+  class FALS: public RgbdNormalsImpl
   {
   public:
     typedef cv::Matx<T, 3, 3> Mat33T;
@@ -163,7 +207,7 @@ namespace
 
     FALS(int rows, int cols, int window_size, int depth, const cv::Mat &K, cv::RgbdNormals::RGBD_NORMALS_METHOD method)
         :
-          cv::RgbdNormals::RgbdNormalsImpl(rows, cols, window_size, depth, K, method)
+          RgbdNormalsImpl(rows, cols, window_size, depth, K, method)
     {
     }
     ~FALS()
@@ -264,7 +308,7 @@ namespace
 namespace
 {
   template<typename T>
-  class SRI: public cv::RgbdNormals::RgbdNormalsImpl
+  class SRI: public RgbdNormalsImpl
   {
   public:
     typedef cv::Matx<T, 3, 3> Mat33T;
@@ -273,7 +317,7 @@ namespace
 
     SRI(int rows, int cols, int window_size, int depth, const cv::Mat &K, cv::RgbdNormals::RGBD_NORMALS_METHOD method)
         :
-          cv::RgbdNormals::RgbdNormalsImpl(rows, cols, window_size, depth, K, method),
+          RgbdNormalsImpl(rows, cols, window_size, depth, K, method),
           phi_step_(0),
           theta_step_(0)
     {
@@ -412,17 +456,6 @@ namespace
 
 namespace cv
 {
-  bool
-  RgbdNormals::RgbdNormalsImpl::validate(int rows, int cols, int depth, const cv::Mat &K_ori, int window_size,
-                                         RGBD_NORMALS_METHOD method) const
-  {
-    if ((K_ori.cols != K_ori_.cols) || (K_ori.rows != K_ori_.rows) || (K_ori.type() != K_ori_.type()))
-      return false;
-    bool K_test = !(cv::countNonZero(K_ori != K_ori_));
-    return (rows == rows_) && (cols = cols_) && (window_size == window_size_) && (depth == depth_) && (K_test)
-           && (method == method_);
-  }
-
   /** Default constructor
    */
   RgbdNormals::RgbdNormals(int rows, int cols, int depth, const cv::Mat & K, int window_size,
@@ -433,7 +466,8 @@ namespace cv
         depth_(depth),
         K_(K),
         window_size_(window_size),
-        method_(method)
+        method_(method),
+        rgbd_normals_impl_(0)
   {
     CV_Assert(depth == CV_32F || depth == CV_64F);
     CV_Assert(K_.cols == 3 && K.rows == 3);
@@ -463,7 +497,7 @@ namespace cv
       }
     }
 
-    rgbd_normals_impl_->cache();
+    reinterpret_cast<RgbdNormalsImpl *>(rgbd_normals_impl_)->cache();
   }
 
   /** Given a set of 3d points in a depth image, compute the normals at each point
@@ -479,9 +513,10 @@ namespace cv
   {
     CV_Assert(in_points3d.channels() == 3 && in_points3d.dims == 2);
     CV_Assert(in_points3d.depth() == CV_32F || in_points3d.depth() == CV_64F);
-    if (rgbd_normals_impl_.empty())
+    if (rgbd_normals_impl_ == 0)
       initialize_normals_impl(rows_, cols_, depth_, K_, window_size_, method_);
-    else if (!rgbd_normals_impl_->validate(rows_, cols_, depth_, K_, window_size_, method_))
+    else if (!reinterpret_cast<RgbdNormalsImpl *>(rgbd_normals_impl_)->validate(rows_, cols_, depth_, K_, window_size_,
+                                                                                method_))
       initialize_normals_impl(rows_, cols_, depth_, K_, window_size_, method_);
 
     // Make the points have the right depth
@@ -499,7 +534,26 @@ namespace cv
       r = computeR<double>(points3d);
 
     // Get the normals
-    cv::Mat normals = rgbd_normals_impl_->compute(points3d, r);
+    cv::Mat normals;
+    switch (method_)
+    {
+      case RGBD_NORMALS_METHOD_SRI:
+      {
+        if (depth_ == CV_32F)
+          normals = reinterpret_cast<const SRI<float> *>(rgbd_normals_impl_)->compute(points3d, r);
+        else
+          normals = reinterpret_cast<const SRI<double> *>(rgbd_normals_impl_)->compute(points3d, r);
+        break;
+      }
+      case (RGBD_NORMALS_METHOD_FALS):
+      {
+        if (depth_ == CV_32F)
+          normals = reinterpret_cast<const FALS<float> *>(rgbd_normals_impl_)->compute(points3d, r);
+        else
+          normals = reinterpret_cast<const FALS<double> *>(rgbd_normals_impl_)->compute(points3d, r);
+        break;
+      }
+    }
 
     return normals;
   }
