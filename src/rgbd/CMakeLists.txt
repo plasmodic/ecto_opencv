@@ -8,6 +8,7 @@ add_library(opencv_rgbd src/normal.cpp
                         src/depth_to_3d.cpp
                         src/rgbd_icp.cpp
                         src/plane.cpp
+                        src/rgbd_init.cpp
                         src/utils.cpp
 )
 

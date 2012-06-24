@@ -63,7 +63,7 @@ namespace cv
    * It is an object as it can cache data for speed efficiency
    */
   CV_EXPORTS
-  class RgbdNormals // : public cv::Algorithm
+  class RgbdNormals: public Algorithm
   {
   public:
     enum RGBD_NORMALS_METHOD
@@ -72,13 +72,23 @@ namespace cv
     };
 
     RgbdNormals()
+        :
+          rows_(0),
+          cols_(0),
+          depth_(0),
+          K_(cv::Mat()),
+          window_size_(0),
+          method_(RGBD_NORMALS_METHOD_FALS)
     {
     }
 
     /** Constructor
      */
-    RgbdNormals(int rows, int cols, int depth, const cv::Mat & K, int window_size, RGBD_NORMALS_METHOD method =
-        RGBD_NORMALS_METHOD_SRI);
+    RgbdNormals(int rows, int cols, int depth, const cv::Mat & K, int window_size = 5, RGBD_NORMALS_METHOD method =
+        RGBD_NORMALS_METHOD_FALS);
+
+    AlgorithmInfo*
+    info() const;
 
     bool
     empty() const
@@ -98,23 +108,47 @@ namespace cv
     class RgbdNormalsImpl
     {
     public:
-      RgbdNormalsImpl()
+      RgbdNormalsImpl(int rows, int cols, int window_size, int depth, const cv::Mat &K, RGBD_NORMALS_METHOD method)
+          :
+            rows_(rows),
+            cols_(cols),
+            depth_(depth),
+            window_size_(window_size),
+            method_(method)
       {
+        K.convertTo(K_, depth);
+        K.copyTo(K_ori_);
       }
+
       virtual
       ~RgbdNormalsImpl()
       {
       }
+
       virtual void
       cache()=0;
+
       virtual cv::Mat
       compute(const cv::Mat & points3d, const cv::Mat &r) const=0;
+
+      bool
+      validate(int rows, int cols, int depth, const cv::Mat &K_ori, int window_size, RGBD_NORMALS_METHOD method) const;
+    protected:
+      int rows_, cols_, depth_;
+      cv::Mat K_, K_ori_;
+      int window_size_;
+      RGBD_NORMALS_METHOD method_;
     };
 
+    void
+    initialize_normals_impl(int rows, int cols, int depth, const cv::Mat & K, int window_size,
+                            RGBD_NORMALS_METHOD method) const;
+
+    int rows_, cols_, depth_;
     cv::Mat K_;
-    cv::Ptr<RgbdNormalsImpl> rgbd_normals_impl_;
     int window_size_;
     RGBD_NORMALS_METHOD method_;
+    mutable cv::Ptr<RgbdNormalsImpl> rgbd_normals_impl_;
   };
 
   /**
@@ -183,25 +217,26 @@ namespace cv
   };
 
 // ICP (Maria)
-   // TODO 1) refactor the interface (make it as a class?), 
-   //      2) add comments
-   //      3) put image and depth filtering into the function (?),
-   //      4) do not check and process rgb or depth if they are not needed 
-   //         (eg. rgb processing in case of ICP_ODOMETRY or some normals in case of RGBD_ODOMETRY)
-   enum{ RGBD_ODOMETRY   = 1,
-         ICP_ODOMETRY    = 2,
-         MERGED_ODOMETRY = RGBD_ODOMETRY + ICP_ODOMETRY };
-         
-   CV_EXPORTS bool RGBDICPOdometry(cv::Mat& Rt, const cv::Mat& initRt,
-     const cv::Mat& image0, const cv::Mat& _depth0, const cv::Mat& validMask0,
-     const cv::Mat& image1, const cv::Mat& _depth1, const cv::Mat& validMask1,
-     const cv::Mat& cameraMatrix,
-     std::vector<cv::Ptr<cv::RgbdNormals> >& normalComputers,
-     float minDepth=0.f, float maxDepth=4.f, float maxDepthDiff=0.07f,
-     const std::vector<int>& iterCounts=std::vector<int>(), 
-     const std::vector<float>& minGradientMagnitudes=std::vector<float>(), 
-     float icpPointsPart=0.07f, int methodType=RGBD_ODOMETRY);
-         
+  // TODO 1) refactor the interface (make it as a class?),
+  //      2) add comments
+  //      3) put image and depth filtering into the function (?),
+  //      4) do not check and process rgb or depth if they are not needed
+  //         (eg. rgb processing in case of ICP_ODOMETRY or some normals in case of RGBD_ODOMETRY)
+  enum
+  {
+    RGBD_ODOMETRY = 1, ICP_ODOMETRY = 2, MERGED_ODOMETRY = RGBD_ODOMETRY + ICP_ODOMETRY
+  };
+
+  CV_EXPORTS bool
+  RGBDICPOdometry(cv::Mat& Rt, const cv::Mat& initRt, const cv::Mat& image0, const cv::Mat& _depth0,
+                  const cv::Mat& validMask0, const cv::Mat& image1, const cv::Mat& _depth1, const cv::Mat& validMask1,
+                  const cv::Mat& cameraMatrix, std::vector<cv::Ptr<cv::RgbdNormals> >& normalComputers, float minDepth =
+                      0.f,
+                  float maxDepth = 4.f, float maxDepthDiff = 0.07f, const std::vector<int>& iterCounts =
+                      std::vector<int>(),
+                  const std::vector<float>& minGradientMagnitudes = std::vector<float>(), float icpPointsPart = 0.07f,
+                  int methodType = RGBD_ODOMETRY);
+
 // TODO Depth interpolation
 // Curvature
 // Get rescaleDepth return dubles if asked for

@@ -161,12 +161,9 @@ namespace
     typedef cv::Vec<T, 9> Vec9T;
     typedef cv::Vec<T, 3> Vec3T;
 
-    FALS(int rows, int cols, int window_size, const Mat33T &K)
+    FALS(int rows, int cols, int window_size, int depth, const cv::Mat &K, cv::RgbdNormals::RGBD_NORMALS_METHOD method)
         :
-          rows_(rows),
-          cols_(cols),
-          window_size_(window_size),
-          K_(K)
+          cv::RgbdNormals::RgbdNormalsImpl(rows, cols, window_size, depth, K, method)
     {
     }
     ~FALS()
@@ -257,11 +254,6 @@ namespace
       return normals;
     }
   private:
-    int rows_;
-    int cols_;
-    int window_size_;
-    Mat33T K_;
-
     cv::Mat_<Vec3T> V_;
     cv::Mat_<Vec9T> M_inv_;
   };
@@ -279,12 +271,9 @@ namespace
     typedef cv::Vec<T, 9> Vec9T;
     typedef cv::Vec<T, 3> Vec3T;
 
-    SRI(int rows, int cols, int window_size, const cv::Matx<T, 3, 3> &K)
+    SRI(int rows, int cols, int window_size, int depth, const cv::Mat &K, cv::RgbdNormals::RGBD_NORMALS_METHOD method)
         :
-          rows_(rows),
-          cols_(cols),
-          window_size_(window_size),
-          K_(K),
+          cv::RgbdNormals::RgbdNormalsImpl(rows, cols, window_size, depth, K, method),
           phi_step_(0),
           theta_step_(0)
     {
@@ -299,8 +288,8 @@ namespace
       computeThetaPhi<T>(rows_, cols_, K_, cos_theta, sin_theta, cos_phi, sin_phi);
 
       // Create the derivative kernels
-      getDerivKernels(kx_dx_, ky_dx_, 1, 0, window_size_, true, K_.depth);
-      getDerivKernels(kx_dy_, ky_dy_, 0, 1, window_size_, true, K_.depth);
+      getDerivKernels(kx_dx_, ky_dx_, 1, 0, window_size_, true, depth_);
+      getDerivKernels(kx_dy_, ky_dy_, 0, 1, window_size_, true, depth_);
 
       // Get the mapping function for SRI
       float min_theta = std::asin(sin_theta(0, 0)), max_theta = std::asin(sin_theta(0, cols_ - 1));
@@ -408,11 +397,6 @@ namespace
       return normals;
     }
   private:
-    int rows_;
-    int cols_;
-    int window_size_;
-    Mat33T K_;
-
     /** Stores R */
     cv::Mat_<Vec9T> R_hat_;
     float phi_step_, theta_step_;
@@ -428,38 +412,53 @@ namespace
 
 namespace cv
 {
+  bool
+  RgbdNormals::RgbdNormalsImpl::validate(int rows, int cols, int depth, const cv::Mat &K_ori, int window_size,
+                                         RGBD_NORMALS_METHOD method) const
+  {
+    if ((K_ori.cols != K_ori_.cols) || (K_ori.rows != K_ori_.rows) || (K_ori.type() != K_ori_.type()))
+      return false;
+    bool K_test = !(cv::countNonZero(K_ori != K_ori_));
+    return (rows == rows_) && (cols = cols_) && (window_size == window_size_) && (depth == depth_) && (K_test)
+           && (method == method_);
+  }
+
   /** Default constructor
    */
   RgbdNormals::RgbdNormals(int rows, int cols, int depth, const cv::Mat & K, int window_size,
                            RGBD_NORMALS_METHOD method)
       :
+        rows_(rows),
+        cols_(cols),
+        depth_(depth),
+        K_(K),
         window_size_(window_size),
         method_(method)
   {
     CV_Assert(depth == CV_32F || depth == CV_64F);
+    CV_Assert(K_.cols == 3 && K.rows == 3);
+  }
 
-    {
-      cv::Mat K_right_depth;
-      K.convertTo(K_right_depth, depth);
-      K_ = K_right_depth;
-    }
-
-    switch (method_)
+  void
+  RgbdNormals::initialize_normals_impl(int rows, int cols, int depth, const cv::Mat & K, int window_size,
+                                       RGBD_NORMALS_METHOD method) const
+  {
+    switch (method)
     {
       case RGBD_NORMALS_METHOD_SRI:
       {
         if (depth == CV_32F)
-          rgbd_normals_impl_ = new SRI<float>(rows, cols, window_size_, K_);
+          rgbd_normals_impl_ = new SRI<float>(rows, cols, window_size, depth, K, RGBD_NORMALS_METHOD_SRI);
         else
-          rgbd_normals_impl_ = new SRI<double>(rows, cols, window_size_, K_);
+          rgbd_normals_impl_ = new SRI<double>(rows, cols, window_size, depth, K, RGBD_NORMALS_METHOD_SRI);
         break;
       }
       case (RGBD_NORMALS_METHOD_FALS):
       {
         if (depth == CV_32F)
-          rgbd_normals_impl_ = new FALS<float>(rows, cols, window_size_, K_);
+          rgbd_normals_impl_ = new FALS<float>(rows, cols, window_size, depth, K, RGBD_NORMALS_METHOD_FALS);
         else
-          rgbd_normals_impl_ = new FALS<double>(rows, cols, window_size_, K_);
+          rgbd_normals_impl_ = new FALS<double>(rows, cols, window_size, depth, K, RGBD_NORMALS_METHOD_FALS);
         break;
       }
     }
@@ -480,18 +479,21 @@ namespace cv
   {
     CV_Assert(in_points3d.channels() == 3 && in_points3d.dims == 2);
     CV_Assert(in_points3d.depth() == CV_32F || in_points3d.depth() == CV_64F);
-    CV_Assert(!rgbd_normals_impl_.empty());
+    if (rgbd_normals_impl_.empty())
+      initialize_normals_impl(rows_, cols_, depth_, K_, window_size_, method_);
+    else if (!rgbd_normals_impl_->validate(rows_, cols_, depth_, K_, window_size_, method_))
+      initialize_normals_impl(rows_, cols_, depth_, K_, window_size_, method_);
 
     // Make the points have the right depth
     cv::Mat points3d;
-    if (in_points3d.depth() == K_.depth())
+    if (in_points3d.depth() == depth_)
       points3d = in_points3d;
     else
-      in_points3d.convertTo(points3d, K_.depth());
+      in_points3d.convertTo(points3d, depth_);
 
     // Compute the distance to the points
     cv::Mat r;
-    if (K_.depth() == CV_32F)
+    if (depth_ == CV_32F)
       r = computeR<float>(points3d);
     else
       r = computeR<double>(points3d);
