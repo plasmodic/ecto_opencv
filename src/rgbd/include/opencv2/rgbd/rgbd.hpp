@@ -88,6 +88,8 @@ namespace cv
     RgbdNormals(int rows, int cols, int depth, const cv::Mat & K, int window_size = 5, RGBD_NORMALS_METHOD method =
         RGBD_NORMALS_METHOD_FALS);
 
+    ~RgbdNormals();
+
     AlgorithmInfo*
     info() const;
 

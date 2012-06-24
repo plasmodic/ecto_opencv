@@ -473,6 +473,33 @@ namespace cv
     CV_Assert(K_.cols == 3 && K.rows == 3);
   }
 
+  /** Destructor
+   */
+  RgbdNormals::~RgbdNormals()
+  {
+    if (rgbd_normals_impl_ == 0)
+      return;
+    switch (method_)
+    {
+      case RGBD_NORMALS_METHOD_SRI:
+      {
+        if (depth_ == CV_32F)
+          delete reinterpret_cast<const SRI<float> *>(rgbd_normals_impl_);
+        else
+          delete reinterpret_cast<const SRI<double> *>(rgbd_normals_impl_);
+        break;
+      }
+      case (RGBD_NORMALS_METHOD_FALS):
+      {
+        if (depth_ == CV_32F)
+          delete reinterpret_cast<const FALS<float> *>(rgbd_normals_impl_);
+        else
+          delete reinterpret_cast<const FALS<double> *>(rgbd_normals_impl_);
+        break;
+      }
+    }
+  }
+
   void
   RgbdNormals::initialize_normals_impl(int rows, int cols, int depth, const cv::Mat & K, int window_size,
                                        RGBD_NORMALS_METHOD method) const
