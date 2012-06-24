@@ -135,7 +135,8 @@ namespace rgbd
       // Odometry is only possible when we have a previous frame
       static int counter = 0;
       ++counter;
-      if ((previous_image_gray_.empty()) || (counter == 30))
+      // This hack has to be here as the first frame of the ASUS seems bad
+      if ((previous_image_gray_.empty()) || (counter == 5))
       {
         first_image_ = current_image;
         first_depth_meters_ = current_depth_meters;
@@ -170,16 +171,10 @@ namespace rgbd
 
       tm.start();
 
-      std::vector<cv::Ptr<cv::RgbdNormals> > normalComputers;
       float icpPointsPart = 0;
-
-      /*bool isFound = cv::RGBDOdometry(Rt, cv::Mat(), previous_image_gray_, previous_depth_meters_, cv::Mat(),
-       current_image_gray, current_depth_meters, cv::Mat(), cameraMatrix, minDepth,
-       maxDepth, maxDepthDiff, iterCounts, minGradMagnitudes, cv::RIGID_BODY_MOTION);*/
-
       bool isFound = cv::RGBDICPOdometry(Rt, cv::Mat(), previous_image_gray_, previous_depth_meters_, cv::Mat(),
                                          current_image_gray, current_depth_meters, cv::Mat(), cameraMatrix,
-                                         normalComputers, minDepth, maxDepth, maxDepthDiff, iterCounts,
+                                         normal_computers_, minDepth, maxDepth, maxDepthDiff, iterCounts,
                                          minGradMagnitudes, icpPointsPart, cv::RGBD_ODOMETRY);
 
       if (isFound)
@@ -187,7 +182,7 @@ namespace rgbd
 
       tm.stop();
 
-      std::cout << "Rt = " << Rt << std::endl;
+      //std::cout << "Rt = " << Rt << std::endl;
       std::cout << "Time = " << tm.getTimeSec() << " sec." << std::endl;
 
       if (!isFound)
@@ -225,6 +220,7 @@ namespace rgbd
     cv::Mat previous_image_;
     cv::Mat previous_depth_meters_;
     cv::Mat_<float> previous_pose_;
+    std::vector<cv::Ptr<cv::RgbdNormals> > normal_computers_;
     ecto::spore<cv::Mat> warp_;
 
     /** The output rotation matrix */
