@@ -107,29 +107,6 @@ void preprocessDepth(Mat depth0, Mat depth1,
 }
 
 static
-void depth2Cloud(const Mat& depth, Mat& cloud, const Mat& cameraMatrix)
-{
-    CV_Assert(cameraMatrix.type() == CV_64FC1);
-    const double inv_fx = 1.f/cameraMatrix.at<double>(0,0);
-    const double inv_fy = 1.f/cameraMatrix.at<double>(1,1);
-    const double ox = cameraMatrix.at<double>(0,2);
-    const double oy = cameraMatrix.at<double>(1,2);
-    cloud.create(depth.size(), CV_32FC3);
-    for(int y = 0; y < cloud.rows; y++)
-    {
-        Point3f* cloud_ptr = reinterpret_cast<Point3f*>(cloud.ptr(y));
-        const float* depth_prt = reinterpret_cast<const float*>(depth.ptr(y));
-        for(int x = 0; x < cloud.cols; x++)
-        {
-            float z = depth_prt[x];
-            cloud_ptr[x].x = (float)((x - ox) * z * inv_fx);
-            cloud_ptr[x].y = (float)((y - oy) * z * inv_fy);
-            cloud_ptr[x].z = z;
-        }
-    }
-}
-
-static
 bool solveSystem(const Mat& AtA, const Mat& AtB, double detThreshold, Mat& x)
 {
     double det = cv::determinant(AtA);
@@ -292,8 +269,8 @@ void buildPyramids(const Mat& image0, const Mat& image1,
         const Mat& dx = pyramid_dI_dx1[i];
         const Mat& dy = pyramid_dI_dy1[i];
 
-        depth2Cloud(pyramidDepth0[i], pyramidVertices0[i], pyramidCameraMatrix[i]);
-        depth2Cloud(pyramidDepth1[i], pyramidVertices1[i], pyramidCameraMatrix[i]);
+        depthTo3d(pyramidDepth0[i], pyramidCameraMatrix[i], pyramidVertices0[i]);
+        depthTo3d(pyramidDepth1[i], pyramidCameraMatrix[i], pyramidVertices1[i]);
 
         const Mat& levelDepth1 = pyramidDepth1[i];
         const Mat& levelVertices1 = pyramidVertices1[i];
