@@ -4,7 +4,7 @@
 
 find_package(OpenCV REQUIRED)
 
-add_library(opencv_rgbd src/compute_normals.cpp
+add_library(opencv_rgbd src/normal.cpp
                         src/depth_to_3d.cpp
                         src/rgbd_icp.cpp
                         src/plane.cpp
