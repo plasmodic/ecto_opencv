@@ -139,51 +139,41 @@ namespace
   void
   depthTo3dNoMask(const cv::Mat& in_depth, const cv::Mat_<T>& K, cv::Mat& points3d)
   {
-    // Create 3D points in one go.
-    cv::Size depth_size = in_depth.size();
-
-    //grab camera params
-    T fx = K(0, 0);
-    T fy = K(1, 1);
-    T s = K(0, 1);
-    T cx = K(0, 2);
-    T cy = K(1, 2);
+    const T inv_fx = T(1) / K(0, 0);
+    const T inv_fy = T(1) / K(1, 1);
+    const T ox = K(0, 2);
+    const T oy = K(1, 2);
 
     // Build z
-    cv::Mat_<T> u_mat(depth_size), v_mat(depth_size), z_mat(depth_size);
+    cv::Mat_<T> z_mat;
     if (z_mat.depth() == in_depth.depth())
       z_mat = in_depth;
     else
       rescaleDepthTemplated<T>(in_depth, z_mat);
 
-    // Build the set of v's
-    cv::Mat_<T> us(1, depth_size.width), vs(depth_size.height, 1);
-    T* u_data = us[0], *v_data = vs[0];
+    // Pre-compute some constants
+    cv::Mat_<T> x_cache(1, in_depth.cols), y_cache(in_depth.rows, 1);
+    T* x_cache_ptr = x_cache[0], *y_cache_ptr = y_cache[0];
+    for (int x = 0; x < in_depth.cols; ++x, ++x_cache_ptr)
+      *x_cache_ptr = (x - ox) * inv_fx;
+    for (int y = 0; y < in_depth.rows; ++y, ++y_cache_ptr)
+      *y_cache_ptr = (y - oy) * inv_fy;
 
-    for (int u = 0; u < depth_size.width; ++u, ++u_data)
-      *u_data = u;
-
-    for (int v = 0; v < depth_size.height; ++v, ++v_data)
-      *v_data = v;
-
-    cv::repeat((vs - cy) / fy, 1, depth_size.width, v_mat);
-
-    // Build the set of u's
-    cv::repeat((us - cx) / fx, depth_size.height, 1, u_mat);
-
-    if (s != 0)
+    points3d = cv::Mat_<cv::Vec<T, 3> >(in_depth.rows, in_depth.cols);
+    y_cache_ptr = y_cache[0];
+    for (int y = 0; y < in_depth.rows; ++y, ++y_cache_ptr)
     {
-      cv::repeat(-(s / fx / fy) * vs, 1, depth_size.width, vs);
-      u_mat = u_mat + vs + (cy * s / fy);
+      cv::Vec<T, 3>* point = points3d.ptr<cv::Vec<T, 3> >(y);
+      const T* x_cache_ptr_end = x_cache[0] + in_depth.cols;
+      const T* depth = z_mat[y];
+      for (x_cache_ptr = x_cache[0]; x_cache_ptr != x_cache_ptr_end; ++x_cache_ptr, ++point, ++depth)
+      {
+        T z = *depth;
+        (*point)[0] = (*x_cache_ptr) * z;
+        (*point)[1] = (*y_cache_ptr) * z;
+        (*point)[2] = z;
+      }
     }
-
-    // Compute all the coordinates
-    // (faster to do it this way than per pixel)
-    cv::Mat_<T> coordinates[3] =
-    { u_mat.mul(z_mat), v_mat.mul(z_mat), z_mat };
-    cv::Mat tmp_points;
-    cv::merge(coordinates, 3, tmp_points);
-    points3d = tmp_points.reshape(3, in_depth.rows);
   }
 }
 
@@ -247,9 +237,11 @@ namespace cv
 
     // TODO figure out what to do when types are different: convert or reject ?
     cv::Mat K_new;
-    if ((depth.depth() == CV_32F || depth.depth() == CV_64F) && depth.depth() != K.depth()) {
+    if ((depth.depth() == CV_32F || depth.depth() == CV_64F) && depth.depth() != K.depth())
+    {
       K.convertTo(K_new, depth.depth());
-    } else
+    }
+    else
       K_new = K;
 
     // Create 3D points in one go.
