@@ -1,5 +1,5 @@
 ectomodule(rgbd module.cpp
-                ComputeNormals.cpp
+                Normal.cpp
                 Odometry.cpp
                 Plane.cpp
 )
