@@ -181,8 +181,7 @@ namespace
     compute(const cv::Mat & points3d, const cv::Mat &r) const=0;
 
     bool
-    validate(int rows, int cols, int depth, const cv::Mat &K_ori, int window_size,
-             cv::RgbdNormals::RGBD_NORMALS_METHOD method) const
+    validate(int rows, int cols, int depth, const cv::Mat &K_ori, int window_size, int method) const
     {
       if ((K_ori.cols != K_ori_.cols) || (K_ori.rows != K_ori_.rows) || (K_ori.type() != K_ori_.type()))
         return false;
@@ -458,8 +457,7 @@ namespace cv
 {
   /** Default constructor
    */
-  RgbdNormals::RgbdNormals(int rows, int cols, int depth, const cv::Mat & K, int window_size,
-                           RGBD_NORMALS_METHOD method)
+  RgbdNormals::RgbdNormals(int rows, int cols, int depth, const cv::Mat & K, int window_size, int method)
       :
         rows_(rows),
         cols_(cols),
@@ -502,8 +500,12 @@ namespace cv
 
   void
   RgbdNormals::initialize_normals_impl(int rows, int cols, int depth, const cv::Mat & K, int window_size,
-                                       RGBD_NORMALS_METHOD method) const
+                                       int method) const
   {
+    CV_Assert(rows>0 && cols >0 && (depth==CV_32F || depth==CV_64F));
+    CV_Assert(window_size == 1 || window_size == 3 || window_size == 5 || window_size == 7);
+    CV_Assert(K_.cols == 3 && K.rows == 3 && (K.depth()==CV_32F || K.depth()==CV_64F));
+    CV_Assert(method==RGBD_NORMALS_METHOD_SRI || method==RGBD_NORMALS_METHOD_FALS);
     switch (method)
     {
       case RGBD_NORMALS_METHOD_SRI:

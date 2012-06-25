@@ -85,19 +85,13 @@ namespace cv
 
     /** Constructor
      */
-    RgbdNormals(int rows, int cols, int depth, const cv::Mat & K, int window_size = 5, RGBD_NORMALS_METHOD method =
+    RgbdNormals(int rows, int cols, int depth, const cv::Mat & K, int window_size = 5, int method =
         RGBD_NORMALS_METHOD_FALS);
 
     ~RgbdNormals();
 
     AlgorithmInfo*
     info() const;
-
-    bool
-    empty() const
-    {
-      return (rgbd_normals_impl_ == 0);
-    }
 
     /** Given a set of 3d points in a depth image, compute the normals at each point.
      * @param points a rows x cols x 3 matrix
@@ -110,12 +104,12 @@ namespace cv
   protected:
     void
     initialize_normals_impl(int rows, int cols, int depth, const cv::Mat & K, int window_size,
-                            RGBD_NORMALS_METHOD method) const;
+                            int  method) const;
 
     int rows_, cols_, depth_;
     cv::Mat K_;
     int window_size_;
-    RGBD_NORMALS_METHOD method_;
+    int method_;
     mutable void* rgbd_normals_impl_;
   };
 
