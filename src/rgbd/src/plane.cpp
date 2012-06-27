@@ -635,7 +635,6 @@ namespace cv
   void
   RgbdPlane::operator()(const cv::Mat & points3d_in, cv::Mat &mask_out, std::vector<cv::Vec4f> & plane_coefficients)
   {
-    CV_Assert(!rgbd_normals_.empty());
     cv::Mat normals = rgbd_normals_(points3d_in);
     this->operator()(points3d_in, normals, mask_out, plane_coefficients);
   }
