@@ -199,6 +199,7 @@ ICPOdometry::ICPOdometry(const Mat& _cameraMatrix,
                  
 void ICPOdometry::checkParams() const
 {
+    CV_Assert(pointsPart > 0. && pointsPart <= 1.);
     CV_Assert(cameraMatrix.size() == Size(3,3) && cameraMatrix.type() == CV_32FC1);
 }
 
@@ -244,6 +245,7 @@ RgbdICPOdometry::RgbdICPOdometry(const Mat& _cameraMatrix,
 
 void RgbdICPOdometry::checkParams() const
 {
+    CV_Assert(pointsPart > 0. && pointsPart <= 1.);
     CV_Assert(cameraMatrix.size() == Size(3,3) && cameraMatrix.type() == CV_32FC1);
     CV_Assert(minGradientMagnitudes.size() == iterCounts.size());
 }
