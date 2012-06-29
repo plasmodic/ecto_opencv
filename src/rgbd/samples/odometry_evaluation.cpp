@@ -46,6 +46,7 @@
 using namespace std;
 using namespace cv;
 
+static
 void writeResults( const string& filename, const vector<string>& timestamps, const vector<Mat>& Rt )
 {
     CV_Assert( timestamps.size() == Rt.size() );
@@ -84,12 +85,23 @@ void writeResults( const string& filename, const vector<string>& timestamps, con
     file.close();
 }
 
+static
+void setCameraMatrixFreiburg1(float& fx, float& fy, float& cx, float& cy)
+{
+    fx = 517.3f; fy = 516.5f; cx = 318.6f; cy = 255.3f;
+}
+
+static
+void setCameraMatrixFreiburg2(float& fx, float& fy, float& cx, float& cy)
+{
+    fx = 520.9f; fy = 521.0f; cx = 325.1f; cy = 249.7f;
+}
+
 /*
  * This sample helps to evaluate odometry on TUM datasets and benchmark http://vision.in.tum.de/data/datasets/rgbd-dataset.
  * At this link you can find instructions for evaluation. The sample runs some opencv odometry and saves a camera trajectory
  * to file of format that the benchmark requires. Saved file can be used for online evaluation.
  */
-
 int main(int argc, char** argv)
 {
     if(argc != 4)
@@ -98,18 +110,6 @@ int main(int argc, char** argv)
         return -1;
     }
     
-    const float fx = 517.3f,
-                fy = 516.5f,
-                cx = 318.6f,
-                cy = 255.3f;
-    Mat cameraMatrix = Mat::eye(3,3,CV_32FC1);
-    {
-        cameraMatrix.at<float>(0,0) = fx;
-        cameraMatrix.at<float>(1,1) = fy;
-        cameraMatrix.at<float>(0,2) = cx;
-        cameraMatrix.at<float>(1,2) = cy;
-    }
-
     vector<string> timestamps;
     vector<Mat> Rts;
 
@@ -128,6 +128,22 @@ int main(int argc, char** argv)
 
     Mat image_prev, gray_prev, image_curr, gray_curr;
     Mat depth_prev, depth_curr;
+    
+    float fx = 525.0f, // default
+          fy = 525.0f,
+          cx = 319.5f,
+          cy = 239.5f;
+    if(filename.find("freiburg1") != string::npos)
+        setCameraMatrixFreiburg1(fx, fy, cx, cy);
+    if(filename.find("freiburg2") != string::npos)
+        setCameraMatrixFreiburg2(fx, fy, cx, cy);
+    Mat cameraMatrix = Mat::eye(3,3,CV_32FC1);
+    {
+        cameraMatrix.at<float>(0,0) = fx;
+        cameraMatrix.at<float>(1,1) = fy;
+        cameraMatrix.at<float>(0,2) = cx;
+        cameraMatrix.at<float>(1,2) = cy;
+    }
 
     Ptr<Odometry> odometry = Algorithm::create<Odometry>("RGBD." + string(argv[3]) + "Odometry");
     if(odometry.empty())
