@@ -178,26 +178,115 @@ namespace cv
     RgbdNormals rgbd_normals_;
   };
 
-// ICP (Maria)
-  // TODO 1) refactor the interface (make it as a class?),
-  //      2) add comments
-  //      3) put image and depth filtering into the function (?),
-  //      4) do not check and process rgb or depth if they are not needed
-  //         (eg. rgb processing in case of ICP_ODOMETRY or some normals in case of RGBD_ODOMETRY)
-  enum
+  // TODO 1) add docs and comments
+  //      2) tests
+  CV_EXPORTS class Odometry : public Algorithm
   {
-    RGBD_ODOMETRY = 1, ICP_ODOMETRY = 2, MERGED_ODOMETRY = RGBD_ODOMETRY + ICP_ODOMETRY
+  public:
+    static inline float DEFAULT_MIN_DEPTH(){ return 0.f; }
+    static inline float DEFAULT_MAX_DEPTH(){ return 4.f; }
+    static inline float DEFAULT_MAX_DEPTH_DIFF(){ return 0.07f; }
+    static inline float DEFAULT_USED_POINTS_PART(){ return 0.07f; }
+    
+    bool compute(const Mat& image0, const Mat& _depth0, const Mat& mask0,
+                 const Mat& image1, const Mat& _depth1, const Mat& mask1, 
+                 Mat& Rt, const Mat& initRt=Mat()) const;
+  protected:
+    virtual void checkParams() const = 0;
+    virtual void checkFrames(const Mat& image0, const Mat& depth0, const Mat& mask0,
+                             const Mat& image1, const Mat& depth1, const Mat& mask1) const = 0;
+    virtual bool computeImpl(const Mat& image0, const Mat& depth0, const Mat& mask0,
+                             const Mat& image1, const Mat& depth1, const Mat& mask1,
+                             const Mat& initRt, Mat& Rt) const = 0;
+  };
+  
+  CV_EXPORTS class RgbdOdometry : public Odometry
+  {
+  public:
+    RgbdOdometry();
+    RgbdOdometry(const Mat& cameraMatrix, 
+                 float minDepth=DEFAULT_MIN_DEPTH(), 
+                 float maxDepth=DEFAULT_MAX_DEPTH(), 
+                 float maxDepthDiff=DEFAULT_MAX_DEPTH_DIFF(),
+                 const vector<int>& iterCounts=vector<int>(),
+                 const vector<float>& minGradientMagnitudes=vector<float>());
+                 
+    AlgorithmInfo* info() const;
+
+  protected:
+    virtual void checkParams() const;
+    virtual void checkFrames(const Mat& image0, const Mat& depth0, const Mat& mask0,
+                             const Mat& image1, const Mat& depth1, const Mat& mask1) const;
+    virtual bool computeImpl(const Mat& image0, const Mat& depth0, const Mat& mask0,
+                             const Mat& image1, const Mat& depth1, const Mat& mask1,
+                             const Mat& initRt, Mat& Rt) const;
+    // params
+    Mat cameraMatrix;
+    // Some params have commented type. It's due to cv::AlgorithmInfo::addParams does not support it now.
+    /*float*/double minDepth, maxDepth, maxDepthDiff;
+    /*vector<int>*/Mat iterCounts;
+    /*vector<float>*/Mat minGradientMagnitudes;
+  };
+  
+  class ICPOdometry : public Odometry
+  {
+  public:
+    ICPOdometry();
+    ICPOdometry(const Mat& cameraMatrix, 
+        float minDepth=DEFAULT_MIN_DEPTH(), 
+        float maxDepth=DEFAULT_MAX_DEPTH(), 
+        float maxDepthDiff=DEFAULT_MAX_DEPTH_DIFF(),
+        float pointsPart=DEFAULT_USED_POINTS_PART(),
+        const vector<int>& iterCounts=vector<int>());
+                 
+    AlgorithmInfo* info() const;
+    
+  protected:
+    virtual void checkParams() const;
+    virtual void checkFrames(const Mat& image0, const Mat& depth0, const Mat& mask0,
+                             const Mat& image1, const Mat& depth1, const Mat& mask1) const;
+    virtual bool computeImpl(const Mat& image0, const Mat& depth0, const Mat& mask0,
+                             const Mat& image1, const Mat& depth1, const Mat& mask1,
+                             const Mat& initRt, Mat& Rt) const;
+    // params
+    Mat cameraMatrix;
+    /*float*/ double minDepth, maxDepth, maxDepthDiff;
+    /*float*/ double pointsPart;
+    /*vector<int>*/Mat iterCounts;
+    
+    mutable vector<cv::Ptr<cv::RgbdNormals> > normalComputers;
   };
 
-  CV_EXPORTS bool
-  RGBDICPOdometry(cv::Mat& Rt, const cv::Mat& initRt, const cv::Mat& image0, const cv::Mat& _depth0,
-                  const cv::Mat& validMask0, const cv::Mat& image1, const cv::Mat& _depth1, const cv::Mat& validMask1,
-                  const cv::Mat& cameraMatrix, std::vector<cv::Ptr<cv::RgbdNormals> >& normalComputers, float minDepth =
-                      0.f,
-                  float maxDepth = 4.f, float maxDepthDiff = 0.07f, const std::vector<int>& iterCounts =
-                      std::vector<int>(),
-                  const std::vector<float>& minGradientMagnitudes = std::vector<float>(), float icpPointsPart = 0.07f,
-                  int methodType = RGBD_ODOMETRY);
+  class RgbdICPOdometry : public Odometry
+  {
+  public:
+    RgbdICPOdometry();
+    RgbdICPOdometry(const Mat& cameraMatrix, 
+                    float minDepth=DEFAULT_MIN_DEPTH(), 
+                    float maxDepth=DEFAULT_MAX_DEPTH(), 
+                    float maxDepthDiff=DEFAULT_MAX_DEPTH_DIFF(),
+                    float pointsPart=DEFAULT_USED_POINTS_PART(),
+                    const vector<int>& iterCounts=vector<int>(),
+                    const vector<float>& minGradientMagnitudes=vector<float>());
+                 
+    AlgorithmInfo* info() const;
+    
+  protected:
+    virtual void checkParams() const;
+    virtual void checkFrames(const Mat& image0, const Mat& depth0, const Mat& mask0,
+                             const Mat& image1, const Mat& depth1, const Mat& mask1) const;
+    virtual bool computeImpl(const Mat& image0, const Mat& depth0, const Mat& mask0,
+                             const Mat& image1, const Mat& depth1, const Mat& mask1,
+                             const Mat& initRt, Mat& Rt) const;
+    // params
+    Mat cameraMatrix;
+    /*float*/double minDepth, maxDepth, maxDepthDiff;
+    /*float*/double pointsPart;
+    /*vector<int>*/Mat iterCounts;
+    /*vector<float>*/Mat minGradientMagnitudes;
+    
+    mutable vector<cv::Ptr<cv::RgbdNormals> > normalComputers;
+  };
 
 // TODO Depth interpolation
 // Curvature
