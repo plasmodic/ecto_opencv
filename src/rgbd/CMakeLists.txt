@@ -32,6 +32,7 @@ target_link_libraries(odometry_evaluation ${OpenCV_LIBRARIES} opencv_rgbd)
 # Add some tests
 add_executable(rgbd_tests test/test_main.cpp
                           test/test_normal.cpp
+                          test/test_odometry.cpp
                           test/test_precomp.cpp
                           test/test_utils.cpp
 )

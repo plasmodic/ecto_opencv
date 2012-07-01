@@ -521,7 +521,7 @@ int computeCorresps(const Mat& K, const Mat& K_inv, const Mat& Rt,
                 if(r.contains(Point(u0,v0)))
                 {
                     float d0 = depth0.at<float>(v0,u0);
-                    if(!cvIsNaN(d0) && std::abs(transformed_d1 - d0) <= maxDepthDiff)
+                    if(!cvIsNaN(d0) && std::abs(transformed_d1 - d0) <= maxDepthDiff && transformed_d1 > 0)
                     {
                         int c = corresps.at<int>(v0,u0);
                         if(c != -1)
