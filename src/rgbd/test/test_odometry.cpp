@@ -154,10 +154,10 @@ class CV_OdometryTest : public cvtest::BaseTest
 public:
     CV_OdometryTest(const Ptr<Odometry>& _odometry, 
                     double _maxError1, 
-                    double _maxError10) :
+                    double _maxError5) :
         odometry(_odometry), 
         maxError1(_maxError1), 
-        maxError10(_maxError10) {}
+        maxError5(_maxError5) {}
 
 protected:
     bool readData(Mat& image, Mat& depth) const;
@@ -167,7 +167,7 @@ protected:
 
     Ptr<Odometry> odometry;
     double maxError1;
-    double maxError10;
+    double maxError5;
 };
 
 bool CV_OdometryTest::readData(Mat& image, Mat& depth) const
@@ -320,9 +320,9 @@ void CV_OdometryTest::run(int)
         ts->set_failed_test_info(cvtest::TS::FAIL_BAD_ACCURACY);
     }
     
-    if(static_cast<double>(better_5times_count) < maxError10 * static_cast<double>(iterCount))
+    if(static_cast<double>(better_5times_count) < maxError5 * static_cast<double>(iterCount))
     {
-        ts->printf(cvtest::TS::LOG, "\nIncorrect count of accurate poses [2nd case]: %f / %f", static_cast<double>(better_5times_count), maxError10 * static_cast<double>(iterCount));
+        ts->printf(cvtest::TS::LOG, "\nIncorrect count of accurate poses [2nd case]: %f / %f", static_cast<double>(better_5times_count), maxError5 * static_cast<double>(iterCount));
         ts->set_failed_test_info(cvtest::TS::FAIL_BAD_ACCURACY);
     }
 }
