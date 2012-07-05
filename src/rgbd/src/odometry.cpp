@@ -71,9 +71,9 @@ static
 void setDefaultMinGradientMagnitudes(Mat& minGradientMagnitudes)
 {
     minGradientMagnitudes.create(1,4,CV_32FC1);
-    minGradientMagnitudes.at<float>(0) = 8.f;
-    minGradientMagnitudes.at<float>(1) = 4.f;
-    minGradientMagnitudes.at<float>(2) = 2.f;
+    minGradientMagnitudes.at<float>(0) = 12.f;
+    minGradientMagnitudes.at<float>(1) = 5.f;
+    minGradientMagnitudes.at<float>(2) = 3.f;
     minGradientMagnitudes.at<float>(3) = 1.f;
 }
 
