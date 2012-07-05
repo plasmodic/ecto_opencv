@@ -305,13 +305,31 @@ static
 void preprocessDepth(Mat& depth, const Mat& mask, float minDepth, float maxDepth)
 {
     CV_DbgAssert(depth.type() == CV_32FC1);
-    for(int y = 0; y < depth.rows; y++)
+    if(mask.empty())
     {
-        for(int x = 0; x < depth.cols; x++)
+        for(int y = 0; y < depth.rows; y++)
         {
-            float& d = depth.at<float>(y,x);
-            if(!cvIsNaN(d) && (d > maxDepth || d < minDepth || d <= 0 || (!mask.empty() && !mask.at<uchar>(y,x))))
-                d = std::numeric_limits<float>::quiet_NaN();
+            float *depth_row = depth.ptr<float>(y);
+            for(int x = 0; x < depth.cols; x++)
+            {
+                float& d = depth_row[x];
+                if(/*!cvIsNaN(d) && */(d > maxDepth || d < minDepth || d <= 0))
+                    d = std::numeric_limits<float>::quiet_NaN();
+            }
+        }
+    }
+    else
+    {
+        for(int y = 0; y < depth.rows; y++)
+        {
+            float *depth_row = depth.ptr<float>(y);
+            const uchar *mask_row = mask.ptr<uchar>(y);
+            for(int x = 0; x < depth.cols; x++)
+            {
+                float& d = depth_row[x];
+                if(!mask_row[x] || (/*!cvIsNaN(d) && */(d > maxDepth || d < minDepth || d <= 0)))
+                    d = std::numeric_limits<float>::quiet_NaN();
+            }
         }
     }
 }
@@ -348,6 +366,8 @@ void buildGradientPyramids(const vector<Mat>& pyramidImage,
 
     for(size_t i = 0; i < pyramidTexturedMask.size(); i++)
     {
+        const float minScaledGradMagnitude2 = minGradMagnitudes[i] * minGradMagnitudes[i] * sobelScale2_inv;
+        
         Sobel(pyramidImage[i], pyramid_dI_dx[i], CV_16S, 1, 0, sobelSize);
         Sobel(pyramidImage[i], pyramid_dI_dy[i], CV_16S, 0, 1, sobelSize);
 
@@ -355,15 +375,17 @@ void buildGradientPyramids(const vector<Mat>& pyramidImage,
         const Mat& dIdy = pyramid_dI_dy[i];
 
         Mat texturedMask(dIdx.size(), CV_8UC1, Scalar(0));
-        const float minScaledGradMagnitude2 = static_cast<float>(minGradMagnitudes[i] * minGradMagnitudes[i]) * sobelScale2_inv;
+        
         for(int y = 0; y < dIdx.rows; y++)
         {
+            const short *dIdx_row = dIdx.ptr<short>(y);
+            const short *dIdy_row = dIdy.ptr<short>(y);
+            uchar *texturedMask_row = texturedMask.ptr<uchar>(y);
             for(int x = 0; x < dIdx.cols; x++)
             {
-                float magnitude2 = static_cast<float>(dIdx.at<short>(y,x) * dIdx.at<short>(y,x) + 
-                                                      dIdy.at<short>(y,x) * dIdy.at<short>(y,x));
+                float magnitude2 = static_cast<float>(dIdx_row[x] * dIdx_row[x] + dIdy_row[x] * dIdy_row[x]);
                 if(magnitude2 >= minScaledGradMagnitude2)
-                    texturedMask.at<uchar>(y,x) = 255;
+                    texturedMask_row[x] = 255;
             }
         }
         pyramidTexturedMask[i] = texturedMask;
@@ -383,7 +405,7 @@ void buildNormalPyramids(const vector<Mat>& pyramidDepth0, const vector<Mat>& py
     pyramidNormals1.resize(pyramidLevels);
     pyramidNormalMask1.resize(pyramidLevels);
 
-    if(normalComputers.empty())
+    if(normalComputers.empty() || normalComputers.size() != pyramidLevels)
         normalComputers.resize(pyramidLevels);
 
     for(size_t i = 0; i < pyramidLevels; i++)
@@ -408,14 +430,19 @@ void buildNormalPyramids(const vector<Mat>& pyramidDepth0, const vector<Mat>& py
         normals1 = (*normalComputers[i])(pyramidVertices1[i]);
         
         CV_Assert(normals1.type() == CV_32FC3);
-        Mat normalMask1 = Mat(levelVertices1.size(), CV_8UC1, Scalar::all(0));
+        Mat normalMask1 = Mat(levelVertices1.size(), CV_8UC1, Scalar(0));
         for(int y = 0; y < normals1.rows; y++)
         {
+            const Vec3f *normals1_row = normals1.ptr<Vec3f>(y);
+            uchar *normalMask1_row = normalMask1.ptr<uchar>(y);
             for(int x = 0; x < normals1.cols; x++)
             {
-                Vec3f n = normals1.at<Vec3f>(y,x);
-                if(!cvIsNaN(n[0]) && !cvIsNaN(n[1]) && !cvIsNaN(n[2]))
-                   normalMask1.at<uchar>(y,x) = 255;
+                Vec3f n = normals1_row[x];
+                if(!cvIsNaN(n[0]))
+                {
+                    CV_DbgAssert(!cvIsNaN(n[1]) && !cvIsNaN(n[2]));
+                    normalMask1_row[x] = 255;
+                }
             }
         }
         pyramidNormalMask1[i] = normalMask1;
@@ -493,35 +520,60 @@ int computeCorresps(const Mat& K, const Mat& K_inv, const Mat& Rt,
     CV_Assert(Rt.type() == CV_64FC1);
 
     corresps.create(depth1.size(), CV_32SC1);
-
-    Mat R = Rt(Rect(0,0,3,3)).clone();
-
-    Mat KRK_inv = K * R * K_inv;
-    const double * KRK_inv_ptr = reinterpret_cast<const double *>(KRK_inv.ptr());
-
+    corresps.setTo(-1);
+    
+    Rect r(0, 0, depth1.cols, depth1.rows);
     Mat Kt = Rt(Rect(3,0,1,3)).clone();
     Kt = K * Kt;
     const double * Kt_ptr = reinterpret_cast<const double *>(Kt.ptr());
 
-    Rect r(0, 0, depth1.cols, depth1.rows);
+    AutoBuffer<float> buf(3 * (depth1.cols + depth1.rows));
+    float *KRK_inv0_u1 = buf;
+    float *KRK_inv1_v1_plus_KRK_inv2 = KRK_inv0_u1 + depth1.cols;
+    float *KRK_inv3_u1 = KRK_inv1_v1_plus_KRK_inv2 + depth1.rows;
+    float *KRK_inv4_v1_plus_KRK_inv5 = KRK_inv3_u1 + depth1.cols;
+    float *KRK_inv6_u1 = KRK_inv4_v1_plus_KRK_inv5 + depth1.rows;
+    float *KRK_inv7_v1_plus_KRK_inv8 = KRK_inv6_u1 + depth1.cols;
+    {
+        Mat R = Rt(Rect(0,0,3,3)).clone();
 
-    corresps = Scalar(-1);
+        Mat KRK_inv = K * R * K_inv;
+        const double * KRK_inv_ptr = reinterpret_cast<const double *>(KRK_inv.ptr());
+        for(int u1 = 0; u1 < depth1.cols; u1++)
+        {
+            KRK_inv0_u1[u1] = KRK_inv_ptr[0] * u1;
+            KRK_inv3_u1[u1] = KRK_inv_ptr[3] * u1;
+            KRK_inv6_u1[u1] = KRK_inv_ptr[6] * u1;
+        }
+        
+        for(int v1 = 0; v1 < depth1.rows; v1++)
+        {
+            KRK_inv1_v1_plus_KRK_inv2[v1] = KRK_inv_ptr[1] * v1 + KRK_inv_ptr[2];
+            KRK_inv4_v1_plus_KRK_inv5[v1] = KRK_inv_ptr[4] * v1 + KRK_inv_ptr[5];
+            KRK_inv7_v1_plus_KRK_inv8[v1] = KRK_inv_ptr[7] * v1 + KRK_inv_ptr[8];
+        }
+    }
+
     int correspCount = 0;
     for(int v1 = 0; v1 < depth1.rows; v1++)
     {
+        const float *depth1_row = depth1.ptr<float>(v1);
+        const uchar *mask1_row = mask1.ptr<uchar>(v1);
         for(int u1 = 0; u1 < depth1.cols; u1++)
         {
-            float d1 = depth1.at<float>(v1,u1);
-            if(!cvIsNaN(d1) && mask1.at<uchar>(v1,u1))
+            float d1 = depth1_row[u1];
+            if(mask1_row[u1] && !cvIsNaN(d1))
             {
-                float transformed_d1 = static_cast<float>(d1 * (KRK_inv_ptr[6] * u1 + KRK_inv_ptr[7] * v1 + KRK_inv_ptr[8]) + Kt_ptr[2]);
-                int u0 = cvRound((d1 * (KRK_inv_ptr[0] * u1 + KRK_inv_ptr[1] * v1 + KRK_inv_ptr[2]) + Kt_ptr[0]) / transformed_d1);
-                int v0 = cvRound((d1 * (KRK_inv_ptr[3] * u1 + KRK_inv_ptr[4] * v1 + KRK_inv_ptr[5]) + Kt_ptr[1]) / transformed_d1);
-
-                if(r.contains(Point(u0,v0)))
+                float transformed_d1 = static_cast<float>(d1 * (KRK_inv6_u1[u1] + KRK_inv7_v1_plus_KRK_inv8[v1]) + Kt_ptr[2]);
+                if(transformed_d1 > 0)
                 {
+                    float transformed_d1_inv = 1.f / transformed_d1;
+                    int u0 = cvRound(transformed_d1_inv * (d1 * (KRK_inv0_u1[u1] + KRK_inv1_v1_plus_KRK_inv2[v1]) + Kt_ptr[0]));
+                    int v0 = cvRound(transformed_d1_inv * (d1 * (KRK_inv3_u1[u1] + KRK_inv4_v1_plus_KRK_inv5[v1]) + Kt_ptr[1]));
+                    
                     float d0 = depth0.at<float>(v0,u0);
-                    if(!cvIsNaN(d0) && std::abs(transformed_d1 - d0) <= maxDepthDiff && transformed_d1 > 0)
+                    if(!cvIsNaN(d0) && std::abs(transformed_d1 - d0) <= maxDepthDiff && 
+                        r.contains(Point(u0,v0)))
                     {
                         int c = corresps.at<int>(v0,u0);
                         if(c != -1)
@@ -529,7 +581,8 @@ int computeCorresps(const Mat& K, const Mat& K_inv, const Mat& Rt,
                             int exist_u1, exist_v1;
                             get2shorts(c, exist_u1, exist_v1);
 
-                            float exist_d1 = (float)(depth1.at<float>(exist_v1,exist_u1) * (KRK_inv_ptr[6] * exist_u1 + KRK_inv_ptr[7] * exist_v1 + KRK_inv_ptr[8]) + Kt_ptr[2]);
+                            float exist_d1 = (float)(depth1.at<float>(exist_v1,exist_u1) * 
+                                (KRK_inv6_u1[exist_u1] + KRK_inv7_v1_plus_KRK_inv8[exist_v1]) + Kt_ptr[2]);
 
                             if(transformed_d1 > exist_d1)
                                 continue;
@@ -543,7 +596,6 @@ int computeCorresps(const Mat& K, const Mat& K_inv, const Mat& Rt,
             }
         }
     }
-
     return correspCount;
 }
 
@@ -586,18 +638,21 @@ void calcRgbdLsmMatrices(const Mat& image0, const Mat& cloud0,
 
     double sigma = 0;
     int pointCount = 0;
+    AutoBuffer<float> diffs(correspsCount);
+    float * diffs_ptr = diffs;
     for(int v0 = 0; v0 < corresps.rows; v0++)
     {
+        const int* corresps_row = corresps.ptr<int>(v0);
+        const uchar* image0_row = image0.ptr<uchar>(v0);
         for(int u0 = 0; u0 < corresps.cols; u0++)
         {
-            if(corresps.at<int>(v0,u0) != -1)
+            if(corresps_row[u0] != -1)
             {
                 int u1, v1;
-                get2shorts(corresps.at<int>(v0,u0), u1, v1);
+                get2shorts(corresps_row[u0], u1, v1);
 
-                double diff = static_cast<double>(image0.at<uchar>(v0,u0)) -
-                               static_cast<double>(image1.at<uchar>(v1,u1));
-                sigma += diff * diff;
+                diffs_ptr[pointCount] = static_cast<float>(static_cast<int>(image0_row[u0]) - static_cast<int>(image1.at<uchar>(v1,u1)));
+                sigma += diffs_ptr[pointCount] * diffs_ptr[pointCount];
                 pointCount++;
             }
         }
@@ -607,23 +662,25 @@ void calcRgbdLsmMatrices(const Mat& image0, const Mat& cloud0,
     pointCount = 0;
     for(int v0 = 0; v0 < corresps.rows; v0++)
     {
+        const int* corresps_row = corresps.ptr<int>(v0);
+        const Point3f* cloud0_row = cloud0.ptr<Point3f>(v0);
         for(int u0 = 0; u0 < corresps.cols; u0++)
         {
-            if(corresps.at<int>(v0,u0) != -1)
+            if(corresps_row[u0] != -1)
             {
                 int u1, v1;
-                get2shorts(corresps.at<int>(v0,u0), u1, v1);
+                get2shorts(corresps_row[u0], u1, v1);
 
-                double diff = static_cast<double>(image0.at<uchar>(v0,u0)) - static_cast<double>(image1.at<uchar>(v1,u1));
-                double w = sigma + std::abs(diff);
+                double w = sigma + std::abs(diffs_ptr[pointCount]);
                 w = w > DBL_EPSILON ? 1./w : 1.;
 
+                double w_sobelScale = w * sobelScale;
                 calcRgbdEquationCoeffs(A.ptr<double>(pointCount),
-                         w * sobelScale * dI_dx1.at<short int>(v1,u1),
-                         w * sobelScale * dI_dy1.at<short int>(v1,u1),
-                         cloud0.at<Point3f>(v0,u0), fx, fy);
+                         w_sobelScale * dI_dx1.at<short int>(v1,u1),
+                         w_sobelScale * dI_dy1.at<short int>(v1,u1),
+                         cloud0_row[u0], fx, fy);
 
-                B.at<double>(pointCount) = w * diff;
+                B.at<double>(pointCount) = w * diffs_ptr[pointCount];
                 pointCount++;
             }
         }
@@ -644,24 +701,34 @@ void calcICPLsmMatrices(const Mat& levelCloud0, const Mat& Rt,
 
     double sigma = 0;
     int pointCount = 0;
+    AutoBuffer<float> diffs(correspsCount);
+    float * diffs_ptr = diffs;
+    AutoBuffer<Point3f> transformedPoints0(correspsCount);
+    Point3f * tps0_ptr = transformedPoints0;
     for(int v0 = 0; v0 < corresps.rows; v0++)
     {
+        const int* corresps_row = corresps.ptr<int>(v0);
+        const Point3f* levelCloud0_row = levelCloud0.ptr<Point3f>(v0);
         for(int u0 = 0; u0 < corresps.cols; u0++)
         {
-            if(corresps.at<int>(v0,u0) != -1)
+            if(corresps_row[u0] != -1)
             {
                 int u1, v1;
-                get2shorts(corresps.at<int>(v0,u0), u1, v1);
+                get2shorts(corresps_row[u0], u1, v1);
 
-                Point3f p0 = levelCloud0.at<Point3f>(v0, u0), tp0; // tp0 - transformed p0
+                const Point3f& p0 = levelCloud0_row[u0];
+                Point3f tp0; 
                 tp0.x = p0.x * Rt_ptr[0] + p0.y * Rt_ptr[1] + p0.z * Rt_ptr[2] + Rt_ptr[3];
                 tp0.y = p0.x * Rt_ptr[4] + p0.y * Rt_ptr[5] + p0.z * Rt_ptr[6] + Rt_ptr[7];
                 tp0.z = p0.x * Rt_ptr[8] + p0.y * Rt_ptr[9] + p0.z * Rt_ptr[10] + Rt_ptr[11];
 
                 Vec3f n1 = levelNormals1.at<Vec3f>(v1, u1);
                 Point3f v = levelCloud1.at<Point3f>(v1,u1) - tp0;
-                double diff = n1[0] * v.x + n1[1] * v.y + n1[2] * v.z;
-                sigma += diff * diff;
+                
+                tps0_ptr[pointCount] = tp0;
+                diffs_ptr[pointCount] = n1[0] * v.x + n1[1] * v.y + n1[2] * v.z;
+                sigma += diffs_ptr[pointCount] * diffs_ptr[pointCount];
+                
                 pointCount++;
             }
         }
@@ -672,29 +739,19 @@ void calcICPLsmMatrices(const Mat& levelCloud0, const Mat& Rt,
     pointCount = 0;
     for(int v0 = 0; v0 < corresps.rows; v0++)
     {
+        const int* corresps_row = corresps.ptr<int>(v0);
         for(int u0 = 0; u0 < corresps.cols; u0++)
         {
-            if(corresps.at<int>(v0,u0) != -1)
+            if(corresps_row[u0] != -1)
             {
                 int u1, v1;
-                get2shorts(corresps.at<int>(v0,u0), u1, v1);
+                get2shorts(corresps_row[u0], u1, v1);
 
-                Point3f p0 = levelCloud0.at<Point3f>(v0, u0), tp0; // tp0 - transformed p0
-                // recomputing the values here is even faster than saving them in previos cycle
-                tp0.x = p0.x * Rt_ptr[0] + p0.y * Rt_ptr[1] + p0.z * Rt_ptr[2] + Rt_ptr[3];
-                tp0.y = p0.x * Rt_ptr[4] + p0.y * Rt_ptr[5] + p0.z * Rt_ptr[6] + Rt_ptr[7];
-                tp0.z = p0.x * Rt_ptr[8] + p0.y * Rt_ptr[9] + p0.z * Rt_ptr[10] + Rt_ptr[11];
-
-                Vec3f n1 = levelNormals1.at<Vec3f>(v1, u1);
-                Point3f v = levelCloud1.at<Point3f>(v1,u1) - tp0;
-                double diff = n1[0] * v.x + n1[1] * v.y + n1[2] * v.z;
-
-                double w = sigma + std::abs(diff);
+                double w = sigma + std::abs(diffs_ptr[pointCount]);
                 w = w > DBL_EPSILON ? 1./w : 1.;
 
-                calcICPEquationCoeffs(A.ptr<double>(pointCount), tp0, n1 * w);
-
-                B.at<double>(pointCount) = w * diff;
+                calcICPEquationCoeffs(A.ptr<double>(pointCount), tps0_ptr[pointCount], levelNormals1.at<Vec3f>(v1, u1) * w);
+                B.at<double>(pointCount) = w * diffs_ptr[pointCount];
 
                 pointCount++;
             }
@@ -813,10 +870,11 @@ bool RGBDICPOdometryImpl(cv::Mat& Rt, const Mat& initRt,
         {
             int correspsCount1 = 0, correspsCount2 = 0;
             Mat resultRt_inv = resultRt.inv(DECOMP_SVD);
+            
             if(method & RGBD_ODOMETRY)
                 correspsCount1 = computeCorresps(levelCameraMatrix, levelCameraMatrix_inv, resultRt_inv,
-                                                levelDepth0, levelDepth1, mask1, maxDepthDiff,
-                                                corresps1);
+                                                 levelDepth0, levelDepth1, mask1, maxDepthDiff,
+                                                 corresps1);
             if(method & ICP_ODOMETRY)
                 correspsCount2 = computeCorresps(levelCameraMatrix, levelCameraMatrix_inv, resultRt_inv,
                                                 levelDepth0, levelDepth1, mask2, maxDepthDiff,
@@ -834,7 +892,6 @@ bool RGBDICPOdometryImpl(cv::Mat& Rt, const Mat& initRt,
                 AtA += A1.t() * A1;
                 AtB += A1.t() * B1;
             }
-
             if(correspsCount2 >= 6)
             {
                 calcICPLsmMatrices(pyramidCloud0[level], resultRt,
@@ -849,7 +906,6 @@ bool RGBDICPOdometryImpl(cv::Mat& Rt, const Mat& initRt,
                 break;
 
             computeProjectiveMatrix(ksi, currRt);
-
             resultRt = currRt * resultRt;
         }
     }
@@ -857,4 +913,3 @@ bool RGBDICPOdometryImpl(cv::Mat& Rt, const Mat& initRt,
 
     return !Rt.empty();
 }
-
