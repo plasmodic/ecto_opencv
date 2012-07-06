@@ -571,26 +571,28 @@ int computeCorresps(const Mat& K, const Mat& K_inv, const Mat& Rt,
                     int u0 = cvRound(transformed_d1_inv * (d1 * (KRK_inv0_u1[u1] + KRK_inv1_v1_plus_KRK_inv2[v1]) + Kt_ptr[0]));
                     int v0 = cvRound(transformed_d1_inv * (d1 * (KRK_inv3_u1[u1] + KRK_inv4_v1_plus_KRK_inv5[v1]) + Kt_ptr[1]));
                     
-                    float d0 = depth0.at<float>(v0,u0);
-                    if(!cvIsNaN(d0) && std::abs(transformed_d1 - d0) <= maxDepthDiff && 
-                        r.contains(Point(u0,v0)))
+                    if(r.contains(Point(u0,v0)))
                     {
-                        int c = corresps.at<int>(v0,u0);
-                        if(c != -1)
+                        float d0 = depth0.at<float>(v0,u0);
+                        if(!cvIsNaN(d0) && std::abs(transformed_d1 - d0) <= maxDepthDiff)
                         {
-                            int exist_u1, exist_v1;
-                            get2shorts(c, exist_u1, exist_v1);
+                            int c = corresps.at<int>(v0,u0);
+                            if(c != -1)
+                            {
+                                int exist_u1, exist_v1;
+                                get2shorts(c, exist_u1, exist_v1);
 
-                            float exist_d1 = (float)(depth1.at<float>(exist_v1,exist_u1) * 
-                                (KRK_inv6_u1[exist_u1] + KRK_inv7_v1_plus_KRK_inv8[exist_v1]) + Kt_ptr[2]);
+                                float exist_d1 = (float)(depth1.at<float>(exist_v1,exist_u1) * 
+                                    (KRK_inv6_u1[exist_u1] + KRK_inv7_v1_plus_KRK_inv8[exist_v1]) + Kt_ptr[2]);
 
-                            if(transformed_d1 > exist_d1)
-                                continue;
+                                if(transformed_d1 > exist_d1)
+                                    continue;
+                            }
+                            else
+                                correspCount++;
+
+                            set2shorts(corresps.at<int>(v0,u0), u1, v1);
                         }
-                        else
-                            correspCount++;
-
-                        set2shorts(corresps.at<int>(v0,u0), u1, v1);
                     }
                 }
             }
