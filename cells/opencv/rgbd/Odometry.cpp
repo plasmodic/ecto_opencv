@@ -152,30 +152,24 @@ namespace rgbd
 
       cv::Mat cameraMatrix;
       K_->convertTo(cameraMatrix, CV_32FC1);
-
-      std::vector<int> iterCounts(4);
-      iterCounts[0] = 7;
-      iterCounts[1] = 7;
-      iterCounts[2] = 7;
-      iterCounts[3] = 10;
-
-      std::vector<float> minGradMagnitudes(4);
-      minGradMagnitudes[0] = 12;
-      minGradMagnitudes[1] = 5;
-      minGradMagnitudes[2] = 3;
-      minGradMagnitudes[3] = 1;
-
-      const float minDepth = 0.f; //in meters
-      const float maxDepth = 3.f; //in meters
-      const float maxDepthDiff = 0.07f; //in meters
-
+      
+      if (odometry.empty())
+      {
+          odometry = Algorithm::create<cv::Odometry>("RGBD.RgbdOdometry");
+          odometry->set("cameraMatrix", cameraMatrix);
+      }
+      
+      if (odometry.empty())
+      {
+        std::cout << "Odometry algorithm can not be created." << std::endl;
+        return -1;
+      }
+      
       tm.start();
 
-      float icpPointsPart = 0;
-      bool isFound = cv::RGBDICPOdometry(Rt, cv::Mat(), previous_image_gray_, previous_depth_meters_, cv::Mat(),
-                                         current_image_gray, current_depth_meters, cv::Mat(), cameraMatrix,
-                                         normal_computers_, minDepth, maxDepth, maxDepthDiff, iterCounts,
-                                         minGradMagnitudes, icpPointsPart, cv::RGBD_ODOMETRY);
+      bool isFound = odometry->compute(previous_image_gray_, previous_depth_meters_, cv::Mat(),
+                                       current_image_gray, current_depth_meters, cv::Mat(),
+                                       Rt);
 
       if (isFound)
         previous_pose_ = cv::Mat_<float>(Rt) * previous_pose_;
@@ -220,7 +214,7 @@ namespace rgbd
     cv::Mat previous_image_;
     cv::Mat previous_depth_meters_;
     cv::Mat_<float> previous_pose_;
-    std::vector<cv::Ptr<cv::RgbdNormals> > normal_computers_;
+    Ptr<cv::Odometry> odometry;
     ecto::spore<cv::Mat> warp_;
 
     /** The output rotation matrix */

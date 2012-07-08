@@ -39,15 +39,49 @@
 
 namespace cv
 {
-  CV_INIT_ALGORITHM(
-      RgbdNormals,
-      "RGBD.RgbdNormals",
-      obj.info()->addParam(obj, "rows", obj.rows_); obj.info()->addParam(obj, "cols", obj.cols_); obj.info()->addParam(obj, "window_size", obj.window_size_); obj.info()->addParam(obj, "depth", obj.depth_); obj.info()->addParam(obj, "K", obj.K_); obj.info()->addParam(obj, "method", obj.method_));
+  CV_INIT_ALGORITHM(RgbdNormals, "RGBD.RgbdNormals",
+      obj.info()->addParam(obj, "rows", obj.rows_); 
+      obj.info()->addParam(obj, "cols", obj.cols_); 
+      obj.info()->addParam(obj, "window_size", obj.window_size_); 
+      obj.info()->addParam(obj, "depth", obj.depth_); 
+      obj.info()->addParam(obj, "K", obj.K_); 
+      obj.info()->addParam(obj, "method", obj.method_))
+
+  CV_INIT_ALGORITHM(RgbdOdometry, "RGBD.RgbdOdometry",
+      obj.info()->addParam(obj, "cameraMatrix", obj.cameraMatrix);
+      obj.info()->addParam(obj, "minDepth", obj.minDepth);
+      obj.info()->addParam(obj, "maxDepth", obj.maxDepth);
+      obj.info()->addParam(obj, "maxDepthDiff", obj.maxDepthDiff);
+      obj.info()->addParam(obj, "iterCounts", obj.iterCounts);
+      obj.info()->addParam(obj, "minGradientMagnitudes", obj.minGradientMagnitudes))
+      
+  CV_INIT_ALGORITHM(ICPOdometry, "RGBD.ICPOdometry",
+      obj.info()->addParam(obj, "cameraMatrix", obj.cameraMatrix);
+      obj.info()->addParam(obj, "minDepth", obj.minDepth);
+      obj.info()->addParam(obj, "maxDepth", obj.maxDepth);
+      obj.info()->addParam(obj, "maxDepthDiff", obj.maxDepthDiff);
+      obj.info()->addParam(obj, "pointsPart", obj.pointsPart);
+      obj.info()->addParam(obj, "iterCounts", obj.iterCounts);
+      /*obj.info()->addParam(obj, "normalComputers", obj.normalComputers, true);*/)
+      
+  CV_INIT_ALGORITHM(RgbdICPOdometry, "RGBD.RgbdICPOdometry",
+      obj.info()->addParam(obj, "cameraMatrix", obj.cameraMatrix);
+      obj.info()->addParam(obj, "minDepth", obj.minDepth);
+      obj.info()->addParam(obj, "maxDepth", obj.maxDepth);
+      obj.info()->addParam(obj, "maxDepthDiff", obj.maxDepthDiff);
+      obj.info()->addParam(obj, "pointsPart", obj.pointsPart);
+      obj.info()->addParam(obj, "iterCounts", obj.iterCounts);
+      obj.info()->addParam(obj, "minGradientMagnitudes", obj.minGradientMagnitudes);
+      /*obj.info()->addParam(obj, "normalComputers", obj.normalComputers, true);*/);
 
   bool
   initModule_rgbd(void)
   {
-    Ptr<Algorithm> em = createRgbdNormals();
-    return em->info() != 0;
+    bool all = true;
+    all &= !RgbdNormals_info_auto.name().empty();
+    all &= !RgbdOdometry_info_auto.name().empty();
+    all &= !ICPOdometry_info_auto.name().empty();
+    all &= !RgbdICPOdometry_info_auto.name().empty();
+    return all;
   }
 }

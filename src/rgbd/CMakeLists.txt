@@ -6,7 +6,7 @@ find_package(OpenCV REQUIRED)
 
 add_library(opencv_rgbd src/normal.cpp
                         src/depth_to_3d.cpp
-                        src/rgbd_icp.cpp
+                        src/odometry.cpp
                         src/plane.cpp
                         src/rgbd_init.cpp
                         src/utils.cpp
@@ -25,18 +25,20 @@ install(DIRECTORY include/opencv2/rgbd
         COMPONENT main
 )
 
-# Add some tests
-include_directories(${GTEST_INCLUDE_DIRS})
+# Add sample
+add_executable(odometry_evaluation samples/odometry_evaluation.cpp)
+target_link_libraries(odometry_evaluation ${OpenCV_LIBRARIES} opencv_rgbd)
 
+# Add some tests
 add_executable(rgbd_tests test/test_main.cpp
-                                    test/test_normal.cpp
-                                    test/test_precomp.cpp
-                                    test/test_utils.cpp
+                          test/test_normal.cpp
+                          test/test_odometry.cpp
+                          test/test_precomp.cpp
+                          test/test_utils.cpp
 )
 
 find_library(OPENCV_TS_LIBRARY opencv_ts ${OpenCV_LIB_DIR})
-target_link_libraries(rgbd_tests ${GTEST_BOTH_LIBRARIES}
-                                 ${OpenCV_LIBRARIES}
+target_link_libraries(rgbd_tests ${OpenCV_LIBRARIES}
                                  opencv_rgbd
                                  ${OPENCV_TS_LIBRARY}
 )

@@ -178,26 +178,170 @@ namespace cv
     RgbdNormals rgbd_normals_;
   };
 
-// ICP (Maria)
-  // TODO 1) refactor the interface (make it as a class?),
-  //      2) add comments
-  //      3) put image and depth filtering into the function (?),
-  //      4) do not check and process rgb or depth if they are not needed
-  //         (eg. rgb processing in case of ICP_ODOMETRY or some normals in case of RGBD_ODOMETRY)
-  enum
+  // TODO 
+  //      2) tests
+  
+  /** Base class for computation of odometry.
+   */
+  CV_EXPORTS class Odometry : public Algorithm
   {
-    RGBD_ODOMETRY = 1, ICP_ODOMETRY = 2, MERGED_ODOMETRY = RGBD_ODOMETRY + ICP_ODOMETRY
+  public:
+    static inline float DEFAULT_MIN_DEPTH(){ return 0.f; }
+    static inline float DEFAULT_MAX_DEPTH(){ return 4.f; }
+    static inline float DEFAULT_MAX_DEPTH_DIFF(){ return 0.07f; }
+    static inline float DEFAULT_USED_POINTS_PART(){ return 0.07f; }
+    
+    /** Method to compute transformation between two neighboring frames.
+     * Some odometry algorithms do not used some data of frames (eg. ICP does not use images).
+     * In such case corresponding arguments can be set as empty cv::Mat.
+     * @param image0 Image data of first frame
+     * @param depth0 Depth data of first frame
+     * @param mask0 Mask that sets which pixels have to be used from first frame
+     * @param image1 Image data of second frame
+     * @param depth1 Depth data of second frame
+     * @param mask1 Mask that sets which pixels have to be used from second frame
+     * @param Rt Resulting transformation from first frame to second one (rigid body motion)
+     * @param initRt Initial transformation from first frame to second one (optional)
+     */
+    bool compute(const Mat& image0, const Mat& depth0, const Mat& mask0,
+                 const Mat& image1, const Mat& depth1, const Mat& mask1, 
+                 Mat& Rt, const Mat& initRt=Mat()) const;
+  protected:
+    virtual void checkParams() const = 0;
+    virtual void checkFrames(const Mat& image0, const Mat& depth0, const Mat& mask0,
+                             const Mat& image1, const Mat& depth1, const Mat& mask1) const = 0;
+    virtual bool computeImpl(const Mat& image0, const Mat& depth0, const Mat& mask0,
+                             const Mat& image1, const Mat& depth1, const Mat& mask1,
+                             const Mat& initRt, Mat& Rt) const = 0;
+  };
+  
+  /** Odometry based on the paper "Real-Time Visual Odometry from Dense RGB-D Images", 
+   * F. Steinbucker, J. Strum, D. Cremers, ICCV, 2011.
+   */
+  CV_EXPORTS class RgbdOdometry : public Odometry
+  {
+  public:
+    RgbdOdometry();
+    /** Constructor.
+    * @param cameraMatrix Camera matrrix
+    * @param minDepth Pixels with depth less than minDepth will not be used
+    * @param maxDepth Pixels with depth larger than maxDepth will not be used
+    * @param maxDepthDiff Correspondences between pixels of two given frames will be filtered out
+    *                     if their depth difference is larger than maxDepthDiff
+    * @param iterCounts Count of iterations on each pyramid level.
+    * @param minGradientMagnitudes For each pyramid level the pixels will be filtered out 
+    *                              if they have gradient magnitude less than minGradientMagnitudes[level].
+    */
+    RgbdOdometry(const Mat& cameraMatrix, 
+                 float minDepth=DEFAULT_MIN_DEPTH(), 
+                 float maxDepth=DEFAULT_MAX_DEPTH(), 
+                 float maxDepthDiff=DEFAULT_MAX_DEPTH_DIFF(),
+                 const vector<int>& iterCounts=vector<int>(),
+                 const vector<float>& minGradientMagnitudes=vector<float>());
+                 
+    AlgorithmInfo* info() const;
+
+  protected:
+    virtual void checkParams() const;
+    virtual void checkFrames(const Mat& image0, const Mat& depth0, const Mat& mask0,
+                             const Mat& image1, const Mat& depth1, const Mat& mask1) const;
+    virtual bool computeImpl(const Mat& image0, const Mat& depth0, const Mat& mask0,
+                             const Mat& image1, const Mat& depth1, const Mat& mask1,
+                             const Mat& initRt, Mat& Rt) const;
+    // params
+    Mat cameraMatrix;
+    // Some params have commented desired type. It's due to cv::AlgorithmInfo::addParams does not support it now.
+    /*float*/double minDepth, maxDepth, maxDepthDiff;
+    /*vector<int>*/Mat iterCounts;
+    /*vector<float>*/Mat minGradientMagnitudes;
+  };
+  
+  /** Odometry based on the paper "KinectFusion: Real-Time Dense Surface Mapping and Tracking", 
+   * Richard A. Newcombe, Andrew Fitzgibbon, at al, SIGGRAPH, 2011.
+   */
+  class ICPOdometry : public Odometry
+  {
+  public:
+    ICPOdometry();
+    /** Constructor.
+    * @param cameraMatrix Camera matrrix
+    * @param minDepth Pixels with depth less than minDepth will not be used
+    * @param maxDepth Pixels with depth larger than maxDepth will not be used
+    * @param maxDepthDiff Correspondences between pixels of two given frames will be filtered out
+    *                     if their depth difference is larger than maxDepthDiff
+    * @param pointsPart The method uses a random pixels subset of size frameWidth x frameHeight x pointsPart
+    * @param iterCounts Count of iterations on each pyramid level.
+    */
+    ICPOdometry(const Mat& cameraMatrix, 
+        float minDepth=DEFAULT_MIN_DEPTH(), 
+        float maxDepth=DEFAULT_MAX_DEPTH(), 
+        float maxDepthDiff=DEFAULT_MAX_DEPTH_DIFF(),
+        float pointsPart=DEFAULT_USED_POINTS_PART(),
+        const vector<int>& iterCounts=vector<int>());
+                 
+    AlgorithmInfo* info() const;
+    
+  protected:
+    virtual void checkParams() const;
+    virtual void checkFrames(const Mat& image0, const Mat& depth0, const Mat& mask0,
+                             const Mat& image1, const Mat& depth1, const Mat& mask1) const;
+    virtual bool computeImpl(const Mat& image0, const Mat& depth0, const Mat& mask0,
+                             const Mat& image1, const Mat& depth1, const Mat& mask1,
+                             const Mat& initRt, Mat& Rt) const;
+    // params
+    Mat cameraMatrix;
+    // Some params have commented desired type. It's due to cv::AlgorithmInfo::addParams does not support it now.
+    /*float*/ double minDepth, maxDepth, maxDepthDiff;
+    /*float*/ double pointsPart;
+    /*vector<int>*/Mat iterCounts;
+    
+    mutable vector<cv::Ptr<cv::RgbdNormals> > normalComputers;
   };
 
-  CV_EXPORTS bool
-  RGBDICPOdometry(cv::Mat& Rt, const cv::Mat& initRt, const cv::Mat& image0, const cv::Mat& _depth0,
-                  const cv::Mat& validMask0, const cv::Mat& image1, const cv::Mat& _depth1, const cv::Mat& validMask1,
-                  const cv::Mat& cameraMatrix, std::vector<cv::Ptr<cv::RgbdNormals> >& normalComputers, float minDepth =
-                      0.f,
-                  float maxDepth = 4.f, float maxDepthDiff = 0.07f, const std::vector<int>& iterCounts =
-                      std::vector<int>(),
-                  const std::vector<float>& minGradientMagnitudes = std::vector<float>(), float icpPointsPart = 0.07f,
-                  int methodType = RGBD_ODOMETRY);
+   /** Odometry that merges RgbdOdometry and ICPOdometry by minimize sum of their energy functions.
+   */
+  class RgbdICPOdometry : public Odometry
+  {
+  public:
+    RgbdICPOdometry();
+    /** Constructor.
+    * @param cameraMatrix Camera matrrix
+    * @param minDepth Pixels with depth less than minDepth will not be used
+    * @param maxDepth Pixels with depth larger than maxDepth will not be used
+    * @param maxDepthDiff Correspondences between pixels of two given frames will be filtered out
+    *                     if their depth difference is larger than maxDepthDiff
+    * @param pointsPart The method uses a random pixels subset of size frameWidth x frameHeight x pointsPart
+    * @param iterCounts Count of iterations on each pyramid level.
+    * @param minGradientMagnitudes For each pyramid level the pixels will be filtered out 
+    *                              if they have gradient magnitude less than minGradientMagnitudes[level].
+    */
+    RgbdICPOdometry(const Mat& cameraMatrix, 
+                    float minDepth=DEFAULT_MIN_DEPTH(), 
+                    float maxDepth=DEFAULT_MAX_DEPTH(), 
+                    float maxDepthDiff=DEFAULT_MAX_DEPTH_DIFF(),
+                    float pointsPart=DEFAULT_USED_POINTS_PART(),
+                    const vector<int>& iterCounts=vector<int>(),
+                    const vector<float>& minGradientMagnitudes=vector<float>());
+                 
+    AlgorithmInfo* info() const;
+    
+  protected:
+    virtual void checkParams() const;
+    virtual void checkFrames(const Mat& image0, const Mat& depth0, const Mat& mask0,
+                             const Mat& image1, const Mat& depth1, const Mat& mask1) const;
+    virtual bool computeImpl(const Mat& image0, const Mat& depth0, const Mat& mask0,
+                             const Mat& image1, const Mat& depth1, const Mat& mask1,
+                             const Mat& initRt, Mat& Rt) const;
+    // params
+    Mat cameraMatrix;
+    // Some params have commented desired type. It's due to cv::AlgorithmInfo::addParams does not support it now.
+    /*float*/double minDepth, maxDepth, maxDepthDiff;
+    /*float*/double pointsPart;
+    /*vector<int>*/Mat iterCounts;
+    /*vector<float>*/Mat minGradientMagnitudes;
+    
+    mutable vector<cv::Ptr<cv::RgbdNormals> > normalComputers;
+  };
 
 // TODO Depth interpolation
 // Curvature
