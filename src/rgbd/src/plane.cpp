@@ -48,6 +48,7 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/core/types_c.h>
 #include <opencv2/calib3d/calib3d.hpp>
+#include <opencv2/highgui/highgui.hpp>
 #include <opencv2/rgbd/rgbd.hpp>
 
 /** Structure defining a plane */
@@ -266,9 +267,10 @@ PointDistanceSq(const cv::Point2i& point_1, const cv::Point2i& point_2)
 class Sampler
 {
 public:
-  Sampler(const cv::Mat& points3d, const cv::Mat_<uchar> & overall_mask)
+  Sampler(const cv::Mat& points3d, const cv::Mat & normals, const cv::Mat_<uchar> & overall_mask)
       :
         points3d_(points3d),
+        normals_(normals),
         overall_mask_(overall_mask)
   {
   }
@@ -354,8 +356,7 @@ private:
         return false;
 
       // Check that the point is valid
-      if ((!overall_mask_(points[i].y, points[i].x))
-          && (!cvIsNaN(points3d_.at<cv::Vec3f>(points[i].y, points[i].x)[0])))
+      if ((!overall_mask_(points[i].y, points[i].x)) && (!cvIsNaN(points3d_.at<cv::Vec3f>(points[i].y, points[i].x)[0])))
         continue;
 
       // If invalid, try to find neighbors that fit the criteria
@@ -377,6 +378,7 @@ private:
     return true;
   }
   const cv::Mat& points3d_;
+  const cv::Mat& normals_;
   const cv::Mat_<uchar> & overall_mask_;
 };
 
@@ -621,11 +623,78 @@ RefinePlane(const cv::Mat& points3d, const PlaneMask& mask, int n_inliers, Plane
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+cv::Mat_<float>
+computeResiduals(const cv::Mat_<cv::Vec3f> &, const cv::Mat_<cv::Vec3f> & normals)
+{
+  cv::Mat_<float> residuals = cv::Mat_<float>::zeros(normals.size());
+  std::vector<cv::Mat_<float> > channels(3);
+  std::vector<cv::Mat_<float> > channels_integrals(3);
+  cv::split(normals, channels);
+
+  // Figure out the valid points
+  int half_window_size = 10;
+  cv::Mat_<uchar> valid = cv::Mat_<uchar>::ones(normals.size());
+  for (int y = 0; y < normals.rows; ++y)
+    for (int x = 0; x < normals.cols; ++x)
+      if (cvIsNaN(channels[0](y, x)))
+      {
+        channels[0](y, x) = 0;
+        channels[1](y, x) = 0;
+        channels[2](y, x) = 0;
+        valid(y, x) = 0;
+      }
+
+  // Compute the integral images
+  for (char i = 0; i < 3; ++i)
+    cv::integral(channels[i], channels_integrals[i], CV_32F);
+
+  cv::Mat_<int> valid_count, count(valid.size());
+  cv::integral(valid, valid_count);
+  for (int y = half_window_size; y < normals.rows - half_window_size - 1; ++y)
+    for (int x = half_window_size; x < normals.cols - half_window_size - 1; ++x)
+      if (valid(y, x))
+        count(y, x) = valid_count(y + half_window_size + 1, x + half_window_size + 1)
+            - valid_count(y - half_window_size, x + half_window_size + 1)
+            - valid_count(y + half_window_size + 1, x - half_window_size)
+                      + valid_count(y - half_window_size, x - half_window_size);
+      else
+        count(y, x) = 0;
+
+  // For each point, compute the average distance of the neighboring normals to
+  // the current normal
+  for (int y = half_window_size; y < normals.rows - half_window_size - 1; ++y)
+    for (int x = half_window_size; x < normals.cols - half_window_size - 1; ++x)
+    {
+      if (count(y, x) >= (2 * half_window_size + 1) * (2 * half_window_size + 1) * 0.5)
+      {
+        for (char i = 0; i < 3; ++i)
+          residuals(y, x) += normals(y, x)[i]
+              * (channels_integrals[i](y + half_window_size + 1, x + half_window_size + 1) - channels_integrals[i](
+                  y - half_window_size, x + half_window_size + 1)
+                 - channels_integrals[i](y + half_window_size + 1, x - half_window_size)
+                 + channels_integrals[i](y - half_window_size, x - half_window_size));
+
+        residuals(y, x) /= count(y, x);
+      }
+      else
+        residuals(y, x) = std::numeric_limits<float>::quiet_NaN();
+    }
+
+  return residuals;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 namespace cv
 {
   RgbdPlane::RgbdPlane(int rows, int cols, int depth, const cv::Mat & K, int window_size, RGBD_PLANE_METHOD method)
   {
-    rgbd_normals_ = RgbdNormals(rows, cols, depth, K, window_size, RgbdNormals::RGBD_NORMALS_METHOD_FALS);
+    rgbd_normals_.set("rows", rows);
+    rgbd_normals_.set("cols", cols);
+    rgbd_normals_.set("depth", depth);
+    rgbd_normals_.set("K", K);
+    rgbd_normals_.set("window_size", window_size);
+    rgbd_normals_.set("method", method);
   }
 
   /** Find
@@ -635,9 +704,10 @@ namespace cv
   void
   RgbdPlane::operator()(const cv::Mat & points3d_in, cv::Mat &mask_out, std::vector<cv::Vec4f> & plane_coefficients)
   {
-    CV_Assert(!rgbd_normals_.empty());
-    cv::Mat normals = rgbd_normals_(points3d_in);
-    this->operator()(points3d_in, normals, mask_out, plane_coefficients);
+    cv::Mat_<cv::Vec3f> points3d_;
+    points3d_in.convertTo(points3d_, CV_32F);
+    cv::Mat_<cv::Vec3f> normals = rgbd_normals_(points3d_);
+    this->operator()(points3d_, normals, mask_out, plane_coefficients);
   }
 
   void
@@ -656,16 +726,14 @@ namespace cv
     double error_ = 0.02;
 
     cv::Mat_<cv::Vec3f> points3d_;
-    points3d_in.convertTo(points3d_, CV_32F);
-    /** Output planes */
-    std::vector<cv::Vec4f> planes_;
+    if (points3d_in.depth() == CV_32F)
+      points3d_ = points3d_in;
+    else
+      points3d_in.convertTo(points3d_, CV_32F);
     /** Output mask of the planes */
     std::vector<cv::Mat> masks_;
     /** Output bouding rectangles of the masks of the planes */
     std::vector<cv::Rect> rects_;
-
-    /** An output image that contains dense clusters */
-    cv::Mat image_clusters_;
 
     cv::TickMeter tm;
     tm.start();
@@ -674,6 +742,13 @@ namespace cv
     // Pre-computations
     cv::Mat_<uchar> overall_mask = cv::Mat_<uchar>::zeros(points3d_.rows, points3d_.cols);
     std::vector<PlaneMask> masks;
+
+    // Compute the plane residuals as an approximation of the curvature
+    /*cv::Mat_<float> residuals = computeResiduals(points3d_, normals);
+
+    cv::namedWindow("curvature");
+    cv::imshow("curvature", residuals >= std::cos(35 * CV_PI / 180));
+    cv::waitKey(2);*/
 
     // Line 3-4
     size_t index_plane = 1;
@@ -685,11 +760,9 @@ namespace cv
 
     plane_coefficients.clear();
     mask_out.create(points3d_in.rows, points3d_in.cols, CV_8U);
+    Sampler sampler(points3d_, normals, overall_mask);
     for (size_t i_trial = 0; i_trial < n_trials_; ++i_trial)
     {
-      // Line 5-8
-      Sampler sampler(points3d_, overall_mask);
-
       if (!sampler.Find(d))
         break;
 
