@@ -136,6 +136,14 @@ class PlaneMasks
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+class PlaneRegion
+{
+public:
+
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 class PlaneGrid
 {
 public:
@@ -244,6 +252,7 @@ public:
 
   PlaneQueue(const PlaneGrid &plane_grid)
   {
+    tiles_.clear();
     for (int y = 0; y < plane_grid.mse_.rows; ++y)
       for (int x = 0; x < plane_grid.mse_.cols; ++x)
       {
@@ -251,9 +260,9 @@ public:
         tiles_.push_back(PlaneTile(x, y, plane_grid.mse_(y, x)));
       }
     // Sort tiles by MSE
-    std::sort(tiles_.begin(), tiles_.end(), TileComparator());
+    tiles_.sort(TileComparator());
   }
-  std::vector<PlaneTile> tiles_;
+  std::list<PlaneTile> tiles_;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
