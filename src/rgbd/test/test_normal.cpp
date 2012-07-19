@@ -118,7 +118,8 @@ struct Plane
 };
 
 void
-gen_points_3d(std::vector<Plane>& planes_out, cv::Mat& points3d, cv::Mat& normals, int n_planes)
+gen_points_3d(std::vector<Plane>& planes_out, cv::Mat_<unsigned char> &plane_mask, cv::Mat& points3d, cv::Mat& normals,
+              int n_planes)
 {
   std::vector<Plane> planes;
   for (int i = 0; i < n_planes; i++)
@@ -130,8 +131,10 @@ gen_points_3d(std::vector<Plane>& planes_out, cv::Mat& points3d, cv::Mat& normal
       planes.push_back(px);
     }
   }
-  cv::Mat_<cv::Vec3f> outp(cv::Size(W, H));
-  cv::Mat_<cv::Vec3f> outn(cv::Size(W, H));
+  cv::Mat_<cv::Vec3f> outp(H, W);
+  cv::Mat_<cv::Vec3f> outn(H, W);
+  plane_mask.create(H, W);
+
   // n  ( r - r_0) = 0
   // n * r_0 = d
   //
@@ -141,9 +144,11 @@ gen_points_3d(std::vector<Plane>& planes_out, cv::Mat& points3d, cv::Mat& normal
   {
     for (int u = 0; u < W; u++)
     {
-      Plane plane = planes[(u / float(W)) * planes.size()];
+      unsigned int plane_index = (u / float(W)) * planes.size();
+      Plane plane = planes[plane_index];
       outp(v, u) = plane.intersection(u, v, Kinv);
       outn(v, u) = plane.n;
+      plane_mask(v, u) = plane_index;
     }
   }
   planes_out = planes;
@@ -151,36 +156,7 @@ gen_points_3d(std::vector<Plane>& planes_out, cv::Mat& points3d, cv::Mat& normal
   normals = outn;
 }
 
-void
-testit(cv::Mat points3d, cv::Mat in_ground_normals, const cv::RgbdNormals & normals_computer, float thresh)
-{
-  cv::TickMeter tm;
-  tm.start();
-  cv::Mat in_normals = normals_computer(points3d);
-  tm.stop();
-
-  cv::Mat_<cv::Vec3f> normals, ground_normals;
-  in_normals.convertTo(normals, CV_32FC3);
-  in_ground_normals.convertTo(ground_normals, CV_32FC3);
-
-  float err = 0;
-  for (int y = 0; y < normals.rows; ++y)
-    for (int x = 0; x < normals.cols; ++x)
-    {
-      cv::Vec3f vec1 = normals(y, x), vec2 = ground_normals(y, x);
-      vec1 = vec1 / cv::norm(vec1);
-      vec2 = vec2 / cv::norm(vec2);
-
-      float dot = vec1.dot(vec2);
-      // Just for rounding errors
-      if (std::abs(dot) < 1)
-        err += std::min(std::acos(dot), std::acos(-dot));
-    }
-
-  err /= normals.rows * normals.cols;
-  ASSERT_LE(err, thresh) << "mean diff: " << err << " thresh: " << thresh << std::endl;
-  std::cout << "Average error: " << err << " Speed: " << tm.getTimeMilli() << " ms" << std::endl;
-}
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 class CV_RgbdNormalsTest: public cvtest::BaseTest
 {
@@ -197,73 +173,7 @@ protected:
   {
     try
     {
-      /*
-       // K from a VGA Kinect
-       cv::Mat K = (cv::Mat_<float>(3, 3) << 525., 0., 319.5, 0., 525., 239.5, 0., 0., 1.);
-       K = (cv::Mat_<float>(3, 3) << 1., 0., 0, 0., 1., 0, 0., 0., 1.);
-       // Create a random plane
-       cv::RNG rng;
-       cv::Mat_<float> plane(1, 4);
-       rng.fill(plane, cv::RNG::UNIFORM, -10, 10);
-
-       // Create some 3d points on the plane
-       int rows = 480, cols = 640;
-       cv::Mat_<float> depth(rows, cols);
-       {
-       cv::Mat K_inv = K.inv();
-       // Fix the scale of each point to fall on the plane
-       for (int y = 0; y < rows; ++y)
-       for (int x = 0; x < cols; ++x)
-       {
-       cv::Mat_<float> point = (K_inv * (cv::Mat_<float>(3, 1) << x, y, 1));
-       point = point
-       * (-plane(0, 3)
-       / (point(0, 0) * plane(0, 0) + point(1, 0) * plane(0, 1) + point(2, 0) * plane(0, 2)));
-       depth(y, x) = point(2, 0);
-       }
-       }
-
-       // Compute the 3d points
-       cv::Mat_ < cv::Vec3f > points3d;
-       depthTo3d(depth, K, points3d);
-
-       // Make sure the points belong to the plane
-       float avg_diff = 0;
-       for (int y = 0; y < rows; ++y)
-       for (int x = 0; x < cols; ++x)
-       {
-       float err = 0;
-       for (unsigned char i = 0; i < 3; ++i)
-       err += points3d(y, x).val[i] * plane(0, i);
-       avg_diff += std::abs(err + plane(0, 3));
-       }
-
-       // Verify the function works
-       ASSERT_LE(avg_diff / rows / cols, 1e-4) << "Average error for ground truth is: " << (avg_diff / rows / cols);
-
-       // Compute the normals
-       std::vector<cv::RgbdNormals> normal_computers;
-       normal_computers.push_back(cv::RgbdNormals(points3d.rows, points3d.cols, points3d.depth(), K, cv::RgbdNormals::RGBD_NORMALS_METHOD_FALS));
-       normal_computers.push_back(cv::RgbdNormals(points3d.rows, points3d.cols, points3d.depth(), K, cv::RgbdNormals::RGBD_NORMALS_METHOD_SRI));
-
-       for(unsigned int i=0;i<2;++i) {
-       cv::Mat_ < cv::Vec3f > normals = normal_computers[i](points3d);
-
-       avg_diff = 0;
-       for (int y = 0; y < rows; ++y)
-       for (int x = 0; x < cols; ++x)
-       {
-       cv::Vec3f normal1 = normals(y, x), normal2(plane(0, 0), plane(0, 1), plane(0, 2));
-       normal1 = normal1 / cv::norm(normal1);
-       normal2 = normal2 / cv::norm(normal2);
-
-       avg_diff += std::min(cv::norm(normal1 - normal2), cv::norm(normal1 + normal2));
-       }
-
-       // Verify the function works
-       ASSERT_LE(avg_diff / rows / cols, 1e-4) << "Case " << i<< " fails. Average error for normals is: " << (avg_diff / rows / cols);
-       */
-
+      cv::Mat_<unsigned char> plane_mask;
       for (unsigned char i = 0; i < 2; ++i)
       {
         cv::RgbdNormals::RGBD_NORMALS_METHOD method;
@@ -286,11 +196,11 @@ protected:
 
           std::vector<Plane> plane_params;
           cv::Mat points3d, ground_normals;
-          gen_points_3d(plane_params, points3d, ground_normals, 1);
+          gen_points_3d(plane_params, plane_mask, points3d, ground_normals, 1);
           testit(points3d, ground_normals, normals_computer, 0.08); // 1 plane, continuous scene, very low error..
           for (int ii = 0; ii < 10; ii++)
           {
-            gen_points_3d(plane_params, points3d, ground_normals, 3); //three planes
+            gen_points_3d(plane_params, plane_mask, points3d, ground_normals, 3); //three planes
             testit(points3d, ground_normals, normals_computer, 0.08); // 3 discontinuities, more error expected.
           }
         }
@@ -304,10 +214,112 @@ protected:
     }
     ts->set_failed_test_info(cvtest::TS::OK);
   }
+
+  void
+  testit(const cv::Mat & points3d, const cv::Mat & in_ground_normals, const cv::RgbdNormals & normals_computer,
+         float thresh)
+  {
+    cv::TickMeter tm;
+    tm.start();
+    cv::Mat in_normals = normals_computer(points3d);
+    tm.stop();
+
+    cv::Mat_<cv::Vec3f> normals, ground_normals;
+    in_normals.convertTo(normals, CV_32FC3);
+    in_ground_normals.convertTo(ground_normals, CV_32FC3);
+
+    float err = 0;
+    for (int y = 0; y < normals.rows; ++y)
+      for (int x = 0; x < normals.cols; ++x)
+      {
+        cv::Vec3f vec1 = normals(y, x), vec2 = ground_normals(y, x);
+        vec1 = vec1 / cv::norm(vec1);
+        vec2 = vec2 / cv::norm(vec2);
+
+        float dot = vec1.dot(vec2);
+        // Just for rounding errors
+        if (std::abs(dot) < 1)
+          err += std::min(std::acos(dot), std::acos(-dot));
+      }
+
+    err /= normals.rows * normals.cols;
+    ASSERT_LE(err, thresh)<< "mean diff: " << err << " thresh: " << thresh << std::endl;
+    std::cout << "Average error: " << err << " Speed: " << tm.getTimeMilli() << " ms" << std::endl;
+  }
 };
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+class CV_RgbdPlaneTest: public cvtest::BaseTest
+{
+public:
+  CV_RgbdPlaneTest()
+  {
+  }
+  ~CV_RgbdPlaneTest()
+  {
+  }
+protected:
+  void
+  run(int)
+  {
+    try
+    {
+      cv::RgbdPlane plane_computer;
+
+      std::vector<Plane> planes;
+      cv::Mat points3d, ground_normals;
+      cv::Mat_<unsigned char> plane_mask;
+      gen_points_3d(planes, plane_mask, points3d, ground_normals, 1);
+      testit(planes, plane_mask, points3d, plane_computer, 0.08); // 1 plane, continuous scene, very low error..
+      for (int ii = 0; ii < 10; ii++)
+      {
+        gen_points_3d(planes, plane_mask, points3d, ground_normals, 3); //three planes
+        testit(planes, plane_mask, points3d, plane_computer, 0.08); // 3 discontinuities, more error expected.
+      }
+    } catch (...)
+    {
+      ts->set_failed_test_info(cvtest::TS::FAIL_MISMATCH);
+    }
+    ts->set_failed_test_info(cvtest::TS::OK);
+  }
+
+  void
+  testit(const std::vector<Plane> & gt_planes, const cv::Mat & gt_plane_mask, const cv::Mat & points3d,
+         cv::RgbdPlane & plane_computer, float thresh)
+  {
+    cv::TickMeter tm;
+    tm.start();
+    // First, get the normals
+    int depth = CV_32F;
+    cv::RgbdNormals normals_computer(H, W, depth, K, 5, cv::RgbdNormals::RGBD_NORMALS_METHOD_FALS);
+    cv::Mat normals = normals_computer(points3d);
+
+    cv::Mat plane_mask;
+    std::vector<cv::Vec4f> plane_coefficients;
+    plane_computer(points3d, normals, plane_mask, plane_coefficients);
+    tm.stop();
+
+    ASSERT_EQ(plane_coefficients.size(), gt_planes.size());
+
+    unsigned int misfit_points = cv::countNonZero(gt_plane_mask - plane_mask);
+
+    ASSERT_LE(misfit_points, 0.9 * float(plane_mask.size().area()));
+
+    std::cout << " Speed: " << tm.getTimeMilli() << " ms" << std::endl;
+  }
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 TEST(Rgbd_Normals, compute)
 {
   CV_RgbdNormalsTest test;
+  test.safe_run();
+}
+
+TEST(Rgbd_Plane, compute)
+{
+  CV_RgbdPlaneTest test;
   test.safe_run();
 }

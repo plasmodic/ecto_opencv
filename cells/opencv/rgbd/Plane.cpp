@@ -84,14 +84,20 @@ namespace rgbd
     int
     process(const tendrils& inputs, const tendrils& outputs)
     {
+      if (normals_computer_.empty())
+        normals_computer_ = new cv::RgbdNormals(points3d_->rows, points3d_->cols, points3d_->depth(), *K_,
+                                                *window_size_, *normal_method_);
+      *normals_ = (*normals_computer_)(*points3d_);
+
       if (plane_computer_.empty())
-        plane_computer_ = new cv::RgbdPlane(points3d_->rows, points3d_->cols, points3d_->depth(), *K_, *window_size_);
-      (*plane_computer_)(*points3d_, *masks_, *planes_);
+        plane_computer_ = new cv::RgbdPlane();
+      (*plane_computer_)(*points3d_, *normals_, *masks_, *planes_);
 
       return ecto::OK;
     }
 
   private:
+    cv::Ptr<cv::RgbdNormals> normals_computer_;
     cv::Ptr<cv::RgbdPlane> plane_computer_;
 
     /** If true, display some result */
@@ -103,6 +109,7 @@ namespace rgbd
 
     /** Input 3d points */
     ecto::spore<cv::Mat> points3d_;
+    ecto::spore<cv::Mat> normals_;
 
     /** Output planes */
     ecto::spore<std::vector<cv::Vec4f> > planes_;
@@ -112,6 +119,8 @@ namespace rgbd
     ecto::spore<cv::Mat> K_;
 
     ecto::spore<int> window_size_;
+
+    ecto::spore<cv::RgbdNormals::RGBD_NORMALS_METHOD> normal_method_;
   };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
