@@ -57,10 +57,6 @@ namespace rgbd
     {
       params.declare(&PlaneFinder::block_size_, "block_size",
                      "Size of a block to check if it belongs to a plane (in pixels).", 40);
-      params.declare(&PlaneFinder::n_inliers_, "n_inliers", "Number of inliers to consider to define a plane.", 50);
-      params.declare(&PlaneFinder::n_samples_, "n_samples", "Number of samples to draw to check if we have a plane.",
-                     300);
-      params.declare(&PlaneFinder::n_trials_, "n_trials", "Number of trials to make to find a plane.", 100);
       params.declare(&PlaneFinder::error_, "error", "Error (in meters) for how far a point is on a plane.", 0.02);
       params.declare(&PlaneFinder::window_size_, "window_size", "The window size for smoothing.", 5);
       params.declare(&PlaneFinder::normal_method_, "normal_method", "The window size for smoothing.",
@@ -72,6 +68,7 @@ namespace rgbd
     {
       inputs.declare(&PlaneFinder::points3d_, "point3d", "The current depth frame.").required(true);
       inputs.declare(&PlaneFinder::K_, "K", "The calibration matrix").required(true);
+      inputs.declare(&PlaneFinder::normals_, "normals", "The normals");
 
       outputs.declare(&PlaneFinder::planes_, "planes",
                       "The different found planes (a,b,c,d) of equation ax+by+cz+d=0.");
@@ -86,10 +83,13 @@ namespace rgbd
     int
     process(const tendrils& inputs, const tendrils& outputs)
     {
-      if (normals_computer_.empty())
-        normals_computer_ = new cv::RgbdNormals(points3d_->rows, points3d_->cols, points3d_->depth(), *K_,
-                                                *window_size_, *normal_method_);
-      *normals_ = (*normals_computer_)(*points3d_);
+      if (normals_->empty())
+      {
+        if (normals_computer_.empty())
+          normals_computer_ = new cv::RgbdNormals(points3d_->rows, points3d_->cols, points3d_->depth(), *K_,
+                                                  *window_size_, *normal_method_);
+        *normals_ = (*normals_computer_)(*points3d_);
+      }
 
       if (plane_computer_.empty())
         plane_computer_ = new cv::RgbdPlane();
@@ -105,9 +105,6 @@ namespace rgbd
     /** If true, display some result */
     ecto::spore<float> error_;
     ecto::spore<size_t> block_size_;
-    ecto::spore<size_t> n_inliers_;
-    ecto::spore<size_t> n_samples_;
-    ecto::spore<size_t> n_trials_;
 
     /** Input 3d points */
     ecto::spore<cv::Mat> points3d_;
