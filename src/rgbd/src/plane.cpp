@@ -386,8 +386,7 @@ public:
       :
         err_(err),
         points3d_(points3d),
-        plane_index_(plane_index),
-        refinement_iteration_(0)
+        plane_index_(plane_index)
   {
   }
 
@@ -424,7 +423,7 @@ public:
       for (int xx = range_x.start; data != data_end; ++data, ++point, ++xx)
       {
         // Don't do anything if the point already belongs to another plane
-        if (cvIsNaN(point->val[0]) || (*data))
+        if (cvIsNaN(point->val[0]) || ((*data) != 255))
           continue;
 
         // If the point is close enough to the plane
@@ -686,7 +685,7 @@ namespace cv
     //CALLGRIND_START_INSTRUMENTATION;
 
     // Pre-computations
-    cv::Mat_<uchar> overall_mask = cv::Mat_<uchar>::zeros(points3d_.rows, points3d_.cols);
+    cv::Mat_<uchar> overall_mask = cv::Mat_<uchar>(points3d_.rows, points3d_.cols, (unsigned char) (255));
 
     // Compute the plane residuals as an approximation of the curvature
     /*cv::Mat_<float> residuals = computeResiduals(points3d_, normals);
@@ -702,7 +701,7 @@ namespace cv
      cv::waitKey(2);*/
 
     // Line 3-4
-    size_t index_plane = 1;
+    size_t index_plane = 0;
 
     std::vector<Plane> planes;
 
