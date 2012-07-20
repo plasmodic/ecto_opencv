@@ -63,6 +63,8 @@ namespace rgbd
       params.declare(&PlaneFinder::n_trials_, "n_trials", "Number of trials to make to find a plane.", 100);
       params.declare(&PlaneFinder::error_, "error", "Error (in meters) for how far a point is on a plane.", 0.02);
       params.declare(&PlaneFinder::window_size_, "window_size", "The window size for smoothing.", 5);
+      params.declare(&PlaneFinder::normal_method_, "normal_method", "The window size for smoothing.",
+                     cv::RgbdNormals::RGBD_NORMALS_METHOD_FALS);
     }
 
     static void
