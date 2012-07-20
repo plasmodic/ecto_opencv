@@ -55,40 +55,16 @@
 class Plane
 {
 public:
-  Plane(const cv::Vec4f & p4, int index)
+  Plane(const cv::Vec3f & m, const cv::Vec3f &n, int index)
       :
-        abcd_(p4),
         index_(index),
-        m_(cv::Vec3f(0, 0, 0)),
+        m_(m),
         Q_(cv::Matx33f::zeros()),
+        n_(n),
         mse_(0),
         K_(0)
   {
-  }
-
-  /**
-   * @param p homogeneous points
-   * @param index
-   */
-  Plane(const std::vector<cv::Vec4f> & p4, int index)
-      :
-        index_(index),
-        m_(cv::Vec3f(0, 0, 0)),
-        Q_(cv::Matx33f::zeros()),
-        mse_(0),
-        K_(0)
-  {
-    std::vector<cv::Vec3f> p(3);
-
-    for (unsigned char i = 0; i < 3; ++i)
-      p[i] = cv::Vec3f(p4[i][0], p4[i][1], p4[i][2]);
-
-    cv::Vec3f r = (p[1] - p[0]).cross(p[2] - p[0]);
-    r = r / cv::norm(r);
-    abcd_[0] = r[0];
-    abcd_[1] = r[1];
-    abcd_[2] = r[2];
-    abcd_[3] = -p[0].dot(r);
+    UpdateAbcd();
   }
 
   inline
@@ -98,19 +74,29 @@ public:
     return std::abs(abcd_[0] * p_j[0] + abcd_[1] * p_j[1] + abcd_[2] * p_j[2] + abcd_[3]);
   }
 
+  const cv::Vec4f &
+  abcd() const
+  {
+    return abcd_;
+  }
+
   void
   UpdateParameters()
   {
+    if (empty())
+      return;
     m_ = m_sum_ / K_;
     // Compute C
     cv::Matx33f C = Q_ - 2 * K_ * m_ * m_.t() + K_ * m_ * m_.t();
 
     // Compute n
-    std::cout << cv::Mat(C) << std::endl;
     cv::SVD svd(C);
     n_ = cv::Vec3f(svd.vt.at<float>(2, 0), svd.vt.at<float>(2, 1), svd.vt.at<float>(2, 2));
     d_ = n_.dot(m_);
     mse_ = svd.w.at<float>(2) / K_;
+    std::cout << cv::Mat(n_) << std::endl;
+
+    UpdateAbcd();
   }
 
   void
@@ -120,11 +106,22 @@ public:
     Q_ += point * point.t();
     ++K_;
   }
-  /** coefficients for ax+by+cz+d = 0 */
-  cv::Vec4f abcd_;
+
+  inline size_t
+  empty() const
+  {
+    return K_ == 0;
+  }
   /** The index of the plane */
   int index_;
 private:
+  inline void
+  UpdateAbcd()
+  {
+    abcd_ = cv::Vec4f(n_[0], n_[1], n_[2], -m_.dot(n_));
+  }
+  /** coefficients for ax+by+cz+d = 0 */
+  cv::Vec4f abcd_;
   /** The sum of the points */
   cv::Vec3f m_sum_;
   /** The mean of the points */
@@ -142,7 +139,8 @@ private:
 std::ostream&
 operator<<(std::ostream& out, const Plane& plane)
 {
-  out << "coeff: " << plane.abcd_[0] << "," << plane.abcd_[1] << "," << plane.abcd_[2] << "," << plane.abcd_[3] << ",";
+  out << "coeff: " << plane.abcd()[0] << "," << plane.abcd()[1] << "," << plane.abcd()[2] << "," << plane.abcd()[3]
+  << ",";
   return out;
 }
 
@@ -180,7 +178,7 @@ public:
         int K = 0;
         for (int j = y * block_size; j < std::min((y + 1) * block_size, points3d.rows); ++j)
         {
-          const cv::Vec3f * vec = points3d.ptr<cv::Vec3f>(j, x * block_size), *vec_end;
+          const cv::Vec3f * vec = points3d.ptr < cv::Vec3f > (j, x * block_size), *vec_end;
           if (x == mini_cols)
             vec_end = vec + points3d.cols - 1 - x * block_size;
           else
@@ -225,7 +223,7 @@ public:
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-class PlaneQueue
+class TileQueue
 {
 public:
   struct PlaneTile
@@ -249,7 +247,7 @@ public:
     float mse_;
   };
 
-  PlaneQueue(const PlaneGrid &plane_grid)
+  TileQueue(const PlaneGrid &plane_grid)
   {
     done_tiles_ = cv::Mat_<unsigned char>::zeros(plane_grid.mse_.rows, plane_grid.mse_.cols);
     tiles_.clear();
@@ -291,15 +289,20 @@ public:
     return tiles_.front();
   }
 
+  size_t
+  size()
+  {
+    return tiles_.size();
+  }
+
   void
   remove(int y, int x)
   {
     done_tiles_(y, x) = 1;
   }
-
+private:
   /** The list of tiles ordered from most planar to least */
   std::list<PlaneTile> tiles_;
-private:
   /** contains 1 when the tiles has been studied, 0 otherwise */
   cv::Mat_<unsigned char> done_tiles_;
 };
@@ -324,7 +327,7 @@ public:
     if (cols % block_size != 0)
       ++mini_cols;
 
-    mask_mini_ = cv::Mat_<uchar>::zeros(mini_rows, mini_cols);
+    mask_mini_ = cv::Mat_ < uchar > ::zeros(mini_rows, mini_cols);
   }
 
   int
@@ -333,7 +336,7 @@ public:
     return block_size_;
   }
 
-  const cv::Mat&
+  const cv::Mat_<uchar>&
   mask_mini() const
   {
     return mask_mini_;
@@ -401,11 +404,11 @@ public:
   }
 
   void
-  Find(const PlaneGrid &plane_grid, Plane & plane, PlaneQueue & plane_queue,
-       std::set<PlaneQueue::PlaneTile> & neighboring_tiles, cv::Mat_<unsigned char> & overall_mask,
+  Find(const PlaneGrid &plane_grid, Plane & plane, TileQueue & tile_queue,
+       std::set<TileQueue::PlaneTile> & neighboring_tiles, cv::Mat_<unsigned char> & overall_mask,
        PlaneMask & plane_mask)
   {
-    const PlaneQueue::PlaneTile & tile = *(neighboring_tiles.begin());
+    const TileQueue::PlaneTile & tile = *(neighboring_tiles.begin());
 
     // Figure the part of the image to look at
     cv::Mat point3d_reshape;
@@ -427,12 +430,12 @@ public:
     for (int yy = range_y.start; yy != range_y.end; ++yy)
     {
       uchar* data = overall_mask.ptr(yy, range_x.start), *data_end = overall_mask.ptr(yy, range_x.end);
-      const cv::Vec3f* point = points3d_.ptr<cv::Vec3f>(yy, range_x.start);
+      const cv::Vec3f* point = points3d_.ptr < cv::Vec3f > (yy, range_x.start);
 
       for (int xx = range_x.start; data != data_end; ++data, ++point, ++xx)
       {
         // Don't do anything if the point already belongs to another plane
-        if (*data)
+        if (cvIsNaN(point->val[0]) || (*data))
           continue;
 
         // If the point is close enough to the plane
@@ -458,23 +461,31 @@ public:
       }
     }
 
+    std::cout << cv::Mat(plane.abcd()) << std::endl;
     plane.UpdateParameters();
+    std::cout << "new points : " << n_valid_points << " " << cv::Mat(plane.abcd()) << std::endl;
 
     // Mark the front as being done and pop it
     if (n_valid_points > range_x.size() * range_y.size())
-      plane_queue.remove(tile.y_, tile.x_);
+      tile_queue.remove(tile.y_, tile.x_);
     plane_mask.set(tile.y_, tile.x_);
     neighboring_tiles.erase(neighboring_tiles.begin());
 
     // Add potential neighbors of the tile
+    std::vector<std::pair<int, int> > pairs;
     if (do_left && tile.x_ > 0)
-      neighboring_tiles.insert(PlaneQueue::PlaneTile(tile.x_ - 1, tile.y_, plane_grid.mse_(tile.y_, tile.x_ - 1)));
+      pairs.push_back(std::pair<int, int>(tile.x_ - 1, tile.y_));
     if (do_right && tile.x_ < plane_mask.mask_mini().cols - 1)
-      neighboring_tiles.insert(PlaneQueue::PlaneTile(tile.x_ + 1, tile.y_, plane_grid.mse_(tile.y_, tile.x_ + 1)));
+      pairs.push_back(std::pair<int, int>(tile.x_ + 1, tile.y_));
     if (do_top && tile.y_ > 0)
-      neighboring_tiles.insert(PlaneQueue::PlaneTile(tile.x_, tile.y_ - 1, plane_grid.mse_(tile.y_ - 1, tile.x_)));
+      pairs.push_back(std::pair<int, int>(tile.x_, tile.y_ - 1));
     if (do_bottom && tile.y_ < plane_mask.mask_mini().rows - 1)
-      neighboring_tiles.insert(PlaneQueue::PlaneTile(tile.x_, tile.y_ + 1, plane_grid.mse_(tile.y_ + 1, tile.x_)));
+      pairs.push_back(std::pair<int, int>(tile.x_, tile.y_ + 1));
+
+    for (unsigned char i = 0; i < pairs.size(); ++i)
+      if (!plane_mask.mask_mini()(pairs[i].second, pairs[i].first))
+        neighboring_tiles.insert(
+            TileQueue::PlaneTile(pairs[i].first, pairs[i].second, plane_grid.mse_(pairs[i].second, pairs[i].first)));
   }
 
 private:
@@ -618,7 +629,7 @@ computeResiduals(const cv::Mat_<cv::Vec3f> &, const cv::Mat_<cv::Vec3f> & normal
 
   // Figure out the valid points
   int half_window_size = 10;
-  cv::Mat_<uchar> valid = cv::Mat_<uchar>::ones(normals.size());
+  cv::Mat_ < uchar > valid = cv::Mat_ < uchar > ::ones(normals.size());
   for (int y = 0; y < normals.rows; ++y)
     for (int x = 0; x < normals.cols; ++x)
       if (cvIsNaN(channels[0](y, x)))
@@ -685,7 +696,7 @@ namespace cv
     // Error (in meters) for how far a point is on a plane.
     double error_ = 0.02;
 
-    cv::Mat_<cv::Vec3f> points3d_;
+    cv::Mat_ < cv::Vec3f > points3d_;
     if (points3d_in.depth() == CV_32F)
       points3d_ = points3d_in;
     else
@@ -700,7 +711,7 @@ namespace cv
     //CALLGRIND_START_INSTRUMENTATION;
 
     // Pre-computations
-    cv::Mat_<uchar> overall_mask = cv::Mat_<uchar>::zeros(points3d_.rows, points3d_.cols);
+    cv::Mat_ < uchar > overall_mask = cv::Mat_ < uchar > ::zeros(points3d_.rows, points3d_.cols);
     std::vector<PlaneMask> masks;
 
     // Compute the plane residuals as an approximation of the curvature
@@ -711,7 +722,7 @@ namespace cv
      cv::waitKey(2);*/
 
     PlaneGrid plane_grid(points3d_, block_size);
-    PlaneQueue plane_queue(plane_grid);
+    TileQueue plane_queue(plane_grid);
     cv::namedWindow("mse");
     cv::imshow("mse", plane_grid.mse_ < (0.5e-2) * (0.5e-2));
     cv::waitKey(2);
@@ -731,8 +742,8 @@ namespace cv
     while (!plane_queue.Empty())
     {
       // Get the first tile if it's good enough
-      const PlaneQueue::PlaneTile & front_tile = plane_queue.tiles_.front();
-      std::cout << "full queue : " << plane_queue.tiles_.size() << " " << front_tile.mse_ << std::endl;
+      const TileQueue::PlaneTile & front_tile = plane_queue.Front();
+      std::cout << "full queue : " << plane_queue.size() << " " << front_tile.mse_ << std::endl;
       if (front_tile.mse_ > mse_min)
         break;
 
@@ -742,12 +753,12 @@ namespace cv
       P_hat.clear();
 
       // Construct the plane for those 3 points
-      int x = plane_queue.tiles_.front().x_, y = plane_queue.tiles_.front().y_;
+      int x = plane_queue.Front().x_, y = plane_queue.Front().y_;
       const cv::Vec3f & n = plane_grid.n_(y, x);
-      Plane plane(cv::Vec4f(n[0], n[1], n[2], -plane_grid.m_(y, x).dot(n)), index_plane);
+      Plane plane(plane_grid.m_(y, x), n, index_plane);
 
       PlaneMask plane_mask(points3d_.rows, points3d_.cols, block_size);
-      std::set<PlaneQueue::PlaneTile> neighboring_tiles;
+      std::set<TileQueue::PlaneTile> neighboring_tiles;
       neighboring_tiles.insert(front_tile);
       plane_queue.remove(plane_queue.Front().y_, plane_queue.Front().x_);
 
@@ -759,9 +770,12 @@ namespace cv
         std::cout << neighboring_tiles.size() << std::endl;
       }
 
+      if (plane.empty())
+        continue;
+
       ++index_plane;
       planes.push_back(plane);
-      plane_coefficients.push_back(plane.abcd_);
+      plane_coefficients.push_back(plane.abcd());
     };
     overall_mask.copyTo(mask_out);
 
