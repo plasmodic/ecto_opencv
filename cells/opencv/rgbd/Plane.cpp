@@ -40,6 +40,7 @@
 #include <set>
 #include <string>
 
+#include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/rgbd/rgbd.hpp>
 
 #include <ecto/ecto.hpp>
@@ -140,16 +141,14 @@ namespace rgbd
     configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
     {
       colors_.clear();
-      colors_.push_back(cv::Scalar(255, 255, 0));
-      colors_.push_back(cv::Scalar(0, 255, 255));
-      colors_.push_back(cv::Scalar(255, 0, 255));
-      colors_.push_back(cv::Scalar(255, 0, 0));
-      colors_.push_back(cv::Scalar(0, 255, 0));
-      colors_.push_back(cv::Scalar(0, 0, 255));
-      colors_.push_back(cv::Scalar(0, 0, 0));
-      colors_.push_back(cv::Scalar(85, 85, 85));
-      colors_.push_back(cv::Scalar(170, 170, 170));
-      colors_.push_back(cv::Scalar(255, 255, 255));
+      // Get a bunch of colors in HSV
+      size_t n_colors = 30;
+      cv::Mat_<cv::Vec3b> hsv(n_colors, 1), rgb;
+      for (size_t i = 0; i < n_colors; ++i)
+        hsv(i) = cv::Vec3b((i * 180) / n_colors, 255, 255);
+      cv::cvtColor(hsv, rgb, CV_HSV2RGB);
+      for (size_t i = 0; i < n_colors; ++i)
+        colors_.push_back(cv::Scalar(rgb(i)[0], rgb(i)[1], rgb(i)[2]));
     }
 
     int
@@ -208,9 +207,8 @@ namespace rgbd
 
         // Add all the previously used colors
         std::set<int> previously_used_colors;
-        for (std::map<int, int>::const_iterator iter = previous_color_index_.begin();
-            iter != previous_color_index_.end(); ++iter)
-          previously_used_colors.insert(previous_color_index_[iter->second]);
+        for (std::map<int, int>::const_iterator iter = color_index.begin(); iter != color_index.end(); ++iter)
+          previously_used_colors.insert(iter->second);
 
         // Give a color to the blocks that were not assigned
         for (int i = 0; i < overlap.rows; ++i)
