@@ -33,7 +33,15 @@
  *
  */
 
-/** This is an implementation of a fast plane detection */
+/** This is an implementation of a fast plane detection loosely inspired by
+ * Fast Plane Detection and Polygonalization in noisy 3D Range Images
+ * Jann Poppinga, Narunas Vaskevicius, Andreas Birk, and Kaustubh Pathak
+ * and the follow-up
+ * Fast Plane Detection for SLAM from Noisy Range Images in
+ * Both Structured and Unstructured Environments
+ * Junhao Xiao, Jianhua Zhang and Jianwei Zhang
+ * Houxiang Zhang and Hans Petter Hildre
+ */
 
 #include <list>
 #include <numeric>
@@ -55,6 +63,7 @@ public:
   Plane(const cv::Vec3f & m, const cv::Vec3f &n, int index)
       :
         index_(index),
+        m_sum_(cv::Vec3f(0, 0, 0)),
         m_(m),
         Q_(cv::Matx33f::zeros()),
         n_(n),
@@ -84,12 +93,11 @@ public:
       return;
     m_ = m_sum_ / K_;
     // Compute C
-    cv::Matx33f C = Q_ - 2 * K_ * m_ * m_.t() + K_ * m_ * m_.t();
+    cv::Matx33f C = Q_ - m_sum_ * m_.t();
 
     // Compute n
     cv::SVD svd(C);
     n_ = cv::Vec3f(svd.vt.at<float>(2, 0), svd.vt.at<float>(2, 1), svd.vt.at<float>(2, 2));
-    d_ = n_.dot(m_);
     mse_ = svd.w.at<float>(2) / K_;
 
     UpdateAbcd();
@@ -126,19 +134,12 @@ private:
   cv::Matx33f Q_;
   /** The different matrices we need to update */
   cv::Matx33f C_;
-  cv::Vec3f n_, d_;
+  /** Normal of the plane */
+  cv::Vec3f n_;
   float mse_;
   /** the number of points that form the plane */
   int K_;
 };
-
-std::ostream&
-operator<<(std::ostream& out, const Plane& plane)
-{
-  out << "coeff: " << plane.abcd()[0] << "," << plane.abcd()[1] << "," << plane.abcd()[2] << "," << plane.abcd()[3]
-      << ",";
-  return out;
-}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -159,11 +160,8 @@ public:
       ++mini_cols;
 
     // Compute all the interesting quantities
-    Q_.create(mini_rows, mini_cols);
     m_.create(mini_rows, mini_cols);
     n_.create(mini_rows, mini_cols);
-    K_.create(mini_rows, mini_cols);
-    d_.create(mini_rows, mini_cols);
     mse_.create(mini_rows, mini_cols);
     for (int y = 0; y < mini_rows; ++y)
       for (int x = 0; x < mini_cols; ++x)
@@ -191,29 +189,23 @@ public:
         if (K == 0)
           continue;
 
-        *(reinterpret_cast<cv::Matx33f *>(Q_.ptr(y, x))) = Q;
-        K_(y, x) = K;
         m /= K;
         m_(y, x) = m;
 
         // Compute C
-        cv::Matx33f C = Q - 2 * K * m * m.t() + K * m * m.t();
+        cv::Matx33f C = Q - K * m * m.t();
 
         // Compute n
         cv::SVD svd(C);
         n_(y, x) = cv::Vec3f(svd.vt.at<float>(2, 0), svd.vt.at<float>(2, 1), svd.vt.at<float>(2, 2));
-        d_(y, x) = n_(y, x).dot(m);
         mse_(y, x) = svd.w.at<float>(2) / K;
       }
   }
 
   /** The size of the block */
   int block_size_;
-  cv::Mat_<cv::Vec<float, 9> > Q_;
   cv::Mat_<cv::Vec3f> m_;
   cv::Mat_<cv::Vec3f> n_;
-  cv::Mat_<int> K_;
-  cv::Mat_<float> d_;
   cv::Mat_<float> mse_;
 };
 
@@ -357,11 +349,9 @@ public:
 private:
   /** The size of the block */
   int block_size_;
-  /** Same as mask but of size (width/block_size) x (height/block_size).
-   * 0, when the block does not belong to the plane or has not been studied yet
-   * 1 when most of the block belongs to the plane
-   * 255 when the block is on the contour and is either not studied yet, or not on the plane
-   * Otherwise, the refinement iteration number if the block is on the plane
+  /** Same mask of size (width/block_size) x (height/block_size).
+   * 0, when the block does not belong to the plane
+   * 1 when most of a block as been assigned to a plane
    */
   cv::Mat_<uchar> mask_mini_;
   /** The bounding box of the mask in mask_ */
