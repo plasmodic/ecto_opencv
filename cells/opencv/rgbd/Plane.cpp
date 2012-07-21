@@ -40,6 +40,7 @@
 #include <set>
 #include <string>
 
+#include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/rgbd/rgbd.hpp>
 
 #include <ecto/ecto.hpp>
@@ -140,16 +141,14 @@ namespace rgbd
     configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
     {
       colors_.clear();
-      colors_.push_back(cv::Scalar(255, 255, 0));
-      colors_.push_back(cv::Scalar(0, 255, 255));
-      colors_.push_back(cv::Scalar(255, 0, 255));
-      colors_.push_back(cv::Scalar(255, 0, 0));
-      colors_.push_back(cv::Scalar(0, 255, 0));
-      colors_.push_back(cv::Scalar(0, 0, 255));
-      colors_.push_back(cv::Scalar(0, 0, 0));
-      colors_.push_back(cv::Scalar(85, 85, 85));
-      colors_.push_back(cv::Scalar(170, 170, 170));
-      colors_.push_back(cv::Scalar(255, 255, 255));
+      // Get a bunch of colors in HSV
+      size_t n_colors = 30;
+      cv::Mat_<cv::Vec3b> hsv(n_colors, 1), rgb;
+      for (size_t i = 0; i < n_colors; ++i)
+        hsv(i) = cv::Vec3b((i * 180) / n_colors, 255, 255);
+      cv::cvtColor(hsv, rgb, CV_HSV2RGB);
+      for (size_t i = 0; i < n_colors; ++i)
+        colors_.push_back(cv::Scalar(rgb(i)[0], rgb(i)[1], rgb(i)[2]));
     }
 
     int
@@ -169,10 +168,10 @@ namespace rgbd
 
         for (int y = 0; y < masks_->rows; ++y)
         {
-          const unsigned char *mask = masks_->ptr(y), *mask_end = masks_->ptr(y) + masks_->cols;
+          const unsigned char *mask = masks_->ptr(y), *mask_end = mask + masks_->cols;
           const unsigned char *previous_mask = previous_masks_.ptr(y);
           for (; mask != mask_end; ++mask, ++previous_mask)
-            if ((*mask) && (*previous_mask))
+            if ((*mask != 255) && (*previous_mask != 255))
               ++overlap(*mask, *previous_mask);
         }
 
@@ -208,12 +207,14 @@ namespace rgbd
 
         // Add all the previously used colors
         std::set<int> previously_used_colors;
-        for (size_t i = 0; i < previous_color_index_.size(); ++i)
-          previously_used_colors.insert(previous_color_index_[i]);
+        for (std::map<int, int>::const_iterator iter = color_index.begin(); iter != color_index.end(); ++iter)
+          previously_used_colors.insert(iter->second);
 
         // Give a color to the blocks that were not assigned
         for (int i = 0; i < overlap.rows; ++i)
         {
+          if (color_index.find(i) != color_index.end())
+            continue;
           // Look for a color that was not given
           size_t j = 0;
           while (previously_used_colors.find(j) != previously_used_colors.end())
@@ -222,14 +223,14 @@ namespace rgbd
           color_index[i] = j;
           previously_used_colors.insert(j);
         }
-
-        previous_color_index_ = color_index;
-        previous_planes_ = *planes_;
       }
+      previous_color_index_ = color_index;
+      previous_planes_ = *planes_;
+      masks_->copyTo(previous_masks_);
 
       // Draw the clusters
       image_->copyTo(*image_clusters_);
-      for (size_t i = 0; i < planes_->size(); ++i)
+      for (size_t i = 0; i < std::max(size_t(10), planes_->size()); ++i)
       {
         cv::Mat mask;
         cv::compare(*masks_, cv::Scalar(i), mask, cv::CMP_EQ);

@@ -33,7 +33,6 @@
  *
  */
 
-#include <iostream>
 #include <stdexcept>
 
 #include <opencv2/contrib/contrib.hpp>
