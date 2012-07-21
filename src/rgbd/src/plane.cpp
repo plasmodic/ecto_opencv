@@ -77,6 +77,12 @@ public:
     return abcd_;
   }
 
+  const cv::Vec3f &
+  n() const
+  {
+    return n_;
+  }
+
   void
   UpdateParameters()
   {
@@ -130,13 +136,14 @@ private:
   float mse_;
   /** the number of points that form the plane */
   int K_;
-};
+}
+;
 
 std::ostream&
 operator<<(std::ostream& out, const Plane& plane)
 {
   out << "coeff: " << plane.abcd()[0] << "," << plane.abcd()[1] << "," << plane.abcd()[2] << "," << plane.abcd()[3]
-      << ",";
+  << ",";
   return out;
 }
 
@@ -174,7 +181,7 @@ public:
         int K = 0;
         for (int j = y * block_size; j < std::min((y + 1) * block_size, points3d.rows); ++j)
         {
-          const cv::Vec3f * vec = points3d.ptr<cv::Vec3f>(j, x * block_size), *vec_end;
+          const cv::Vec3f * vec = points3d.ptr < cv::Vec3f > (j, x * block_size), *vec_end;
           if (x == mini_cols)
             vec_end = vec + points3d.cols - 1 - x * block_size;
           else
@@ -315,7 +322,7 @@ public:
     if (cols % block_size != 0)
       ++mini_cols;
 
-    mask_mini_ = cv::Mat_<uchar>::zeros(mini_rows, mini_cols);
+    mask_mini_ = cv::Mat_ < uchar > ::zeros(mini_rows, mini_cols);
   }
 
   int
@@ -382,10 +389,11 @@ PointDistanceSq(const cv::Point2i& point_1, const cv::Point2i& point_2)
 class InlierFinder
 {
 public:
-  InlierFinder(float err, const cv::Mat& points3d, unsigned char plane_index)
+  InlierFinder(float err, const cv::Mat& points3d, const cv::Mat & normals, unsigned char plane_index)
       :
         err_(err),
         points3d_(points3d),
+        normals_(normals),
         plane_index_(plane_index)
   {
   }
@@ -418,9 +426,10 @@ public:
     for (int yy = range_y.start; yy != range_y.end; ++yy)
     {
       uchar* data = overall_mask.ptr(yy, range_x.start), *data_end = overall_mask.ptr(yy, range_x.end);
-      const cv::Vec3f* point = points3d_.ptr<cv::Vec3f>(yy, range_x.start);
+      const cv::Vec3f* point = points3d_.ptr < cv::Vec3f > (yy, range_x.start);
+      const cv::Vec3f* normal = normals_.ptr < cv::Vec3f > (yy, range_x.start);
 
-      for (int xx = range_x.start; data != data_end; ++data, ++point, ++xx)
+      for (int xx = range_x.start; data != data_end; ++data, ++point, ++xx, ++normal)
       {
         // Don't do anything if the point already belongs to another plane
         if (cvIsNaN(point->val[0]) || ((*data) != 255))
@@ -430,7 +439,7 @@ public:
         if (plane.distance(*point) < err_)
         {
           // TODO make sure the normals are similar to the plane
-          if (true)
+          if (std::abs(plane.n().dot(*normal)) > 0.3)
           {
             // The point now belongs to the plane
             plane.UpdateStatistics(*point);
@@ -477,6 +486,7 @@ public:
 private:
   float err_;
   const cv::Mat& points3d_;
+  const cv::Mat& normals_;
   unsigned char plane_index_;
 }
 ;
@@ -494,14 +504,14 @@ namespace cv
     // Error (in meters) for how far a point is on a plane.
     double error_ = 0.02;
 
-    cv::Mat_<cv::Vec3f> points3d_;
+    cv::Mat_ < cv::Vec3f > points3d_;
     if (points3d_in.depth() == CV_32F)
       points3d_ = points3d_in;
     else
       points3d_in.convertTo(points3d_, CV_32F);
 
     // Pre-computations
-    cv::Mat_<uchar> overall_mask = cv::Mat_<uchar>(points3d_.rows, points3d_.cols, (unsigned char) (255));
+    cv::Mat_ < uchar > overall_mask = cv::Mat_ < uchar > (points3d_.rows, points3d_.cols, (unsigned char) (255));
 
     PlaneGrid plane_grid(points3d_, block_size);
     TileQueue plane_queue(plane_grid);
@@ -522,7 +532,7 @@ namespace cv
       if (front_tile.mse_ > mse_min)
         break;
 
-      InlierFinder inlier_finder(error_, points3d_, index_plane);
+      InlierFinder inlier_finder(error_, points3d_, normals, index_plane);
 
       // Construct the plane for those 3 points
       int x = front_tile.x_, y = front_tile.y_;
