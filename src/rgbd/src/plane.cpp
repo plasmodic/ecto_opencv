@@ -44,16 +44,8 @@
  */
 
 #include <list>
-#include <numeric>
 #include <set>
-#include <string>
 
-#include <boost/foreach.hpp>
-
-#include <opencv2/calib3d/calib3d.hpp>
-#include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/rgbd/rgbd.hpp>
 
 /** Structure defining a plane */
@@ -77,7 +69,7 @@ public:
   float
   distance(const cv::Vec3f& p_j) const
   {
-    return std::abs(abcd_[0] * p_j[0] + abcd_[1] * p_j[1] + abcd_[2] * p_j[2] + abcd_[3]);
+    return std::abs(float(p_j.dot(n_) + abcd_[3]));
   }
 
   const cv::Vec4f &
@@ -152,7 +144,7 @@ private:
 class PlaneGrid
 {
 public:
-  PlaneGrid(cv::Mat_<cv::Vec3f> points3d, int block_size)
+  PlaneGrid(const cv::Mat_<cv::Vec3f> & points3d, int block_size)
       :
         block_size_(block_size)
   {
@@ -179,18 +171,28 @@ public:
         int K = 0;
         for (int j = y * block_size; j < std::min((y + 1) * block_size, points3d.rows); ++j)
         {
-          const cv::Vec3f * vec = points3d.ptr<cv::Vec3f>(j, x * block_size), *vec_end;
-          cv::Vec<float, 9> * Q_ptr = Q_.ptr<cv::Vec<float, 9> >(j, x * block_size);
-          if (x == mini_cols)
-            vec_end = vec + points3d.cols - 1 - x * block_size;
+          const cv::Vec3f * vec = points3d.ptr < cv::Vec3f > (j, x * block_size), *vec_end;
+          float * pointpointt = reinterpret_cast<float*>(Q_.ptr < cv::Vec<float, 9> > (j, x * block_size));
+          if (x == mini_cols - 1)
+            vec_end = points3d.ptr < cv::Vec3f > (j, points3d.cols - 1) + 1;
           else
             vec_end = vec + block_size;
-          for (; vec != vec_end; ++vec, ++Q_ptr)
+          for (; vec != vec_end; ++vec, pointpointt += 9)
           {
             if (cvIsNaN(vec->val[0]))
               continue;
-            *reinterpret_cast<cv::Matx33f*>(Q_ptr) = (*vec) * (*vec).t();
-            Q += *reinterpret_cast<cv::Matx33f*>(Q_ptr);
+            // Fill point*point.t()
+            *pointpointt = vec->val[0] * vec->val[0];
+            *(pointpointt + 1) = vec->val[0] * vec->val[1];
+            *(pointpointt + 2) = vec->val[0] * vec->val[2];
+            *(pointpointt + 3) = *(pointpointt + 1);
+            *(pointpointt + 4) = vec->val[1] * vec->val[1];
+            *(pointpointt + 5) = vec->val[1] * vec->val[2];
+            *(pointpointt + 6) = *(pointpointt + 2);
+            *(pointpointt + 7) = *(pointpointt + 5);
+            *(pointpointt + 8) = vec->val[2] * vec->val[2];
+
+            Q += *reinterpret_cast<cv::Matx33f*>(pointpointt);
             m += (*vec);
             ++K;
           }
@@ -260,7 +262,7 @@ public:
   }
 
   bool
-  Empty()
+  empty()
   {
     while (!tiles_.empty())
     {
@@ -311,7 +313,7 @@ public:
     if (cols % block_size != 0)
       ++mini_cols;
 
-    mask_mini_ = cv::Mat_<uchar>::zeros(mini_rows, mini_cols);
+    mask_mini_ = cv::Mat_ < uchar > ::zeros(mini_rows, mini_cols);
   }
 
   int
@@ -324,18 +326,6 @@ public:
   mask_mini() const
   {
     return mask_mini_;
-  }
-
-  const cv::Range&
-  range_x() const
-  {
-    return range_x_;
-  }
-
-  const cv::Range&
-  range_y() const
-  {
-    return range_y_;
   }
 
   uchar&
@@ -358,9 +348,6 @@ private:
    * 1 when most of a block as been assigned to a plane
    */
   cv::Mat_<uchar> mask_mini_;
-  /** The bounding box of the mask in mask_ */
-  cv::Range range_x_;
-  cv::Range range_y_;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -387,7 +374,6 @@ public:
     TileQueue::PlaneTile tile = *(neighboring_tiles.begin());
 
     // Figure the part of the image to look at
-    cv::Mat point3d_reshape;
     cv::Range range_x, range_y;
     int x = tile.x_ * plane_mask.block_size(), y = tile.y_ * plane_mask.block_size();
 
@@ -404,11 +390,11 @@ public:
     int n_valid_points = 0;
     for (int yy = range_y.start; yy != range_y.end; ++yy)
     {
-      uchar* data = overall_mask.ptr(yy, range_x.start), *data_end = overall_mask.ptr(yy, range_x.end);
-      const cv::Vec3f* point = points3d_.ptr<cv::Vec3f>(yy, range_x.start);
-      const cv::Vec3f* normal = normals_.ptr<cv::Vec3f>(yy, range_x.start);
-      const cv::Matx33f* Q_local = reinterpret_cast<const cv::Matx33f *>(plane_grid.Q_.ptr<cv::Vec<float, 9> >(
-          yy, range_x.start));
+      uchar* data = overall_mask.ptr(yy, range_x.start), *data_end = data + range_x.size();
+      const cv::Vec3f* point = points3d_.ptr < cv::Vec3f > (yy, range_x.start);
+      const cv::Vec3f* normal = normals_.ptr < cv::Vec3f > (yy, range_x.start);
+      const cv::Matx33f* Q_local = reinterpret_cast<const cv::Matx33f *>(plane_grid.Q_.ptr < cv::Vec<float, 9>
+          > (yy, range_x.start));
 
       for (; data != data_end; ++data, ++point, ++normal, ++Q_local)
       {
@@ -441,18 +427,38 @@ public:
 
     // Add potential neighbors of the tile
     std::vector<std::pair<int, int> > pairs;
-    if (tile.x_ > 0 && cv::countNonZero(
-        overall_mask(range_y, cv::Range(range_x.start, range_x.start + 1)) == plane_index_))
-      pairs.push_back(std::pair<int, int>(tile.x_ - 1, tile.y_));
-    if ((tile.x_ < plane_mask.mask_mini().cols - 1) && cv::countNonZero(
-        overall_mask(range_y, cv::Range(range_x.end - 1, range_x.end)) == plane_index_))
-      pairs.push_back(std::pair<int, int>(tile.x_ + 1, tile.y_));
-    if (tile.y_ > 0 && cv::countNonZero(
-        overall_mask(cv::Range(range_y.start, range_y.start + 1), range_x) == plane_index_))
-      pairs.push_back(std::pair<int, int>(tile.x_, tile.y_ - 1));
-    if ((tile.y_ < plane_mask.mask_mini().rows - 1) && cv::countNonZero(
-        overall_mask(cv::Range(range_y.end - 1, range_y.end), range_x) == plane_index_))
-      pairs.push_back(std::pair<int, int>(tile.x_, tile.y_ + 1));
+    if (tile.x_ > 0)
+      for (unsigned char * val = overall_mask.ptr<unsigned char>(range_y.start, range_x.start), *val_end = val
+          + range_y.size() * overall_mask.step; val != val_end; val += overall_mask.step)
+        if (*val == plane_index_)
+        {
+          pairs.push_back(std::pair<int, int>(tile.x_ - 1, tile.y_));
+          break;
+        }
+    if (tile.x_ < plane_mask.mask_mini().cols - 1)
+      for (unsigned char * val = overall_mask.ptr<unsigned char>(range_y.start, range_x.end - 1), *val_end = val
+          + range_y.size() * overall_mask.step; val != val_end; val += overall_mask.step)
+        if (*val == plane_index_)
+        {
+          pairs.push_back(std::pair<int, int>(tile.x_ + 1, tile.y_));
+          break;
+        }
+    if (tile.y_ > 0)
+      for (unsigned char * val = overall_mask.ptr<unsigned char>(range_y.start, range_x.start), *val_end = val
+          + range_x.size(); val != val_end; ++val)
+        if (*val == plane_index_)
+        {
+          pairs.push_back(std::pair<int, int>(tile.x_, tile.y_ - 1));
+          break;
+        }
+    if (tile.y_ < plane_mask.mask_mini().rows - 1)
+      for (unsigned char * val = overall_mask.ptr<unsigned char>(range_y.end - 1, range_x.start), *val_end = val
+          + range_x.size(); val != val_end; ++val)
+        if (*val == plane_index_)
+        {
+          pairs.push_back(std::pair<int, int>(tile.x_, tile.y_ + 1));
+          break;
+        }
 
     for (unsigned char i = 0; i < pairs.size(); ++i)
       if (!plane_mask.mask_mini()(pairs[i].second, pairs[i].first))
@@ -499,9 +505,9 @@ namespace cv
     size_t index_plane = 0;
 
     plane_coefficients.clear();
-    float mse_min = 0.0001;
+    float mse_min = 0.01 * 0.01;
 
-    while (!plane_queue.Empty())
+    while (!plane_queue.empty())
     {
       // Get the first tile if it's good enough
       const TileQueue::PlaneTile front_tile = plane_queue.front();
