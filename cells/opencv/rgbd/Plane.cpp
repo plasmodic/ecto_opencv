@@ -169,10 +169,10 @@ namespace rgbd
 
         for (int y = 0; y < masks_->rows; ++y)
         {
-          const unsigned char *mask = masks_->ptr(y), *mask_end = masks_->ptr(y) + masks_->cols;
+          const unsigned char *mask = masks_->ptr(y), *mask_end = mask + masks_->cols;
           const unsigned char *previous_mask = previous_masks_.ptr(y);
           for (; mask != mask_end; ++mask, ++previous_mask)
-            if ((*mask) && (*previous_mask))
+            if ((*mask != 255) && (*previous_mask != 255))
               ++overlap(*mask, *previous_mask);
         }
 
@@ -208,12 +208,15 @@ namespace rgbd
 
         // Add all the previously used colors
         std::set<int> previously_used_colors;
-        for (size_t i = 0; i < previous_color_index_.size(); ++i)
-          previously_used_colors.insert(previous_color_index_[i]);
+        for (std::map<int, int>::const_iterator iter = previous_color_index_.begin();
+            iter != previous_color_index_.end(); ++iter)
+          previously_used_colors.insert(previous_color_index_[iter->second]);
 
         // Give a color to the blocks that were not assigned
         for (int i = 0; i < overlap.rows; ++i)
         {
+          if (color_index.find(i) != color_index.end())
+            continue;
           // Look for a color that was not given
           size_t j = 0;
           while (previously_used_colors.find(j) != previously_used_colors.end())
@@ -222,14 +225,14 @@ namespace rgbd
           color_index[i] = j;
           previously_used_colors.insert(j);
         }
-
-        previous_color_index_ = color_index;
-        previous_planes_ = *planes_;
       }
+      previous_color_index_ = color_index;
+      previous_planes_ = *planes_;
+      masks_->copyTo(previous_masks_);
 
       // Draw the clusters
       image_->copyTo(*image_clusters_);
-      for (size_t i = 0; i < planes_->size(); ++i)
+      for (size_t i = 0; i < std::max(size_t(10), planes_->size()); ++i)
       {
         cv::Mat mask;
         cv::compare(*masks_, cv::Scalar(i), mask, cv::CMP_EQ);
