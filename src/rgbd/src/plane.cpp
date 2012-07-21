@@ -110,10 +110,10 @@ public:
   }
 
   void
-  UpdateStatistics(const cv::Vec3f & point)
+  UpdateStatistics(const cv::Vec3f & point, const cv::Matx33f & Q_local)
   {
     m_sum_ += point;
-    Q_ += point * point.t();
+    Q_ += Q_local;
     ++K_;
   }
 
@@ -168,6 +168,7 @@ public:
     // Compute all the interesting quantities
     m_.create(mini_rows, mini_cols);
     n_.create(mini_rows, mini_cols);
+    Q_.create(points3d.rows, points3d.cols);
     mse_.create(mini_rows, mini_cols);
     for (int y = 0; y < mini_rows; ++y)
       for (int x = 0; x < mini_cols; ++x)
@@ -179,15 +180,17 @@ public:
         for (int j = y * block_size; j < std::min((y + 1) * block_size, points3d.rows); ++j)
         {
           const cv::Vec3f * vec = points3d.ptr<cv::Vec3f>(j, x * block_size), *vec_end;
+          cv::Vec<float, 9> * Q_ptr = Q_.ptr<cv::Vec<float, 9> >(j, x * block_size);
           if (x == mini_cols)
             vec_end = vec + points3d.cols - 1 - x * block_size;
           else
             vec_end = vec + block_size;
-          for (; vec != vec_end; ++vec)
+          for (; vec != vec_end; ++vec, ++Q_ptr)
           {
             if (cvIsNaN(vec->val[0]))
               continue;
-            Q += (*vec) * (*vec).t();
+            *reinterpret_cast<cv::Matx33f*>(Q_ptr) = (*vec) * (*vec).t();
+            Q += *reinterpret_cast<cv::Matx33f*>(Q_ptr);
             m += (*vec);
             ++K;
           }
@@ -212,6 +215,7 @@ public:
   int block_size_;
   cv::Mat_<cv::Vec3f> m_;
   cv::Mat_<cv::Vec3f> n_;
+  cv::Mat_<cv::Vec<float, 9> > Q_;
   cv::Mat_<float> mse_;
 };
 
@@ -417,8 +421,10 @@ public:
       uchar* data = overall_mask.ptr(yy, range_x.start), *data_end = overall_mask.ptr(yy, range_x.end);
       const cv::Vec3f* point = points3d_.ptr<cv::Vec3f>(yy, range_x.start);
       const cv::Vec3f* normal = normals_.ptr<cv::Vec3f>(yy, range_x.start);
+      const cv::Matx33f* Q_local = reinterpret_cast<const cv::Matx33f *>(plane_grid.Q_.ptr<cv::Vec<float, 9> >(
+          yy, range_x.start));
 
-      for (int xx = range_x.start; data != data_end; ++data, ++point, ++xx, ++normal)
+      for (int xx = range_x.start; data != data_end; ++data, ++point, ++xx, ++normal, ++Q_local)
       {
         // Don't do anything if the point already belongs to another plane
         if (cvIsNaN(point->val[0]) || ((*data) != 255))
@@ -427,11 +433,11 @@ public:
         // If the point is close enough to the plane
         if (plane.distance(*point) < err_)
         {
-          // TODO make sure the normals are similar to the plane
+          // make sure the normals are similar to the plane
           if (std::abs(plane.n().dot(*normal)) > 0.3)
           {
             // The point now belongs to the plane
-            plane.UpdateStatistics(*point);
+            plane.UpdateStatistics(*point, *Q_local);
             *data = plane_index_;
             ++n_valid_points;
             if (yy == range_y.start)
@@ -485,33 +491,32 @@ private:
 namespace cv
 {
   void
-  RgbdPlane::operator()(const cv::Mat & points3d_in, const cv::Mat & normals, cv::Mat &mask_out,
+  RgbdPlane::operator()(const cv::Mat & points3d_in, const cv::Mat & normals_in, cv::Mat &mask_out,
                         std::vector<cv::Vec4f> & plane_coefficients)
   {
     // Size of a block to check if it belongs to a plane (in pixels)
     size_t block_size = 40;
     // Error (in meters) for how far a point is on a plane.
-    double error_ = 0.02;
+    float error_ = 0.02;
 
-    cv::Mat_<cv::Vec3f> points3d_;
+    cv::Mat_<cv::Vec3f> points3d, normals;
     if (points3d_in.depth() == CV_32F)
-      points3d_ = points3d_in;
+      points3d = points3d_in;
     else
-      points3d_in.convertTo(points3d_, CV_32F);
+      points3d_in.convertTo(points3d, CV_32F);
+    if (normals_in.depth() == CV_32F)
+      normals = normals_in;
+    else
+      normals_in.convertTo(normals, CV_32F);
 
     // Pre-computations
-    cv::Mat_<uchar> overall_mask = cv::Mat_<uchar>(points3d_.rows, points3d_.cols, (unsigned char) (255));
-
-    PlaneGrid plane_grid(points3d_, block_size);
+    cv::Mat_<unsigned char> & mask_out_uc = (cv::Mat_<unsigned char>&) mask_out;
+    mask_out_uc = cv::Mat_<unsigned char>(points3d_in.rows, points3d_in.cols, (unsigned char) (255));
+    PlaneGrid plane_grid(points3d, block_size);
     TileQueue plane_queue(plane_grid);
-
-    // Line 3-4
     size_t index_plane = 0;
 
-    std::vector<Plane> planes;
-
     plane_coefficients.clear();
-    mask_out.create(points3d_in.rows, points3d_in.cols, CV_8U);
     float mse_min = 0.0001;
 
     while (!plane_queue.Empty())
@@ -521,29 +526,29 @@ namespace cv
       if (front_tile.mse_ > mse_min)
         break;
 
-      InlierFinder inlier_finder(error_, points3d_, normals, index_plane);
+      InlierFinder inlier_finder(error_, points3d, normals, index_plane);
 
-      // Construct the plane for those 3 points
+      // Construct the plane for the first tile
       int x = front_tile.x_, y = front_tile.y_;
       const cv::Vec3f & n = plane_grid.n_(y, x);
       Plane plane(plane_grid.m_(y, x), n, index_plane);
 
-      PlaneMask plane_mask(points3d_.rows, points3d_.cols, block_size);
+      PlaneMask plane_mask(points3d.rows, points3d.cols, block_size);
       std::set<TileQueue::PlaneTile> neighboring_tiles;
       neighboring_tiles.insert(front_tile);
       plane_queue.remove(front_tile.y_, front_tile.x_);
 
       // Process all the neighboring tiles
       while (!neighboring_tiles.empty())
-        inlier_finder.Find(plane_grid, plane, plane_queue, neighboring_tiles, overall_mask, plane_mask);
+        inlier_finder.Find(plane_grid, plane, plane_queue, neighboring_tiles, mask_out_uc, plane_mask);
 
       if (plane.empty())
         continue;
 
       ++index_plane;
-      planes.push_back(plane);
+      if (index_plane >= 255)
+        break;
       plane_coefficients.push_back(plane.abcd());
     };
-    overall_mask.copyTo(mask_out);
   }
 }
