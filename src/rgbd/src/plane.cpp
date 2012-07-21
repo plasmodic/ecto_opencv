@@ -279,12 +279,6 @@ public:
     return tiles_.front();
   }
 
-  size_t
-  size() const
-  {
-    return tiles_.size();
-  }
-
   void
   remove(int y, int x)
   {
@@ -371,18 +365,11 @@ private:
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-int
-PointDistanceSq(const cv::Point2i& point_1, const cv::Point2i& point_2)
-{
-  return (point_1.x - point_2.x) * (point_1.x - point_2.x) + (point_1.y - point_2.y) * (point_1.y - point_2.y);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 class InlierFinder
 {
 public:
-  InlierFinder(float err, const cv::Mat& points3d, const cv::Mat & normals, unsigned char plane_index)
+  InlierFinder(float err, const cv::Mat_<cv::Vec3f> & points3d, const cv::Mat_<cv::Vec3f> & normals,
+               unsigned char plane_index)
       :
         err_(err),
         points3d_(points3d),
@@ -415,7 +402,6 @@ public:
       range_y = cv::Range(y, y + plane_mask.block_size());
 
     int n_valid_points = 0;
-    bool do_left = false, do_right = false, do_top = false, do_bottom = false;
     for (int yy = range_y.start; yy != range_y.end; ++yy)
     {
       uchar* data = overall_mask.ptr(yy, range_x.start), *data_end = overall_mask.ptr(yy, range_x.end);
@@ -424,7 +410,7 @@ public:
       const cv::Matx33f* Q_local = reinterpret_cast<const cv::Matx33f *>(plane_grid.Q_.ptr<cv::Vec<float, 9> >(
           yy, range_x.start));
 
-      for (int xx = range_x.start; data != data_end; ++data, ++point, ++xx, ++normal, ++Q_local)
+      for (; data != data_end; ++data, ++point, ++normal, ++Q_local)
       {
         // Don't do anything if the point already belongs to another plane
         if (cvIsNaN(point->val[0]) || ((*data) != 255))
@@ -440,14 +426,6 @@ public:
             plane.UpdateStatistics(*point, *Q_local);
             *data = plane_index_;
             ++n_valid_points;
-            if (yy == range_y.start)
-              do_top = true;
-            if (yy == range_y.end - 1)
-              do_bottom = true;
-            if (xx == range_x.start)
-              do_left = true;
-            if (xx == range_x.end - 1)
-              do_right = true;
           }
         }
       }
@@ -456,20 +434,24 @@ public:
     plane.UpdateParameters();
 
     // Mark the front as being done and pop it
-    if (n_valid_points > range_x.size() * range_y.size())
+    if (n_valid_points > (range_x.size() * range_y.size()) / 2)
       tile_queue.remove(tile.y_, tile.x_);
     plane_mask.set(tile.y_, tile.x_);
     neighboring_tiles.erase(neighboring_tiles.begin());
 
     // Add potential neighbors of the tile
     std::vector<std::pair<int, int> > pairs;
-    if (do_left && tile.x_ > 0)
+    if (tile.x_ > 0 && cv::countNonZero(
+        overall_mask(range_y, cv::Range(range_x.start, range_x.start + 1)) == plane_index_))
       pairs.push_back(std::pair<int, int>(tile.x_ - 1, tile.y_));
-    if (do_right && tile.x_ < plane_mask.mask_mini().cols - 1)
+    if ((tile.x_ < plane_mask.mask_mini().cols - 1) && cv::countNonZero(
+        overall_mask(range_y, cv::Range(range_x.end - 1, range_x.end)) == plane_index_))
       pairs.push_back(std::pair<int, int>(tile.x_ + 1, tile.y_));
-    if (do_top && tile.y_ > 0)
+    if (tile.y_ > 0 && cv::countNonZero(
+        overall_mask(cv::Range(range_y.start, range_y.start + 1), range_x) == plane_index_))
       pairs.push_back(std::pair<int, int>(tile.x_, tile.y_ - 1));
-    if (do_bottom && tile.y_ < plane_mask.mask_mini().rows - 1)
+    if ((tile.y_ < plane_mask.mask_mini().rows - 1) && cv::countNonZero(
+        overall_mask(cv::Range(range_y.end - 1, range_y.end), range_x) == plane_index_))
       pairs.push_back(std::pair<int, int>(tile.x_, tile.y_ + 1));
 
     for (unsigned char i = 0; i < pairs.size(); ++i)
@@ -480,8 +462,8 @@ public:
 
 private:
   float err_;
-  const cv::Mat& points3d_;
-  const cv::Mat& normals_;
+  const cv::Mat_<cv::Vec3f> & points3d_;
+  const cv::Mat_<cv::Vec3f> & normals_;
   unsigned char plane_index_;
 }
 ;
