@@ -48,7 +48,7 @@
 
 #include <opencv2/rgbd/rgbd.hpp>
 
-/** Structure defining a plane */
+/** Structure defining a plane. The notations are from the second paper */
 class Plane
 {
 public:
@@ -198,7 +198,10 @@ public:
           }
         }
         if (K == 0)
+        {
+          mse_(y, x) = std::numeric_limits<float>::max();
           continue;
+        }
 
         m /= K;
         m_(y, x) = m;
@@ -253,10 +256,9 @@ public:
     tiles_.clear();
     for (int y = 0; y < plane_grid.mse_.rows; ++y)
       for (int x = 0; x < plane_grid.mse_.cols; ++x)
-      {
-        // Update the tiles
-        tiles_.push_back(PlaneTile(x, y, plane_grid.mse_(y, x)));
-      }
+        if (plane_grid.mse_(y, x) != std::numeric_limits<float>::max())
+          // Update the tiles
+          tiles_.push_back(PlaneTile(x, y, plane_grid.mse_(y, x)));
     // Sort tiles by MSE
     tiles_.sort();
   }
@@ -295,97 +297,41 @@ private:
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-/** A structure that contains the mask of a plane, as well as extra info */
-class PlaneMask
-{
-public:
-  PlaneMask(int rows, int cols, int block_size)
-      :
-        block_size_(block_size)
-  {
-    int mini_rows = rows / block_size;
-
-    if (rows % block_size != 0)
-      ++mini_rows;
-
-    int mini_cols = cols / block_size;
-
-    if (cols % block_size != 0)
-      ++mini_cols;
-
-    mask_mini_ = cv::Mat_ < uchar > ::zeros(mini_rows, mini_cols);
-  }
-
-  int
-  block_size() const
-  {
-    return block_size_;
-  }
-
-  const cv::Mat_<uchar>&
-  mask_mini() const
-  {
-    return mask_mini_;
-  }
-
-  uchar&
-  at_mini(int y, int x)
-  {
-    return mask_mini_(y, x);
-  }
-
-  void
-  set(int y, int x)
-  {
-    mask_mini_(y, x) = 1;
-  }
-
-private:
-  /** The size of the block */
-  int block_size_;
-  /** Same mask of size (width/block_size) x (height/block_size).
-   * 0, when the block does not belong to the plane
-   * 1 when most of a block as been assigned to a plane
-   */
-  cv::Mat_<uchar> mask_mini_;
-};
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 class InlierFinder
 {
 public:
   InlierFinder(float err, const cv::Mat_<cv::Vec3f> & points3d, const cv::Mat_<cv::Vec3f> & normals,
-               unsigned char plane_index)
+               unsigned char plane_index, int block_size)
       :
         err_(err),
         points3d_(points3d),
         normals_(normals),
-        plane_index_(plane_index)
+        plane_index_(plane_index),
+        block_size_(block_size)
   {
   }
 
   void
   Find(const PlaneGrid &plane_grid, Plane & plane, TileQueue & tile_queue,
        std::set<TileQueue::PlaneTile> & neighboring_tiles, cv::Mat_<unsigned char> & overall_mask,
-       PlaneMask & plane_mask)
+       cv::Mat_<unsigned char> & plane_mask)
   {
     // Do not use reference as we pop the from later on
     TileQueue::PlaneTile tile = *(neighboring_tiles.begin());
 
     // Figure the part of the image to look at
     cv::Range range_x, range_y;
-    int x = tile.x_ * plane_mask.block_size(), y = tile.y_ * plane_mask.block_size();
+    int x = tile.x_ * block_size_, y = tile.y_ * block_size_;
 
-    if (tile.x_ == plane_mask.mask_mini().cols - 1)
+    if (tile.x_ == plane_mask.cols - 1)
       range_x = cv::Range(x, overall_mask.cols);
     else
-      range_x = cv::Range(x, x + plane_mask.block_size());
+      range_x = cv::Range(x, x + block_size_);
 
-    if (tile.y_ == plane_mask.mask_mini().rows - 1)
+    if (tile.y_ == plane_mask.rows - 1)
       range_y = cv::Range(y, overall_mask.rows);
     else
-      range_y = cv::Range(y, y + plane_mask.block_size());
+      range_y = cv::Range(y, y + block_size_);
 
     int n_valid_points = 0;
     for (int yy = range_y.start; yy != range_y.end; ++yy)
@@ -422,7 +368,7 @@ public:
     // Mark the front as being done and pop it
     if (n_valid_points > (range_x.size() * range_y.size()) / 2)
       tile_queue.remove(tile.y_, tile.x_);
-    plane_mask.set(tile.y_, tile.x_);
+    plane_mask(tile.y_, tile.x_) = 1;
     neighboring_tiles.erase(neighboring_tiles.begin());
 
     // Add potential neighbors of the tile
@@ -435,7 +381,7 @@ public:
           pairs.push_back(std::pair<int, int>(tile.x_ - 1, tile.y_));
           break;
         }
-    if (tile.x_ < plane_mask.mask_mini().cols - 1)
+    if (tile.x_ < plane_mask.cols - 1)
       for (unsigned char * val = overall_mask.ptr<unsigned char>(range_y.start, range_x.end - 1), *val_end = val
           + range_y.size() * overall_mask.step; val != val_end; val += overall_mask.step)
         if (*val == plane_index_)
@@ -451,7 +397,7 @@ public:
           pairs.push_back(std::pair<int, int>(tile.x_, tile.y_ - 1));
           break;
         }
-    if (tile.y_ < plane_mask.mask_mini().rows - 1)
+    if (tile.y_ < plane_mask.rows - 1)
       for (unsigned char * val = overall_mask.ptr<unsigned char>(range_y.end - 1, range_x.start), *val_end = val
           + range_x.size(); val != val_end; ++val)
         if (*val == plane_index_)
@@ -461,7 +407,7 @@ public:
         }
 
     for (unsigned char i = 0; i < pairs.size(); ++i)
-      if (!plane_mask.mask_mini()(pairs[i].second, pairs[i].first))
+      if (!plane_mask(pairs[i].second, pairs[i].first))
         neighboring_tiles.insert(
             TileQueue::PlaneTile(pairs[i].first, pairs[i].second, plane_grid.mse_(pairs[i].second, pairs[i].first)));
   }
@@ -471,6 +417,8 @@ private:
   const cv::Mat_<cv::Vec3f> & points3d_;
   const cv::Mat_<cv::Vec3f> & normals_;
   unsigned char plane_index_;
+  /** THe block size as defined in the main algorithm */
+  int block_size_;
 }
 ;
 
@@ -514,14 +462,15 @@ namespace cv
       if (front_tile.mse_ > mse_min)
         break;
 
-      InlierFinder inlier_finder(error_, points3d, normals, index_plane);
+      InlierFinder inlier_finder(error_, points3d, normals, index_plane, block_size);
 
       // Construct the plane for the first tile
       int x = front_tile.x_, y = front_tile.y_;
       const cv::Vec3f & n = plane_grid.n_(y, x);
       Plane plane(plane_grid.m_(y, x), n, index_plane);
 
-      PlaneMask plane_mask(points3d.rows, points3d.cols, block_size);
+      cv::Mat_<unsigned char> plane_mask = cv::Mat_<unsigned char>::zeros(points3d.rows / block_size,
+                                                                          points3d.cols / block_size);
       std::set<TileQueue::PlaneTile> neighboring_tiles;
       neighboring_tiles.insert(front_tile);
       plane_queue.remove(front_tile.y_, front_tile.x_);
