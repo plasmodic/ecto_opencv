@@ -475,193 +475,11 @@ public:
   }
 
 private:
-
-  /** Given a small rectangle to study, check how many plane inliers there are, and set them in the mask
-   * @param point3d it is already a submatrix of the original points3d it is h x w x 3
-   * @param r
-   * @param p0
-   * @return
-   */
-  bool
-  IsBlockOnPlane(const cv::Point2i& block, int& n_inliers)
-  {
-    /*
-     cv::Mat point3d_reshape;
-     cv::Range range_x, range_y;
-     int x = block.x * mask_.block_size(), y = block.y * mask_.block_size();
-
-     if (block.x == mask_.mask_mini().cols - 1)
-     range_x = cv::Range(x, mask_.mask().cols);
-     else
-     range_x = cv::Range(x, x + mask_.block_size());
-
-     if (block.y == mask_.mask_mini().rows - 1)
-     range_y = cv::Range(y, mask_.mask().rows);
-     else
-     range_y = cv::Range(y, y + mask_.block_size());
-
-     cv::Mat good_points;
-     bool is_valid;
-
-     if ((mask_.at_mini(y, x) != 255) && 0)
-     {
-     // If the block already belongs to the plane, only process the points that were not on it
-     for (int yy = range_y.start; yy != range_y.end; ++yy)
-     {
-     uchar* data = mask_.mask().ptr(yy, range_x.start), *data_end = mask_.mask().ptr(yy, range_x.end);
-     const cv::Vec3f* point = points3d_.ptr<cv::Vec3f>(yy, range_x.start);
-
-     for (; data != data_end; ++data, ++point)
-     {
-     if (*data)
-     continue;
-
-     if (plane_.distance(*point) < err_)
-     *data = 1;
-     }
-     }
-
-     good_points = mask_.mask()(range_y, range_x);
-
-     // The block was valid the previous iteration so it is still valid
-     mask_.set(range_y, range_x, refinement_iteration_, good_points, n_inliers);
-     is_valid = true;
-     }
-     else
-     {
-     points3d_(range_y, range_x).copyTo(point3d_reshape);
-     size_t n_points = point3d_reshape.cols * point3d_reshape.rows;
-     // Make the matrix cols*ros x 3
-     point3d_reshape = point3d_reshape.reshape(1, n_points);
-
-     cv::Mat errs = point3d_reshape * (cv::Mat_<float>(3, 1) << plane_.abcd_[0], plane_.abcd_[1], plane_.abcd_[2]);
-
-     // Find the points on the plane
-     good_points = (-err_ - plane_.abcd_[3] < errs) & (errs < err_ - plane_.abcd_[3]);
-     good_points = good_points.reshape(1, range_y.size());
-
-     // Fill the mask with the valid points
-     is_valid = mask_.set(range_y, range_x, refinement_iteration_, good_points, n_inliers);
-     }
-
-     cv::Mat sub_mask = overall_mask_(range_y, range_x);
-     sub_mask.setTo(cv::Scalar(plane_.index_), good_points);
-
-     // Half is totally arbitrary: seems like a good number plus we have NaN's
-     return is_valid;
-     //    */
-    return true;
-  }
-
-  void
-  Find(std::list<cv::Point2i> &blocks, int& n_inliers_total)
-  {
-    /*
-     // Also process the contour blocks
-     blocks.insert(blocks.end(), contour_blocks_.begin(), contour_blocks_.end());
-     contour_blocks_.clear();
-
-     while (!blocks.empty())
-     {
-     cv::Point2i block = blocks.front();
-     blocks.pop_front();
-
-     // Don't look at the neighboring blocks if this is not a fitting block and leave it as 255
-     int n_inliers;
-
-     if (!IsBlockOnPlane(block, n_inliers))
-     {
-     contour_blocks_.push_back(block);
-     continue;
-     }
-
-     n_inliers_total += n_inliers;
-
-     // Add neighboring blocks if they have not been processed
-     for (int y = std::max(0, block.y - 1); y <= std::min(block.y + 1, mask_.mask_mini().rows - 1); ++y)
-     for (int x = std::max(0, block.x - 1); x <= std::min(block.x + 1, mask_.mask_mini().cols - 1); ++x)
-     {
-     // Do not process the block if it has been or is about to be processed
-     if ((mask_.at_mini(y, x) == 255) || (mask_.at_mini(y, x) == refinement_iteration_))
-     continue;
-
-     if (mask_.at_mini(y, x) == refinement_iteration_ - 1)
-     mask_.at_mini(y, x) = refinement_iteration_;
-     else
-     mask_.at_mini(y, x) = 255;
-
-     blocks.push_back(cv::Point2i(x, y));
-     }
-     }*/
-  }
-
   float err_;
   const cv::Mat& points3d_;
   unsigned char plane_index_;
 }
 ;
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-cv::Mat_<float>
-computeResiduals(const cv::Mat_<cv::Vec3f> &, const cv::Mat_<cv::Vec3f> & normals)
-{
-  cv::Mat_<float> residuals = cv::Mat_<float>::zeros(normals.size());
-  std::vector<cv::Mat_<float> > channels(3);
-  std::vector<cv::Mat_<float> > channels_integrals(3);
-  cv::split(normals, channels);
-
-  // Figure out the valid points
-  int half_window_size = 10;
-  cv::Mat_<uchar> valid = cv::Mat_<uchar>::ones(normals.size());
-  for (int y = 0; y < normals.rows; ++y)
-    for (int x = 0; x < normals.cols; ++x)
-      if (cvIsNaN(channels[0](y, x)))
-      {
-        channels[0](y, x) = 0;
-        channels[1](y, x) = 0;
-        channels[2](y, x) = 0;
-        valid(y, x) = 0;
-      }
-
-  // Compute the integral images
-  for (char i = 0; i < 3; ++i)
-    cv::integral(channels[i], channels_integrals[i], CV_32F);
-
-  cv::Mat_<int> valid_count, count(valid.size());
-  cv::integral(valid, valid_count);
-  for (int y = half_window_size; y < normals.rows - half_window_size - 1; ++y)
-    for (int x = half_window_size; x < normals.cols - half_window_size - 1; ++x)
-      if (valid(y, x))
-        count(y, x) = valid_count(y + half_window_size + 1, x + half_window_size + 1)
-            - valid_count(y - half_window_size, x + half_window_size + 1)
-            - valid_count(y + half_window_size + 1, x - half_window_size)
-                      + valid_count(y - half_window_size, x - half_window_size);
-      else
-        count(y, x) = 0;
-
-  // For each point, compute the average distance of the neighboring normals to
-  // the current normal
-  for (int y = half_window_size; y < normals.rows - half_window_size - 1; ++y)
-    for (int x = half_window_size; x < normals.cols - half_window_size - 1; ++x)
-    {
-      if (count(y, x) >= (2 * half_window_size + 1) * (2 * half_window_size + 1) * 0.5)
-      {
-        for (char i = 0; i < 3; ++i)
-          residuals(y, x) += normals(y, x)[i]
-              * (channels_integrals[i](y + half_window_size + 1, x + half_window_size + 1) - channels_integrals[i](
-                  y - half_window_size, x + half_window_size + 1)
-                 - channels_integrals[i](y + half_window_size + 1, x - half_window_size)
-                 + channels_integrals[i](y - half_window_size, x - half_window_size));
-
-        residuals(y, x) /= count(y, x);
-      }
-      else
-        residuals(y, x) = std::numeric_limits<float>::quiet_NaN();
-    }
-
-  return residuals;
-}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -682,23 +500,11 @@ namespace cv
     else
       points3d_in.convertTo(points3d_, CV_32F);
 
-    //CALLGRIND_START_INSTRUMENTATION;
-
     // Pre-computations
     cv::Mat_<uchar> overall_mask = cv::Mat_<uchar>(points3d_.rows, points3d_.cols, (unsigned char) (255));
 
-    // Compute the plane residuals as an approximation of the curvature
-    /*cv::Mat_<float> residuals = computeResiduals(points3d_, normals);
-
-     cv::namedWindow("curvature");
-     cv::imshow("curvature", residuals >= std::cos(35 * CV_PI / 180));
-     cv::waitKey(2);*/
-
     PlaneGrid plane_grid(points3d_, block_size);
     TileQueue plane_queue(plane_grid);
-    /*cv::namedWindow("mse");
-     cv::imshow("mse", plane_grid.mse_ < (0.5e-2) * (0.5e-2));
-     cv::waitKey(2);*/
 
     // Line 3-4
     size_t index_plane = 0;
