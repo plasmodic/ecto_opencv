@@ -70,10 +70,18 @@ public:
   {
   }
 
+  /** Compute the distance to the plane. This will be implemented by the children to take into account different
+   * sensor models
+   * @param p_j
+   * @return
+   */
   virtual
   float
   distance(const cv::Vec3f& p_j) const = 0;
 
+  /** The d coefficient in the plane equation ax+by+cz+d = 0
+   * @return
+   */
   inline float
   d() const
   {
@@ -89,6 +97,8 @@ public:
     return n_;
   }
 
+  /** Update the different coefficients of the plane, based on the new statistics
+   */
   void
   UpdateParameters()
   {
@@ -106,6 +116,8 @@ public:
     UpdateD();
   }
 
+  /** Update the different sum of point and sum of point*point.t()
+   */
   void
   UpdateStatistics(const cv::Vec3f & point, const cv::Matx33f & Q_local)
   {
@@ -147,6 +159,8 @@ private:
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+/** Basic planar child, with no sensor error model
+ */
 class Plane: public PlaneBase
 {
 public:
@@ -156,6 +170,10 @@ public:
   {
   }
 
+  /** The computed distance is perfect in that case
+   * @param p_j the point to compute its distance to
+   * @return
+   */
   float
   distance(const cv::Vec3f& p_j) const
   {
@@ -163,6 +181,8 @@ public:
   }
 };
 
+/** Planar child with a quadratic error model
+ */
 class PlaneABC: public PlaneBase
 {
 public:
@@ -182,8 +202,8 @@ public:
   distance(const cv::Vec3f& p_j) const
   {
     float cst = p_j.dot(n_) + d_;
-    float err = n_[2] * p_j[2];
-    if ((cst - err <= 0) && (cst + err >= 0))
+    float err = sensor_error_a_ * p_j[2] * p_j[2] + sensor_error_b_ * p_j[2] + sensor_error_c_;
+    if (((cst - n_[2] * err <= 0) && (cst + n_[2] * err >= 0)) || ((cst + n_[2] * err <= 0) && (cst - n_[2] * err >= 0)))
       return 0;
     return std::min(std::abs(cst - err), std::abs(cst + err));
   }
@@ -195,6 +215,8 @@ private:
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+/** The PlaneGrid contains statistic about the individual tiles
+ */
 class PlaneGrid
 {
 public:
