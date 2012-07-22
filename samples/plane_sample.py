@@ -28,7 +28,7 @@ if __name__ == '__main__':
     from ecto_openni import SXGA_RES, FPS_15, VGA_RES, FPS_30
     source = create_source('image_pipeline','OpenNISource',image_mode=VGA_RES,image_fps=FPS_30)
     rgb2gray = cvtColor('Grayscale', flag=Conversion.RGB2GRAY)
-    plane_finder = PlaneFinder(error=0.03)
+    plane_finder = PlaneFinder(threshold=0.03,sensor_error_a=0.0075)
     depth_to_3d = DepthTo3d()
     compute_normals1 = ComputeNormals(method=RgbdNormalsTypes.FALS)
     draw_normals1 = DrawNormals(step=20)

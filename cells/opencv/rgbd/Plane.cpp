@@ -58,7 +58,14 @@ namespace rgbd
     {
       params.declare(&PlaneFinder::block_size_, "block_size",
                      "Size of a block to check if it belongs to a plane (in pixels).", 40);
-      params.declare(&PlaneFinder::error_, "error", "Error (in meters) for how far a point is on a plane.", 0.02);
+      params.declare(&PlaneFinder::threshold_, "threshold", "Error (in meters) for how far a point is on a plane.",
+                     0.02);
+      params.declare(&PlaneFinder::sensor_error_a_, "sensor_error_a",
+                     "a coefficient of the quadratic sensor error err=a*z^2+b*z+c. 0.0075 fo Kinect.", 0.0);
+      params.declare(&PlaneFinder::sensor_error_b_, "sensor_error_b",
+                     "b coefficient of the quadratic sensor error err=a*z^2+b*z+c. 0.0 fo Kinect.", 0.0);
+      params.declare(&PlaneFinder::sensor_error_c_, "sensor_error_c",
+                     "c coefficient of the quadratic sensor error err=a*z^2+b*z+c. 0.0 fo Kinect.", 0.0);
       params.declare(&PlaneFinder::window_size_, "window_size", "The window size for smoothing.", 5);
       params.declare(&PlaneFinder::normal_method_, "normal_method", "The window size for smoothing.",
                      cv::RgbdNormals::RGBD_NORMALS_METHOD_FALS);
@@ -93,7 +100,12 @@ namespace rgbd
       }
 
       if (plane_computer_.empty())
-        plane_computer_ = new cv::RgbdPlane();
+      {
+        plane_computer_ = cv::Algorithm::create<cv::RgbdPlane>("RGBD.RgbdPlane");
+        plane_computer_->set("sensor_error_a", *sensor_error_a_);
+        plane_computer_->set("sensor_error_b", *sensor_error_b_);
+        plane_computer_->set("sensor_error_c", *sensor_error_c_);
+      }
       (*plane_computer_)(*points3d_, *normals_, *masks_, *planes_);
 
       return ecto::OK;
@@ -104,7 +116,10 @@ namespace rgbd
     cv::Ptr<cv::RgbdPlane> plane_computer_;
 
     /** If true, display some result */
-    ecto::spore<float> error_;
+    ecto::spore<float> threshold_;
+    ecto::spore<float> sensor_error_a_;
+    ecto::spore<float> sensor_error_b_;
+    ecto::spore<float> sensor_error_c_;
     ecto::spore<size_t> block_size_;
 
     /** Input 3d points */
