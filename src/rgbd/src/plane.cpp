@@ -49,35 +49,40 @@
 #include <opencv2/rgbd/rgbd.hpp>
 
 /** Structure defining a plane. The notations are from the second paper */
-class Plane
+class PlaneBase
 {
 public:
-  Plane(const cv::Vec3f & m, const cv::Vec3f &n, int index)
+  PlaneBase(const cv::Vec3f & m, const cv::Vec3f &n, int index)
       :
         index_(index),
+        n_(n),
         m_sum_(cv::Vec3f(0, 0, 0)),
         m_(m),
         Q_(cv::Matx33f::zeros()),
-        n_(n),
         mse_(0),
         K_(0)
   {
-    UpdateAbcd();
+    UpdateD();
   }
 
-  inline
+  virtual
+  ~PlaneBase()
+  {
+  }
+
+  virtual
   float
-  distance(const cv::Vec3f& p_j) const
+  distance(const cv::Vec3f& p_j) const = 0;
+
+  inline float
+  d() const
   {
-    return std::abs(float(p_j.dot(n_) + abcd_[3]));
+    return d_;
   }
 
-  const cv::Vec4f &
-  abcd() const
-  {
-    return abcd_;
-  }
-
+  /** The normal to the plane
+   * @return the normal to the plane
+   */
   const cv::Vec3f &
   n() const
   {
@@ -98,7 +103,7 @@ public:
     n_ = cv::Vec3f(svd.vt.at<float>(2, 0), svd.vt.at<float>(2, 1), svd.vt.at<float>(2, 2));
     mse_ = svd.w.at<float>(2) / K_;
 
-    UpdateAbcd();
+    UpdateD();
   }
 
   void
@@ -116,14 +121,17 @@ public:
   }
   /** The index of the plane */
   int index_;
+protected:
+  /** The 4th coefficient in the plane equation ax+by+cz+d = 0 */
+  float d_;
+  /** Normal of the plane */
+  cv::Vec3f n_;
 private:
   inline void
-  UpdateAbcd()
+  UpdateD()
   {
-    abcd_ = cv::Vec4f(n_[0], n_[1], n_[2], -m_.dot(n_));
+    d_ = -m_.dot(n_);
   }
-  /** coefficients for ax+by+cz+d = 0 */
-  cv::Vec4f abcd_;
   /** The sum of the points */
   cv::Vec3f m_sum_;
   /** The mean of the points */
@@ -132,11 +140,57 @@ private:
   cv::Matx33f Q_;
   /** The different matrices we need to update */
   cv::Matx33f C_;
-  /** Normal of the plane */
-  cv::Vec3f n_;
   float mse_;
   /** the number of points that form the plane */
   int K_;
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+class Plane: public PlaneBase
+{
+public:
+  Plane(const cv::Vec3f & m, const cv::Vec3f &n, int index)
+      :
+        PlaneBase(m, n, index)
+  {
+  }
+
+  float
+  distance(const cv::Vec3f& p_j) const
+  {
+    return std::abs(float(p_j.dot(n_) + d_));
+  }
+};
+
+class PlaneABC: public PlaneBase
+{
+public:
+  PlaneABC(const cv::Vec3f & m, const cv::Vec3f &n, int index, float sensor_error_a, float sensor_error_b,
+           float sensor_error_c)
+      :
+        PlaneBase(m, n, index),
+        sensor_error_a_(sensor_error_a),
+        sensor_error_b_(sensor_error_b),
+        sensor_error_c_(sensor_error_c)
+  {
+  }
+
+  /** The distance is now computed by taking the sensor error into account */
+  inline
+  float
+  distance(const cv::Vec3f& p_j) const
+  {
+    float cst = p_j.dot(n_) + d_;
+    float err = n_[2] * p_j[2];
+    if ((cst - err <= 0) && (cst + err >= 0))
+      return 0;
+    return std::min(std::abs(cst - err), std::abs(cst + err));
+  }
+private:
+  float sensor_error_a_;
+  float sensor_error_b_;
+  float sensor_error_c_;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -312,7 +366,7 @@ public:
   }
 
   void
-  Find(const PlaneGrid &plane_grid, Plane & plane, TileQueue & tile_queue,
+  Find(const PlaneGrid &plane_grid, cv::Ptr<PlaneBase> & plane, TileQueue & tile_queue,
        std::set<TileQueue::PlaneTile> & neighboring_tiles, cv::Mat_<unsigned char> & overall_mask,
        cv::Mat_<unsigned char> & plane_mask)
   {
@@ -352,13 +406,13 @@ public:
             continue;
 
           // If the point is close enough to the plane
-          if (plane.distance(*point) < err_)
+          if (plane->distance(*point) < err_)
           {
             // make sure the normals are similar to the plane
-            if (std::abs(plane.n().dot(*normal)) > 0.3)
+            if (std::abs(plane->n().dot(*normal)) > 0.3)
             {
               // The point now belongs to the plane
-              plane.UpdateStatistics(*point, *Q_local);
+              plane->UpdateStatistics(*point, *Q_local);
               *data = plane_index_;
               ++n_valid_points;
             }
@@ -374,10 +428,10 @@ public:
             continue;
 
           // If the point is close enough to the plane
-          if (plane.distance(*point) < err_)
+          if (plane->distance(*point) < err_)
           {
             // The point now belongs to the plane
-            plane.UpdateStatistics(*point, *Q_local);
+            plane->UpdateStatistics(*point, *Q_local);
             *data = plane_index_;
             ++n_valid_points;
           }
@@ -385,7 +439,7 @@ public:
       }
     }
 
-    plane.UpdateParameters();
+    plane->UpdateParameters();
 
     // Mark the front as being done and pop it
     if (n_valid_points > (range_x.size() * range_y.size()) / 2)
@@ -490,7 +544,11 @@ namespace cv
       // Construct the plane for the first tile
       int x = front_tile.x_, y = front_tile.y_;
       const cv::Vec3f & n = plane_grid.n_(y, x);
-      Plane plane(plane_grid.m_(y, x), n, index_plane);
+      cv::Ptr<PlaneBase> plane;
+      if ((sensor_error_a_ == 0) && (sensor_error_b_ == 0) && (sensor_error_c_ == 0))
+        plane = new Plane(plane_grid.m_(y, x), n, index_plane);
+      else
+        plane = new PlaneABC(plane_grid.m_(y, x), n, index_plane, sensor_error_a_, sensor_error_b_, sensor_error_c_);
 
       cv::Mat_<unsigned char> plane_mask = cv::Mat_<unsigned char>::zeros(points3d.rows / block_size_,
                                                                           points3d.cols / block_size_);
@@ -508,7 +566,7 @@ namespace cv
       ++index_plane;
       if (index_plane >= 255)
         break;
-      plane_coefficients.push_back(plane.abcd());
+      plane_coefficients.push_back(cv::Vec4f(plane->n()[0], plane->n()[1], plane->n()[2], plane->d()));
     };
   }
 }

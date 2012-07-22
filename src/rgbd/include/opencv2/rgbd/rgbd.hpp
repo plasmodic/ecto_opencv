@@ -39,17 +39,15 @@
 #ifdef __cplusplus
 
 #include <limits.h>
+
 #include <opencv2/core/core.hpp>
 #include <opencv2/core/types_c.h>
 
 namespace cv
 {
   /** Checks if the value is a valid depth. For CV_16U or CV_16S, the convention is to be invalid if it is
-   * a limit. For a float, we just check if it is a NaN
-   * @param depth
-   * @param in_K
-   * @param in_points
-   * @param points3d
+   * a limit. For a float/double, we just check if it is a NaN
+   * @param depth the depth to check for validity
    */
   CV_EXPORTS
   inline bool
@@ -62,6 +60,19 @@ namespace cv
   isValidDepth(const double & depth)
   {
     return cvIsNaN(depth);
+  }
+  CV_EXPORTS
+  inline bool
+  isValidDepth(const short int & depth)
+  {
+    return (depth != std::numeric_limits<short int>::min()) && (depth != std::numeric_limits<short int>::max());
+  }
+  CV_EXPORTS
+  inline bool
+  isValidDepth(const unsigned short int & depth)
+  {
+    return (depth != std::numeric_limits<unsigned short int>::min())
+        && (depth != std::numeric_limits<unsigned short int>::max());
   }
   CV_EXPORTS
   inline bool
@@ -177,7 +188,11 @@ namespace cv
     RgbdPlane(RGBD_PLANE_METHOD method = RGBD_PLANE_METHOD_DEFAULT)
         :
           method_(method),
-          block_size_(40)
+          block_size_(40),
+          threshold_(0.01),
+          sensor_error_a_(0),
+          sensor_error_b_(0),
+          sensor_error_c_(0)
     {
     }
 
@@ -210,7 +225,7 @@ namespace cv
     int block_size_;
     /** How far a point can be from a plane to belong to it (in meters) */
     double threshold_;
-    /** coefficient of the sensor error with respect to the */
+    /** coefficient of the sensor error with respect to the. All 0 by default but you want a=0.0075 for a Kinect */
     double sensor_error_a_, sensor_error_b_, sensor_error_c_;
   };
 
