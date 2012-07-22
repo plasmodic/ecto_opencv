@@ -338,21 +338,43 @@ public:
     {
       uchar* data = overall_mask.ptr(yy, range_x.start), *data_end = data + range_x.size();
       const cv::Vec3f* point = points3d_.ptr < cv::Vec3f > (yy, range_x.start);
-      const cv::Vec3f* normal = normals_.ptr < cv::Vec3f > (yy, range_x.start);
       const cv::Matx33f* Q_local = reinterpret_cast<const cv::Matx33f *>(plane_grid.Q_.ptr < cv::Vec<float, 9>
           > (yy, range_x.start));
 
-      for (; data != data_end; ++data, ++point, ++normal, ++Q_local)
+      // Depending on whether you have a normal, check it
+      if (!normals_.empty())
       {
-        // Don't do anything if the point already belongs to another plane
-        if (cvIsNaN(point->val[0]) || ((*data) != 255))
-          continue;
-
-        // If the point is close enough to the plane
-        if (plane.distance(*point) < err_)
+        const cv::Vec3f* normal = normals_.ptr < cv::Vec3f > (yy, range_x.start);
+        for (; data != data_end; ++data, ++point, ++normal, ++Q_local)
         {
-          // make sure the normals are similar to the plane
-          if (std::abs(plane.n().dot(*normal)) > 0.3)
+          // Don't do anything if the point already belongs to another plane
+          if (cvIsNaN(point->val[0]) || ((*data) != 255))
+            continue;
+
+          // If the point is close enough to the plane
+          if (plane.distance(*point) < err_)
+          {
+            // make sure the normals are similar to the plane
+            if (std::abs(plane.n().dot(*normal)) > 0.3)
+            {
+              // The point now belongs to the plane
+              plane.UpdateStatistics(*point, *Q_local);
+              *data = plane_index_;
+              ++n_valid_points;
+            }
+          }
+        }
+      }
+      else
+      {
+        for (; data != data_end; ++data, ++point, ++Q_local)
+        {
+          // Don't do anything if the point already belongs to another plane
+          if (cvIsNaN(point->val[0]) || ((*data) != 255))
+            continue;
+
+          // If the point is close enough to the plane
+          if (plane.distance(*point) < err_)
           {
             // The point now belongs to the plane
             plane.UpdateStatistics(*point, *Q_local);
@@ -427,14 +449,15 @@ private:
 namespace cv
 {
   void
+  RgbdPlane::operator()(const cv::Mat & points3d_in, cv::Mat &mask_out, std::vector<cv::Vec4f> & plane_coefficients)
+  {
+    this->operator()(points3d_in, cv::Mat(), mask_out, plane_coefficients);
+  }
+
+  void
   RgbdPlane::operator()(const cv::Mat & points3d_in, const cv::Mat & normals_in, cv::Mat &mask_out,
                         std::vector<cv::Vec4f> & plane_coefficients)
   {
-    // Size of a block to check if it belongs to a plane (in pixels)
-    size_t block_size = 40;
-    // Error (in meters) for how far a point is on a plane.
-    float error_ = 0.02;
-
     cv::Mat_<cv::Vec3f> points3d, normals;
     if (points3d_in.depth() == CV_32F)
       points3d = points3d_in;
@@ -448,12 +471,12 @@ namespace cv
     // Pre-computations
     cv::Mat_<unsigned char> & mask_out_uc = (cv::Mat_<unsigned char>&) mask_out;
     mask_out_uc = cv::Mat_<unsigned char>(points3d_in.rows, points3d_in.cols, (unsigned char) (255));
-    PlaneGrid plane_grid(points3d, block_size);
+    PlaneGrid plane_grid(points3d, block_size_);
     TileQueue plane_queue(plane_grid);
     size_t index_plane = 0;
 
     plane_coefficients.clear();
-    float mse_min = 0.01 * 0.01;
+    float mse_min = threshold_ * threshold_;
 
     while (!plane_queue.empty())
     {
@@ -462,15 +485,15 @@ namespace cv
       if (front_tile.mse_ > mse_min)
         break;
 
-      InlierFinder inlier_finder(error_, points3d, normals, index_plane, block_size);
+      InlierFinder inlier_finder(threshold_, points3d, normals, index_plane, block_size_);
 
       // Construct the plane for the first tile
       int x = front_tile.x_, y = front_tile.y_;
       const cv::Vec3f & n = plane_grid.n_(y, x);
       Plane plane(plane_grid.m_(y, x), n, index_plane);
 
-      cv::Mat_<unsigned char> plane_mask = cv::Mat_<unsigned char>::zeros(points3d.rows / block_size,
-                                                                          points3d.cols / block_size);
+      cv::Mat_<unsigned char> plane_mask = cv::Mat_<unsigned char>::zeros(points3d.rows / block_size_,
+                                                                          points3d.cols / block_size_);
       std::set<TileQueue::PlaneTile> neighboring_tiles;
       neighboring_tiles.insert(front_tile);
       plane_queue.remove(front_tile.y_, front_tile.x_);

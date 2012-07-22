@@ -47,6 +47,14 @@ namespace cv
       obj.info()->addParam(obj, "K", obj.K_); 
       obj.info()->addParam(obj, "method", obj.method_))
 
+  CV_INIT_ALGORITHM(RgbdPlane, "RGBD.RgbdPlane",
+      obj.info()->addParam(obj, "block_size", obj.block_size_, 40);
+      obj.info()->addParam(obj, "method", obj.method_);
+      obj.info()->addParam(obj, "threshold", obj.threshold_);
+      obj.info()->addParam(obj, "sensor_error_a", obj.sensor_error_a_);
+      obj.info()->addParam(obj, "sensor_error_b", obj.sensor_error_b_);
+      obj.info()->addParam(obj, "sensor_error_c", obj.sensor_error_c_))
+
   CV_INIT_ALGORITHM(RgbdOdometry, "RGBD.RgbdOdometry",
       obj.info()->addParam(obj, "cameraMatrix", obj.cameraMatrix);
       obj.info()->addParam(obj, "minDepth", obj.minDepth);
@@ -54,7 +62,7 @@ namespace cv
       obj.info()->addParam(obj, "maxDepthDiff", obj.maxDepthDiff);
       obj.info()->addParam(obj, "iterCounts", obj.iterCounts);
       obj.info()->addParam(obj, "minGradientMagnitudes", obj.minGradientMagnitudes))
-      
+
   CV_INIT_ALGORITHM(ICPOdometry, "RGBD.ICPOdometry",
       obj.info()->addParam(obj, "cameraMatrix", obj.cameraMatrix);
       obj.info()->addParam(obj, "minDepth", obj.minDepth);
@@ -63,7 +71,7 @@ namespace cv
       obj.info()->addParam(obj, "pointsPart", obj.pointsPart);
       obj.info()->addParam(obj, "iterCounts", obj.iterCounts);
       /*obj.info()->addParam(obj, "normalComputers", obj.normalComputers, true);*/)
-      
+
   CV_INIT_ALGORITHM(RgbdICPOdometry, "RGBD.RgbdICPOdometry",
       obj.info()->addParam(obj, "cameraMatrix", obj.cameraMatrix);
       obj.info()->addParam(obj, "minDepth", obj.minDepth);
@@ -79,6 +87,7 @@ namespace cv
   {
     bool all = true;
     all &= !RgbdNormals_info_auto.name().empty();
+    all &= !RgbdPlane_info_auto.name().empty();
     all &= !RgbdOdometry_info_auto.name().empty();
     all &= !ICPOdometry_info_auto.name().empty();
     all &= !RgbdICPOdometry_info_auto.name().empty();

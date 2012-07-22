@@ -52,11 +52,28 @@ namespace cv
    * @param points3d
    */
   CV_EXPORTS
-  template<typename T>
-  bool
-  isValidDepth(const T & depth)
+  inline bool
+  isValidDepth(const float & depth)
   {
-    return (depth != std::numeric_limits<T>::min()) && (depth != std::numeric_limits<T>::max());
+    return cvIsNaN(depth);
+  }
+  CV_EXPORTS
+  inline bool
+  isValidDepth(const double & depth)
+  {
+    return cvIsNaN(depth);
+  }
+  CV_EXPORTS
+  inline bool
+  isValidDepth(const int & depth)
+  {
+    return (depth != std::numeric_limits<int>::min()) && (depth != std::numeric_limits<int>::max());
+  }
+  CV_EXPORTS
+  inline bool
+  isValidDepth(const unsigned int & depth)
+  {
+    return (depth != std::numeric_limits<unsigned int>::min()) && (depth != std::numeric_limits<unsigned int>::max());
   }
 
   /** Object that can compute the normals in an image.
@@ -146,11 +163,10 @@ namespace cv
   void
   rescaleDepth(const cv::Mat& in, int depth, cv::Mat& out);
 
-  /** Object that can compute the normals in an image.
-   * It is an object as it can cache data for speed efficiency
+  /** Object that can compute planes in an image
    */
   CV_EXPORTS
-  class RgbdPlane // : public cv::Algorithm
+  class RgbdPlane: public cv::Algorithm
   {
   public:
     enum RGBD_PLANE_METHOD
@@ -159,17 +175,43 @@ namespace cv
     };
 
     RgbdPlane(RGBD_PLANE_METHOD method = RGBD_PLANE_METHOD_DEFAULT)
+        :
+          method_(method),
+          block_size_(40)
     {
     }
 
-    /** Find
+    /** Find The planes in a depth image
      * @param depth image. If it has 3 channels, it is assumed to be 2d points
+     * @param the normals for every point in the depth image
      * @param mask An image where each pixel is labeled with the plane it belongs to
+     *        and 255 if it does not belong to any plane
+     * @param the coefficients of the corresponding planes (a,b,c,d) such that ax+by+cz+d=0
      */
     void
     operator()(const cv::Mat & depth, const cv::Mat & normals, cv::Mat &mask,
                std::vector<cv::Vec4f> & plane_coefficients);
+
+    /** Find The planes in a depth image but without doing a normal check, which is faster but less accurate
+     * @param depth image. If it has 3 channels, it is assumed to be 2d points
+     * @param mask An image where each pixel is labeled with the plane it belongs to
+     *        and 255 if it does not belong to any plane
+     * @param the coefficients of the corresponding planes (a,b,c,d) such that ax+by+cz+d=0
+     */
+    void
+    operator()(const cv::Mat & depth, cv::Mat &mask, std::vector<cv::Vec4f> & plane_coefficients);
+
+    AlgorithmInfo*
+    info() const;
   private:
+    /** The method to use to compute the planes */
+    int method_;
+    /** The size of the blocks to look at for a stable MSE */
+    int block_size_;
+    /** How far a point can be from a plane to belong to it (in meters) */
+    double threshold_;
+    /** coefficient of the sensor error with respect to the */
+    double sensor_error_a_, sensor_error_b_, sensor_error_c_;
   };
 
   // TODO 
