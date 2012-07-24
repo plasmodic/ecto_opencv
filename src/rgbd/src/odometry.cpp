@@ -145,8 +145,8 @@ RgbdOdometry::RgbdOdometry(const Mat& _cameraMatrix,
                            const vector<float>& _minGradientMagnitudes) :
                            cameraMatrix(_cameraMatrix),
                            minDepth(_minDepth), maxDepth(_maxDepth), maxDepthDiff(_maxDepthDiff),
-                           iterCounts(_iterCounts), 
-                           minGradientMagnitudes(_minGradientMagnitudes)
+                           iterCounts(Mat(_iterCounts).clone()),
+                           minGradientMagnitudes(Mat(_minGradientMagnitudes).clone())
 {
     if(iterCounts.empty() || minGradientMagnitudes.empty())
     {
@@ -191,7 +191,7 @@ ICPOdometry::ICPOdometry(const Mat& _cameraMatrix,
                          float _pointsPart, const vector<int>& _iterCounts) :
                          cameraMatrix(_cameraMatrix), 
                          minDepth(_minDepth), maxDepth(_maxDepth), maxDepthDiff(_maxDepthDiff),
-                         pointsPart(_pointsPart), iterCounts(_iterCounts)
+                         pointsPart(_pointsPart), iterCounts(Mat(_iterCounts).clone())
 {
     if(iterCounts.empty())
         setDefaultIterCounts(iterCounts);
@@ -233,8 +233,8 @@ RgbdICPOdometry::RgbdICPOdometry(const Mat& _cameraMatrix,
                                  const vector<float>& _minGradientMagnitudes) :
                                  cameraMatrix(_cameraMatrix),
                                  minDepth(_minDepth), maxDepth(_maxDepth), maxDepthDiff(_maxDepthDiff),
-                                 pointsPart(_pointsPart), iterCounts(_iterCounts),
-                                 minGradientMagnitudes(_minGradientMagnitudes)
+                                 pointsPart(_pointsPart), iterCounts(Mat(_iterCounts).clone()),
+                                 minGradientMagnitudes(Mat(_minGradientMagnitudes).clone())
 {
     if(iterCounts.empty() || minGradientMagnitudes.empty())
     {
