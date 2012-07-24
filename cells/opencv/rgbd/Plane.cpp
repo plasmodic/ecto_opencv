@@ -40,6 +40,7 @@
 #include <set>
 #include <string>
 
+#include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/rgbd/rgbd.hpp>
 
 #include <ecto/ecto.hpp>
@@ -57,12 +58,17 @@ namespace rgbd
     {
       params.declare(&PlaneFinder::block_size_, "block_size",
                      "Size of a block to check if it belongs to a plane (in pixels).", 40);
-      params.declare(&PlaneFinder::n_inliers_, "n_inliers", "Number of inliers to consider to define a plane.", 50);
-      params.declare(&PlaneFinder::n_samples_, "n_samples", "Number of samples to draw to check if we have a plane.",
-                     300);
-      params.declare(&PlaneFinder::n_trials_, "n_trials", "Number of trials to make to find a plane.", 100);
-      params.declare(&PlaneFinder::error_, "error", "Error (in meters) for how far a point is on a plane.", 0.02);
+      params.declare(&PlaneFinder::threshold_, "threshold", "Error (in meters) for how far a point is on a plane.",
+                     0.02);
+      params.declare(&PlaneFinder::sensor_error_a_, "sensor_error_a",
+                     "a coefficient of the quadratic sensor error err=a*z^2+b*z+c. 0.0075 fo Kinect.", 0.0);
+      params.declare(&PlaneFinder::sensor_error_b_, "sensor_error_b",
+                     "b coefficient of the quadratic sensor error err=a*z^2+b*z+c. 0.0 fo Kinect.", 0.0);
+      params.declare(&PlaneFinder::sensor_error_c_, "sensor_error_c",
+                     "c coefficient of the quadratic sensor error err=a*z^2+b*z+c. 0.0 fo Kinect.", 0.0);
       params.declare(&PlaneFinder::window_size_, "window_size", "The window size for smoothing.", 5);
+      params.declare(&PlaneFinder::normal_method_, "normal_method", "The window size for smoothing.",
+                     cv::RgbdNormals::RGBD_NORMALS_METHOD_FALS);
     }
 
     static void
@@ -70,6 +76,7 @@ namespace rgbd
     {
       inputs.declare(&PlaneFinder::points3d_, "point3d", "The current depth frame.").required(true);
       inputs.declare(&PlaneFinder::K_, "K", "The calibration matrix").required(true);
+      inputs.declare(&PlaneFinder::normals_, "normals", "The normals");
 
       outputs.declare(&PlaneFinder::planes_, "planes",
                       "The different found planes (a,b,c,d) of equation ax+by+cz+d=0.");
@@ -84,25 +91,40 @@ namespace rgbd
     int
     process(const tendrils& inputs, const tendrils& outputs)
     {
+      if (normals_->empty())
+      {
+        if (normals_computer_.empty())
+          normals_computer_ = new cv::RgbdNormals(points3d_->rows, points3d_->cols, points3d_->depth(), *K_,
+                                                  *window_size_, *normal_method_);
+        *normals_ = (*normals_computer_)(*points3d_);
+      }
+
       if (plane_computer_.empty())
-        plane_computer_ = new cv::RgbdPlane(points3d_->rows, points3d_->cols, points3d_->depth(), *K_, *window_size_);
-      (*plane_computer_)(*points3d_, *masks_, *planes_);
+      {
+        plane_computer_ = cv::Algorithm::create<cv::RgbdPlane>("RGBD.RgbdPlane");
+        plane_computer_->set("sensor_error_a", *sensor_error_a_);
+        plane_computer_->set("sensor_error_b", *sensor_error_b_);
+        plane_computer_->set("sensor_error_c", *sensor_error_c_);
+      }
+      (*plane_computer_)(*points3d_, *normals_, *masks_, *planes_);
 
       return ecto::OK;
     }
 
   private:
+    cv::Ptr<cv::RgbdNormals> normals_computer_;
     cv::Ptr<cv::RgbdPlane> plane_computer_;
 
     /** If true, display some result */
-    ecto::spore<float> error_;
+    ecto::spore<float> threshold_;
+    ecto::spore<float> sensor_error_a_;
+    ecto::spore<float> sensor_error_b_;
+    ecto::spore<float> sensor_error_c_;
     ecto::spore<size_t> block_size_;
-    ecto::spore<size_t> n_inliers_;
-    ecto::spore<size_t> n_samples_;
-    ecto::spore<size_t> n_trials_;
 
     /** Input 3d points */
     ecto::spore<cv::Mat> points3d_;
+    ecto::spore<cv::Mat> normals_;
 
     /** Output planes */
     ecto::spore<std::vector<cv::Vec4f> > planes_;
@@ -112,6 +134,8 @@ namespace rgbd
     ecto::spore<cv::Mat> K_;
 
     ecto::spore<int> window_size_;
+
+    ecto::spore<cv::RgbdNormals::RGBD_NORMALS_METHOD> normal_method_;
   };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -132,16 +156,14 @@ namespace rgbd
     configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
     {
       colors_.clear();
-      colors_.push_back(cv::Scalar(255, 255, 0));
-      colors_.push_back(cv::Scalar(0, 255, 255));
-      colors_.push_back(cv::Scalar(255, 0, 255));
-      colors_.push_back(cv::Scalar(255, 0, 0));
-      colors_.push_back(cv::Scalar(0, 255, 0));
-      colors_.push_back(cv::Scalar(0, 0, 255));
-      colors_.push_back(cv::Scalar(0, 0, 0));
-      colors_.push_back(cv::Scalar(85, 85, 85));
-      colors_.push_back(cv::Scalar(170, 170, 170));
-      colors_.push_back(cv::Scalar(255, 255, 255));
+      // Get a bunch of colors in HSV
+      size_t n_colors = 30;
+      cv::Mat_<cv::Vec3b> hsv(n_colors, 1), rgb;
+      for (size_t i = 0; i < n_colors; ++i)
+        hsv(i) = cv::Vec3b((i * 180) / n_colors, 255, 255);
+      cv::cvtColor(hsv, rgb, CV_HSV2RGB);
+      for (size_t i = 0; i < n_colors; ++i)
+        colors_.push_back(cv::Scalar(rgb(i)[0], rgb(i)[1], rgb(i)[2]));
     }
 
     int
@@ -161,10 +183,10 @@ namespace rgbd
 
         for (int y = 0; y < masks_->rows; ++y)
         {
-          const unsigned char *mask = masks_->ptr(y), *mask_end = masks_->ptr(y) + masks_->cols;
+          const unsigned char *mask = masks_->ptr(y), *mask_end = mask + masks_->cols;
           const unsigned char *previous_mask = previous_masks_.ptr(y);
           for (; mask != mask_end; ++mask, ++previous_mask)
-            if ((*mask) && (*previous_mask))
+            if ((*mask != 255) && (*previous_mask != 255))
               ++overlap(*mask, *previous_mask);
         }
 
@@ -200,12 +222,14 @@ namespace rgbd
 
         // Add all the previously used colors
         std::set<int> previously_used_colors;
-        for (size_t i = 0; i < previous_color_index_.size(); ++i)
-          previously_used_colors.insert(previous_color_index_[i]);
+        for (std::map<int, int>::const_iterator iter = color_index.begin(); iter != color_index.end(); ++iter)
+          previously_used_colors.insert(iter->second);
 
         // Give a color to the blocks that were not assigned
         for (int i = 0; i < overlap.rows; ++i)
         {
+          if (color_index.find(i) != color_index.end())
+            continue;
           // Look for a color that was not given
           size_t j = 0;
           while (previously_used_colors.find(j) != previously_used_colors.end())
@@ -214,14 +238,14 @@ namespace rgbd
           color_index[i] = j;
           previously_used_colors.insert(j);
         }
-
-        previous_color_index_ = color_index;
-        previous_planes_ = *planes_;
       }
+      previous_color_index_ = color_index;
+      previous_planes_ = *planes_;
+      masks_->copyTo(previous_masks_);
 
       // Draw the clusters
       image_->copyTo(*image_clusters_);
-      for (size_t i = 0; i < planes_->size(); ++i)
+      for (size_t i = 0; i < std::max(size_t(10), planes_->size()); ++i)
       {
         cv::Mat mask;
         cv::compare(*masks_, cv::Scalar(i), mask, cv::CMP_EQ);
