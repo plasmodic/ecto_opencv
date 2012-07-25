@@ -285,7 +285,6 @@ int main(int argc, char** argv)
     odometry->set("cameraMatrix", cameraMatrix);
 
 #if SEQUENTIAL_MERGE_METHOD
-    std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
     RgbdOdometry rgbd(cameraMatrix);
     rgbd.set("transformType", Odometry::ROTATION);
 #endif
