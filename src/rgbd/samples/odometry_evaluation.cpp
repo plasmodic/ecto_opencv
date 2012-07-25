@@ -219,4 +219,6 @@ int main(int argc, char** argv)
     }
 
     writeResults(argv[2], timestamps, Rts);
+
+    return 0;
 }
