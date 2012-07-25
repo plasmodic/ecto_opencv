@@ -46,6 +46,132 @@
 using namespace std;
 using namespace cv;
 
+#define BILATERAL_FILTER 0 // if 1 then bilateral filter will be used for the depth
+#if BILATERAL_FILTER
+#define SEQUENTIAL_MERGE_METHOD 0 // if 1 then the passed type of Odometry will be ignored and sequence ICP + RGBD (pure rotation) will be used.
+#endif
+
+
+#if BILATERAL_FILTER
+// This function is almost the full copy-paste of bilateralFilter_32f from imgproc/src/smooth.cpp of OpenCV
+// but it ignores invalid depth pixel! The original OpenCV filter does some bad work with invalid depth values.
+static void
+depthBilateralFilter_32f(const Mat& src, Mat& dst, int d,
+                         double sigma_color, double sigma_space,
+                         int borderType=BORDER_DEFAULT )
+{
+    int cn = src.channels();
+    int i, j, k, maxk, radius;
+    double minValSrc=-1, maxValSrc=1;
+    const int kExpNumBinsPerChannel = 1 << 12;
+    int kExpNumBins = 0;
+    float lastExpVal = 1.f;
+    float len, scale_index;
+    Size size = src.size();
+
+    CV_Assert( (src.type() == CV_32FC1 || src.type() == CV_32FC3) &&
+        src.type() == dst.type() && src.size() == dst.size() &&
+        src.data != dst.data );
+
+    if( sigma_color <= 0 )
+        sigma_color = 1;
+    if( sigma_space <= 0 )
+        sigma_space = 1;
+
+    double gauss_color_coeff = -0.5/(sigma_color*sigma_color);
+    double gauss_space_coeff = -0.5/(sigma_space*sigma_space);
+
+    if( d <= 0 )
+        radius = cvRound(sigma_space*1.5);
+    else
+        radius = d/2;
+    radius = MAX(radius, 1);
+    d = radius*2 + 1;
+
+    // compute the min/max range for the input image (even if multichannel)
+    minMaxLoc( src.reshape(1), &minValSrc, &maxValSrc );
+
+    // temporary copy of the image with borders for easy processing
+    Mat temp;
+    copyMakeBorder( src, temp, radius, radius, radius, radius, borderType );
+    patchNaNs(temp);
+
+    TickMeter tm;
+    tm.start();
+    // allocate lookup tables
+    vector<float> _space_weight(d*d);
+    vector<int> _space_ofs(d*d);
+    float* space_weight = &_space_weight[0];
+    int* space_ofs = &_space_ofs[0];
+
+    // assign a length which is slightly more than needed
+    len = (float)(maxValSrc - minValSrc) * cn;
+    kExpNumBins = kExpNumBinsPerChannel * cn;
+    vector<float> _expLUT(kExpNumBins+2);
+    float* expLUT = &_expLUT[0];
+
+    scale_index = kExpNumBins/len;
+
+    // initialize the exp LUT
+    for( i = 0; i < kExpNumBins+2; i++ )
+    {
+        if( lastExpVal > 0.f )
+        {
+            double val =  i / scale_index;
+            expLUT[i] = (float)std::exp(val * val * gauss_color_coeff);
+            lastExpVal = expLUT[i];
+        }
+        else
+            expLUT[i] = 0.f;
+    }
+
+    // initialize space-related bilateral filter coefficients
+    for( i = -radius, maxk = 0; i <= radius; i++ )
+        for( j = -radius; j <= radius; j++ )
+        {
+            double r = std::sqrt((double)i*i + (double)j*j);
+            if( r > radius )
+                continue;
+            space_weight[maxk] = (float)std::exp(r*r*gauss_space_coeff);
+            space_ofs[maxk++] = (int)(i*(temp.step/sizeof(float)) + j*cn);
+        }
+
+    tm.stop();
+    std::cout << "Exp time " << tm.getTimeSec() << std::endl;
+
+    CV_Assert(maxk % 2 == 1);
+    for( i = 0; i < size.height; i++ )
+    {
+        const float* sptr = (const float*)(temp.data + (i+radius)*temp.step) + radius*cn;
+        float* dptr = (float*)(dst.data + i*dst.step);
+
+        for( j = 0; j < size.width; j++ )
+        {
+            float sum = 0, wsum = 0;
+            float val0 = sptr[j];
+            if(val0 == 0.f)
+                continue;
+
+            for( k = 0; k < maxk; k++ )
+            {
+                float val = sptr[j + space_ofs[k]];
+                float alpha = (float)(std::abs(val - val0));
+                if(val == 0.f)
+                    continue;
+
+                alpha *= scale_index;
+                int idx = cvFloor(alpha);
+                alpha -= idx;
+                float w = space_weight[k]*(expLUT[idx] + alpha*(expLUT[idx+1] - expLUT[idx]));
+                sum += val*w;
+                wsum += w;
+            }
+            dptr[j] = (float)(sum/wsum);
+        }
+    }
+}
+#endif
+
 static
 void writeResults( const string& filename, const vector<string>& timestamps, const vector<Mat>& Rt )
 {
@@ -145,6 +271,11 @@ int main(int argc, char** argv)
         cameraMatrix.at<float>(1,2) = cy;
     }
 
+    string odometryName = string(argv[3]);
+#if SEQUENTIAL_MERGE_METHOD
+    odometryName = "ICP";
+#endif
+
     Ptr<Odometry> odometry = Algorithm::create<Odometry>("RGBD." + string(argv[3]) + "Odometry");
     if(odometry.empty())
     {
@@ -152,7 +283,13 @@ int main(int argc, char** argv)
         return -1;
     }
     odometry->set("cameraMatrix", cameraMatrix);
-    
+
+#if SEQUENTIAL_MERGE_METHOD
+    std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
+    RgbdOdometry rgbd(cameraMatrix);
+    rgbd.set("transformType", Odometry::ROTATION);
+#endif
+
     for(int i = 0; !file.eof(); i++)
     {
         string str;
@@ -163,6 +300,9 @@ int main(int argc, char** argv)
         Mat image, depth;
         // Read one pair (rgb and depth)
         // example: 1305031453.359684 rgb/1305031453.359684.png 1305031453.374112 depth/1305031453.374112.png
+#if BILATERAL_FILTER
+        TickMeter tm_bilateral_filter;
+#endif
         {
             string rgbFilename = str.substr(timestampLength + 1, rgbPathLehgth );
             string timestap = str.substr(0, timestampLength);
@@ -180,7 +320,17 @@ int main(int argc, char** argv)
             // scale depth
             Mat depth_flt;
             depth.convertTo(depth_flt, CV_32FC1, 1.f/5000.f);
+#if not BILATERAL_FILTER
             depth = depth_flt;
+#else
+            tm_bilateral_filter.start();
+            depth = Mat(depth_flt.size(), CV_32FC1, Scalar(0));
+            const double depth_sigma = 0.1; // in meters; it was OK even with 0.3
+            const double space_sigma = 4.5;  // in pixels
+            depthBilateralFilter_32f(depth_flt, depth, -1, depth_sigma, space_sigma);
+            tm_bilateral_filter.stop();
+            cout << "Time filter " << tm_bilateral_filter.getTimeSec() << endl;
+#endif
             timestamps.push_back( timestap );
         }
 
@@ -197,10 +347,18 @@ int main(int argc, char** argv)
                 bool res = odometry->compute(gray_curr, depth_curr, Mat(), 
                                              gray_prev, depth_prev, Mat(),
                                              Rt);
+#if SEQUENTIAL_MERGE_METHOD
+                rgbd.compute(gray_curr, depth_curr, Mat(),
+                             gray_prev, depth_prev, Mat(),
+                             Rt, Rt.clone());
+#endif
                 tm.stop();
 
                 CV_Assert(res);
                 cout << "Time " << tm.getTimeSec() << endl;
+#if BILATERAL_FILTER
+                cout << "Time ratio " << tm_bilateral_filter.getTimeSec() / tm.getTimeSec() << endl;
+#endif
             }
 
             if( Rts.empty() )
