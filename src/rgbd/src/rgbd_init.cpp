@@ -61,7 +61,8 @@ namespace cv
       obj.info()->addParam(obj, "maxDepth", obj.maxDepth);
       obj.info()->addParam(obj, "maxDepthDiff", obj.maxDepthDiff);
       obj.info()->addParam(obj, "iterCounts", obj.iterCounts);
-      obj.info()->addParam(obj, "minGradientMagnitudes", obj.minGradientMagnitudes))
+      obj.info()->addParam(obj, "minGradientMagnitudes", obj.minGradientMagnitudes);
+      obj.info()->addParam(obj, "transformType", obj.transformType))
 
   CV_INIT_ALGORITHM(ICPOdometry, "RGBD.ICPOdometry",
       obj.info()->addParam(obj, "cameraMatrix", obj.cameraMatrix);
@@ -70,6 +71,7 @@ namespace cv
       obj.info()->addParam(obj, "maxDepthDiff", obj.maxDepthDiff);
       obj.info()->addParam(obj, "pointsPart", obj.pointsPart);
       obj.info()->addParam(obj, "iterCounts", obj.iterCounts);
+      obj.info()->addParam(obj, "transformType", obj.transformType);
       /*obj.info()->addParam(obj, "normalComputers", obj.normalComputers, true);*/)
 
   CV_INIT_ALGORITHM(RgbdICPOdometry, "RGBD.RgbdICPOdometry",
@@ -80,7 +82,8 @@ namespace cv
       obj.info()->addParam(obj, "pointsPart", obj.pointsPart);
       obj.info()->addParam(obj, "iterCounts", obj.iterCounts);
       obj.info()->addParam(obj, "minGradientMagnitudes", obj.minGradientMagnitudes);
-      /*obj.info()->addParam(obj, "normalComputers", obj.normalComputers, true);*/);
+      obj.info()->addParam(obj, "transformType", obj.transformType);
+      /*obj.info()->addParam(obj, "normalComputers", obj.normalComputers, true);*/)
 
   bool
   initModule_rgbd(void)

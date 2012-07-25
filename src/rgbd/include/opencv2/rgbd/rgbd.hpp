@@ -237,6 +237,10 @@ namespace cv
   CV_EXPORTS class Odometry: public Algorithm
   {
   public:
+    enum { ROTATION          = 1,
+           TRANSLATION       = 2,
+           RIGID_BODY_MOTION = 4
+         };
     static inline float
     DEFAULT_MIN_DEPTH()
     {
@@ -303,7 +307,7 @@ namespace cv
      */
     RgbdOdometry(const Mat& cameraMatrix, float minDepth = DEFAULT_MIN_DEPTH(), float maxDepth = DEFAULT_MAX_DEPTH(),
                  float maxDepthDiff = DEFAULT_MAX_DEPTH_DIFF(), const vector<int>& iterCounts = vector<int>(),
-                 const vector<float>& minGradientMagnitudes = vector<float>());
+                 const vector<float>& minGradientMagnitudes = vector<float>(), int transformType=RIGID_BODY_MOTION);
 
     AlgorithmInfo*
     info() const;
@@ -326,6 +330,8 @@ namespace cv
     Mat iterCounts;
     /*vector<float>*/
     Mat minGradientMagnitudes;
+
+    int transformType;
   };
 
   /** Odometry based on the paper "KinectFusion: Real-Time Dense Surface Mapping and Tracking", 
@@ -346,7 +352,7 @@ namespace cv
      */
     ICPOdometry(const Mat& cameraMatrix, float minDepth = DEFAULT_MIN_DEPTH(), float maxDepth = DEFAULT_MAX_DEPTH(),
                 float maxDepthDiff = DEFAULT_MAX_DEPTH_DIFF(), float pointsPart = DEFAULT_USED_POINTS_PART(),
-                const vector<int>& iterCounts = vector<int>());
+                const vector<int>& iterCounts = vector<int>(), int transformType=RIGID_BODY_MOTION);
 
     AlgorithmInfo*
     info() const;
@@ -371,6 +377,8 @@ namespace cv
     Mat iterCounts;
 
     mutable vector<cv::Ptr<cv::RgbdNormals> > normalComputers;
+
+    int transformType;
   };
 
   /** Odometry that merges RgbdOdometry and ICPOdometry by minimize sum of their energy functions.
@@ -393,7 +401,8 @@ namespace cv
     RgbdICPOdometry(const Mat& cameraMatrix, float minDepth = DEFAULT_MIN_DEPTH(), float maxDepth = DEFAULT_MAX_DEPTH(),
                     float maxDepthDiff = DEFAULT_MAX_DEPTH_DIFF(), float pointsPart = DEFAULT_USED_POINTS_PART(),
                     const vector<int>& iterCounts = vector<int>(),
-                    const vector<float>& minGradientMagnitudes = vector<float>());
+                    const vector<float>& minGradientMagnitudes = vector<float>(),
+                    int transformType=RIGID_BODY_MOTION);
 
     AlgorithmInfo*
     info() const;
@@ -420,6 +429,8 @@ namespace cv
     Mat minGradientMagnitudes;
 
     mutable vector<cv::Ptr<cv::RgbdNormals> > normalComputers;
+
+    int transformType;
   };
 
 // TODO Depth interpolation

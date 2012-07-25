@@ -86,7 +86,7 @@ bool RGBDICPOdometryImpl(cv::Mat& Rt, const Mat& initRt,
                          const std::vector<int>& iterCounts, 
                          const std::vector<float>& minGradientMagnitudes, float icpPointsPart,
                          std::vector<cv::Ptr<cv::RgbdNormals> >& normalComputers,
-                         int method);
+                         int method, int transformType);
 
 static 
 void checkFramesImpl(const Mat& image0, const Mat& depth0, const Mat& mask0,
@@ -133,7 +133,7 @@ bool Odometry::compute(const Mat& image0, const Mat& depth0, const Mat& mask0,
 }
 
 RgbdOdometry::RgbdOdometry() :
-    minDepth(DEFAULT_MIN_DEPTH()), maxDepth(DEFAULT_MAX_DEPTH()), maxDepthDiff(DEFAULT_MAX_DEPTH_DIFF())
+    minDepth(DEFAULT_MIN_DEPTH()), maxDepth(DEFAULT_MAX_DEPTH()), maxDepthDiff(DEFAULT_MAX_DEPTH_DIFF()), transformType(Odometry::RIGID_BODY_MOTION)
 {
     setDefaultIterCounts(iterCounts);
     setDefaultMinGradientMagnitudes(minGradientMagnitudes);
@@ -142,11 +142,13 @@ RgbdOdometry::RgbdOdometry() :
 RgbdOdometry::RgbdOdometry(const Mat& _cameraMatrix, 
                            float _minDepth, float _maxDepth, float _maxDepthDiff,
                            const vector<int>& _iterCounts,
-                           const vector<float>& _minGradientMagnitudes) :
+                           const vector<float>& _minGradientMagnitudes,
+                           int _transformType) :
                            cameraMatrix(_cameraMatrix),
                            minDepth(_minDepth), maxDepth(_maxDepth), maxDepthDiff(_maxDepthDiff),
                            iterCounts(Mat(_iterCounts).clone()),
-                           minGradientMagnitudes(Mat(_minGradientMagnitudes).clone())
+                           minGradientMagnitudes(Mat(_minGradientMagnitudes).clone()),
+                           transformType(_transformType)
 {
     if(iterCounts.empty() || minGradientMagnitudes.empty())
     {
@@ -176,22 +178,24 @@ bool RgbdOdometry::computeImpl(const Mat& image0, const Mat& depth0, const Mat& 
     return RGBDICPOdometryImpl(Rt, initRt, image0, depth0, mask0, image1, depth1, mask1,
                                cameraMatrix, minDepth, maxDepth, maxDepthDiff,
                                iterCounts, minGradientMagnitudes, 0.f,
-                               nc, RGBD_ODOMETRY);
+                               nc, RGBD_ODOMETRY, transformType);
 }
 
 ICPOdometry::ICPOdometry() :
     minDepth(DEFAULT_MIN_DEPTH()), maxDepth(DEFAULT_MAX_DEPTH()), 
-    maxDepthDiff(DEFAULT_MAX_DEPTH_DIFF()), pointsPart(DEFAULT_USED_POINTS_PART())
+    maxDepthDiff(DEFAULT_MAX_DEPTH_DIFF()), pointsPart(DEFAULT_USED_POINTS_PART()), transformType(Odometry::RIGID_BODY_MOTION)
 {
     setDefaultIterCounts(iterCounts);
 }
     
 ICPOdometry::ICPOdometry(const Mat& _cameraMatrix, 
                          float _minDepth, float _maxDepth, float _maxDepthDiff,
-                         float _pointsPart, const vector<int>& _iterCounts) :
+                         float _pointsPart, const vector<int>& _iterCounts,
+                         int _transformType) :
                          cameraMatrix(_cameraMatrix), 
                          minDepth(_minDepth), maxDepth(_maxDepth), maxDepthDiff(_maxDepthDiff),
-                         pointsPart(_pointsPart), iterCounts(Mat(_iterCounts).clone())
+                         pointsPart(_pointsPart), iterCounts(Mat(_iterCounts).clone()),
+                         transformType(_transformType)
 {
     if(iterCounts.empty())
         setDefaultIterCounts(iterCounts);
@@ -216,12 +220,12 @@ bool ICPOdometry::computeImpl(const Mat& /*image0*/, const Mat& depth0, const Ma
     return RGBDICPOdometryImpl(Rt, initRt, Mat(), depth0, mask0, Mat(), depth1, mask1,
                                cameraMatrix, minDepth, maxDepth, maxDepthDiff,
                                iterCounts, vector<float>(), pointsPart,
-                               normalComputers, ICP_ODOMETRY);
+                               normalComputers, ICP_ODOMETRY, transformType);
 }
 
 RgbdICPOdometry::RgbdICPOdometry() :
     minDepth(DEFAULT_MIN_DEPTH()), maxDepth(DEFAULT_MAX_DEPTH()), 
-    maxDepthDiff(DEFAULT_MAX_DEPTH_DIFF()), pointsPart(DEFAULT_USED_POINTS_PART())
+    maxDepthDiff(DEFAULT_MAX_DEPTH_DIFF()), pointsPart(DEFAULT_USED_POINTS_PART()), transformType(Odometry::RIGID_BODY_MOTION)
 {
     setDefaultIterCounts(iterCounts);
     setDefaultMinGradientMagnitudes(minGradientMagnitudes);
@@ -230,11 +234,13 @@ RgbdICPOdometry::RgbdICPOdometry() :
 RgbdICPOdometry::RgbdICPOdometry(const Mat& _cameraMatrix, 
                                  float _minDepth, float _maxDepth, float _maxDepthDiff,
                                  float _pointsPart, const vector<int>& _iterCounts,
-                                 const vector<float>& _minGradientMagnitudes) :
+                                 const vector<float>& _minGradientMagnitudes,
+                                 int _transformType) :
                                  cameraMatrix(_cameraMatrix),
                                  minDepth(_minDepth), maxDepth(_maxDepth), maxDepthDiff(_maxDepthDiff),
                                  pointsPart(_pointsPart), iterCounts(Mat(_iterCounts).clone()),
-                                 minGradientMagnitudes(Mat(_minGradientMagnitudes).clone())
+                                 minGradientMagnitudes(Mat(_minGradientMagnitudes).clone()),
+                                 transformType(_transformType)
 {
     if(iterCounts.empty() || minGradientMagnitudes.empty())
     {
@@ -264,8 +270,8 @@ bool RgbdICPOdometry::computeImpl(const Mat& image0, const Mat& depth0, const Ma
     return RGBDICPOdometryImpl(Rt, initRt, image0, depth0, mask0, image1, depth1, mask1,
                                cameraMatrix, minDepth, maxDepth, maxDepthDiff,
                                iterCounts, minGradientMagnitudes, pointsPart,
-                               normalComputers, MERGED_ODOMETRY);
-};
+                               normalComputers, MERGED_ODOMETRY, transformType);
+}
 } // namespace cv
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -618,6 +624,33 @@ void calcRgbdEquationCoeffs(double* C, double dIdx, double dIdy, const Point3f& 
 }
 
 static inline
+void calcRgbdEquationCoeffsRotation(double* C, double dIdx, double dIdy, const Point3f& p3d, double fx, double fy)
+{
+    double invz  = 1. / p3d.z,
+           v0 = dIdx * fx * invz,
+           v1 = dIdy * fy * invz,
+           v2 = -(v0 * p3d.x + v1 * p3d.y) * invz;
+    C[0] = -p3d.z * v1 + p3d.y * v2;
+    C[1] =  p3d.z * v0 - p3d.x * v2;
+    C[2] = -p3d.y * v0 + p3d.x * v1;
+}
+
+static inline
+void calcRgbdEquationCoeffsTranslation(double* C, double dIdx, double dIdy, const Point3f& p3d, double fx, double fy)
+{
+    double invz  = 1. / p3d.z,
+           v0 = dIdx * fx * invz,
+           v1 = dIdy * fy * invz,
+           v2 = -(v0 * p3d.x + v1 * p3d.y) * invz;
+    C[0] = v0;
+    C[1] = v1;
+    C[2] = v2;
+}
+
+typedef
+void (*CalcRgbdEquationCoeffsPtr)(double*, double, double, const Point3f&, double, double);
+
+static inline
 void calcICPEquationCoeffs(double* C, const Point3f& p0, const Vec3f& n1)
 {
     C[0] = -p0.z * n1[1] + p0.y * n1[2];
@@ -628,14 +661,33 @@ void calcICPEquationCoeffs(double* C, const Point3f& p0, const Vec3f& n1)
     C[5] = n1[2];
 }
 
+static inline
+void calcICPEquationCoeffsRotation(double* C, const Point3f& p0, const Vec3f& n1)
+{
+    C[0] = -p0.z * n1[1] + p0.y * n1[2];
+    C[1] =  p0.z * n1[0] - p0.x * n1[2];
+    C[2] = -p0.y * n1[0] + p0.x * n1[1];
+}
+
+static inline
+void calcICPEquationCoeffsTranslation(double* C, const Point3f& /*p0*/, const Vec3f& n1)
+{
+    C[0] = n1[0];
+    C[1] = n1[1];
+    C[2] = n1[2];
+}
+
+typedef
+void (*CalcICPEquationCoeffsPtr)(double*, const Point3f&, const Vec3f&);
+
 static 
 void calcRgbdLsmMatrices(const Mat& image0, const Mat& cloud0,
                const Mat& image1, const Mat& dI_dx1, const Mat& dI_dy1,
                const Mat& corresps, int correspsCount,
                double fx, double fy, double sobelScale,
-               Mat& A, Mat& B)
+               Mat& A, Mat& B, CalcRgbdEquationCoeffsPtr func, int transformDim)
 {
-    A.create(correspsCount, 6, CV_64FC1);
+    A.create(correspsCount, transformDim, CV_64FC1);
     B.create(correspsCount, 1, CV_64FC1);
 
     double sigma = 0;
@@ -677,7 +729,7 @@ void calcRgbdLsmMatrices(const Mat& image0, const Mat& cloud0,
                 w = w > DBL_EPSILON ? 1./w : 1.;
 
                 double w_sobelScale = w * sobelScale;
-                calcRgbdEquationCoeffs(A.ptr<double>(pointCount),
+                (*func)(A.ptr<double>(pointCount),
                          w_sobelScale * dI_dx1.at<short int>(v1,u1),
                          w_sobelScale * dI_dy1.at<short int>(v1,u1),
                          cloud0_row[u0], fx, fy);
@@ -693,9 +745,9 @@ static
 void calcICPLsmMatrices(const Mat& levelCloud0, const Mat& Rt,
                const Mat& levelCloud1, const Mat& levelNormals1,
                const Mat& corresps, int correspsCount,
-               Mat& A, Mat& B)
+               Mat& A, Mat& B, CalcICPEquationCoeffsPtr func, int transformDim)
 {
-    A.create(correspsCount, 6, CV_64FC1);
+    A.create(correspsCount, transformDim, CV_64FC1);
     B.create(correspsCount, 1, CV_64FC1);
 
     CV_Assert(Rt.type() == CV_64FC1);
@@ -752,7 +804,7 @@ void calcICPLsmMatrices(const Mat& levelCloud0, const Mat& Rt,
                 double w = sigma + std::abs(diffs_ptr[pointCount]);
                 w = w > DBL_EPSILON ? 1./w : 1.;
 
-                calcICPEquationCoeffs(A.ptr<double>(pointCount), tps0_ptr[pointCount], levelNormals1.at<Vec3f>(v1, u1) * w);
+                (*func)(A.ptr<double>(pointCount), tps0_ptr[pointCount], levelNormals1.at<Vec3f>(v1, u1) * w);
                 B.at<double>(pointCount) = w * diffs_ptr[pointCount];
 
                 pointCount++;
@@ -811,12 +863,36 @@ bool RGBDICPOdometryImpl(cv::Mat& Rt, const Mat& initRt,
                      const std::vector<int>& iterCounts, 
                      const std::vector<float>& minGradientMagnitudes, float icpPointsPart,
                      std::vector<cv::Ptr<cv::RgbdNormals> >& normalComputers,
-                     int method)
+                     int method, int transfromType)
 {
     const int sobelSize = 3;
     const double sobelScale = 1./8.;
     Mat depth0 = _depth0.clone(),
         depth1 = _depth1.clone();
+
+    int transformDim = -1;
+    CalcRgbdEquationCoeffsPtr rgbdEquationFuncPtr = 0;
+    CalcICPEquationCoeffsPtr icpEquationFuncPtr = 0;
+    switch(transfromType)
+    {
+    case Odometry::RIGID_BODY_MOTION:
+        transformDim = 6;
+        rgbdEquationFuncPtr = calcRgbdEquationCoeffs;
+        icpEquationFuncPtr = calcICPEquationCoeffs;
+        break;
+    case Odometry::ROTATION:
+        transformDim = 3;
+        rgbdEquationFuncPtr = calcRgbdEquationCoeffsRotation;
+        icpEquationFuncPtr = calcICPEquationCoeffsRotation;
+        break;
+    case Odometry::TRANSLATION:
+        transformDim = 3;
+        rgbdEquationFuncPtr = calcRgbdEquationCoeffsTranslation;
+        icpEquationFuncPtr = calcICPEquationCoeffsTranslation;
+        break;
+    default:
+        CV_Error(CV_StsBadArg, "Incorrect transformation type");
+    }
 
     preprocessDepth(depth0, mask0, minDepth, maxDepth);
     preprocessDepth(depth1, mask1, minDepth, maxDepth);
@@ -882,15 +958,15 @@ bool RGBDICPOdometryImpl(cv::Mat& Rt, const Mat& initRt,
                                                 levelDepth0, levelDepth1, mask2, maxDepthDiff,
                                                 corresps2);
 
-            if(correspsCount1 < 6 && correspsCount2 < 6)
+            if(correspsCount1 < transformDim && correspsCount2 < transformDim)
                 break;
 
-            Mat AtA(6, 6, CV_64FC1, Scalar(0)), AtB(6, 1, CV_64FC1, Scalar(0));
-            if(correspsCount1 >= 6)
+            Mat AtA(transformDim, transformDim, CV_64FC1, Scalar(0)), AtB(transformDim, 1, CV_64FC1, Scalar(0));
+            if(correspsCount1 >= transformDim)
             {
                 calcRgbdLsmMatrices(pyramidImage0[level], pyramidCloud0[level],
                                     pyramidImage1[level], pyramid_dI_dx1[level], pyramid_dI_dy1[level],
-                                    corresps1, correspsCount1, fx, fy, sobelScale, A1, B1);
+                                    corresps1, correspsCount1, fx, fy, sobelScale, A1, B1, rgbdEquationFuncPtr, transformDim);
                 AtA += A1.t() * A1;
                 AtB += A1.t() * B1;
             }
@@ -898,7 +974,7 @@ bool RGBDICPOdometryImpl(cv::Mat& Rt, const Mat& initRt,
             {
                 calcICPLsmMatrices(pyramidCloud0[level], resultRt,
                                    pyramidCloud1[level], pyramidNormals1[level],
-                                   corresps2, correspsCount2, A2, B2);
+                                   corresps2, correspsCount2, A2, B2, icpEquationFuncPtr, transformDim);
                 AtA += A2.t() * A2;
                 AtB += A2.t() * B2;
             }
@@ -906,6 +982,19 @@ bool RGBDICPOdometryImpl(cv::Mat& Rt, const Mat& initRt,
             bool solutionExist = solveSystem(AtA, AtB, determinantThreshold, ksi);
             if(!solutionExist)
                 break;
+
+            if(transfromType == Odometry::ROTATION)
+            {
+                Mat tmp(6, 1, CV_64FC1, Scalar(0));
+                ksi.copyTo(tmp.rowRange(0,3));
+                ksi = tmp;
+            }
+            else if(transfromType == Odometry::TRANSLATION)
+            {
+                Mat tmp(6, 1, CV_64FC1, Scalar(0));
+                ksi.copyTo(tmp.rowRange(3,6));
+                ksi = tmp;
+            }
 
             computeProjectiveMatrix(ksi, currRt);
             resultRt = currRt * resultRt;
