@@ -28,6 +28,7 @@ namespace ecto_opencv
       params.declare(&C::mode, "mode", "The image read mode.", Image::COLOR);
       params.declare(&C::lock_name_, "lock_name",
                      "If set to something, an flock will be created for that file", "");
+      params.declare(&C::refresh_, "refresh", "If true, the image is re-read every time", false);
     }
 
     static void
@@ -40,7 +41,7 @@ namespace ecto_opencv
     void
     configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
     {
-      image_file.set_callback(boost::bind(&imread::filechange, this, _1));
+      image_file.set_callback(boost::bind(&imread::filechange_verbose, this, _1));
       image_file.dirty(true);
 
       // Create the original lock
@@ -68,14 +69,33 @@ namespace ecto_opencv
         image = cv::imread(file_name, *mode);
 
       *image_out = image;
+    }
+
+    void
+    filechange_verbose(const std::string& file_name)
+    {
+      filechange(file_name);
+
       std::cout << "read image:" << file_name << std::endl;
-      std::cout << "width:" << image.cols << " height:" << image.rows << " channels:" << image.channels() << std::endl;
+      std::cout << "width:" << image_out->cols << " height:" << image_out->rows << " channels:" << image_out->channels()
+      << std::endl;
+    }
+
+    int
+    process(const tendrils& in, const tendrils& out)
+    {
+      if (!(*refresh_))
+        return ecto::OK;
+
+      filechange(*image_file);
+      return ecto::OK;
     }
 
     ecto::spore<cv::Mat> image_out;
     ecto::spore<Image::Modes> mode;
     ecto::spore<std::string> image_file;
     ecto::spore<std::string> lock_name_;
+    ecto::spore<bool> refresh_;
   };
 }
 ECTO_CELL(highgui, ecto_opencv::imread, "imread", "Reads a single image, const cell.");
