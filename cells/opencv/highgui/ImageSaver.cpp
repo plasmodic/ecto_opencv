@@ -37,10 +37,13 @@ namespace ecto_opencv
     static void
     declare_io(const tendrils& params, tendrils& in, tendrils& out)
     {
-      std::string format;
-      params["filename_format"] >> format;
-      //throw an error on bad format string
-      boost::format(format) % 1;
+      if (!filename_format->empty())
+      {
+        std::string format;
+        params["filename_format"] >> format;
+        //throw an error on bad format string
+        boost::format(format) % 1;
+      }
 
       in.declare(&C::image, "image", "The image to save.").required(true);
       in.declare(&C::filename, "filename", "A single filename, set this for single file output.", "");
