@@ -1,5 +1,10 @@
-#include<fcntl.h>
-#include <sys/file.h>
+#include <algorithm>
+#include <fstream>
+#include <iostream>
+#include <iterator>
+#include <string>
+
+#include <boost/interprocess/sync/file_lock.hpp>
 
 #include <ecto/ecto.hpp>
 
@@ -10,10 +15,6 @@
 #include <boost/filesystem.hpp>
 #include <boost/foreach.hpp>
 #include <boost/regex.hpp>
-
-#include <iostream>
-#include <algorithm>
-#include <iterator>
 
 #include <string>
 using ecto::tendrils;
@@ -121,6 +122,14 @@ namespace ecto_opencv
       params["path"]->dirty(true);
       params["match"]->dirty(true);
 
+      // Create the original lock
+      fs::path file(*lock_name_);
+      if (!fs::exists(file))
+      {
+        std::fstream file(lock_name_->c_str(), std::fstream::in | std::fstream::out);
+        file << "nothing";
+        file.close();
+      }
     }
 
     int
@@ -139,11 +148,10 @@ namespace ecto_opencv
       //outputs.get is a reference;
       if (!lock_name_->empty())
       {
-        int file = open(lock_name_->c_str(), O_WRONLY);
-        flock(file, LOCK_EX);
+        boost::interprocess::file_lock flock(lock_name_->c_str());
+        flock.lock();
         outputs["image"] << cv::imread(*iter, CV_LOAD_IMAGE_UNCHANGED);
-        flock(file, LOCK_UN);
-        close(file);
+        flock.unlock();
       }
       else
         outputs["image"] << cv::imread(*iter, CV_LOAD_IMAGE_UNCHANGED);

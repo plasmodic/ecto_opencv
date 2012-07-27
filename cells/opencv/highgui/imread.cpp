@@ -1,5 +1,8 @@
-#include<fcntl.h>
-#include <sys/file.h>
+#include <fstream>
+#include <iostream>
+#include <string>
+
+#include <boost/interprocess/sync/file_lock.hpp>
 
 #include <ecto/ecto.hpp>
 
@@ -7,9 +10,6 @@
 
 #include <boost/format.hpp>
 #include <boost/filesystem.hpp>
-
-#include <iostream>
-#include <string>
 
 #include "highgui.h"
 using ecto::tendrils;
@@ -36,17 +36,33 @@ namespace ecto_opencv
       //set outputs
       outputs.declare(&C::image_out, "image", "The image in full color.", cv::Mat());
     }
+
+    void
+    configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
+    {
+      image_file.set_callback(boost::bind(&imread::filechange, this, _1));
+      image_file.dirty(true);
+
+      // Create the original lock
+      fs::path file(*lock_name_);
+      if (!fs::exists(file))
+      {
+        std::fstream file(lock_name_->c_str(), std::fstream::in | std::fstream::out);
+        file << "nothing";
+        file.close();
+      }
+    }
+
     void
     filechange(const std::string& file_name)
     {
       cv::Mat image;
       if (!lock_name_->empty())
       {
-        int file = open(lock_name_->c_str(), O_WRONLY);
-        flock(file, LOCK_EX);
+        boost::interprocess::file_lock flock(lock_name_->c_str());
+        flock.lock();
         image = cv::imread(file_name, *mode);
-        flock(file, LOCK_UN);
-        close(file);
+        flock.unlock();
       }
       else
         image = cv::imread(file_name, *mode);
@@ -56,12 +72,6 @@ namespace ecto_opencv
       std::cout << "width:" << image.cols << " height:" << image.rows << " channels:" << image.channels() << std::endl;
     }
 
-    void
-    configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
-    {
-      image_file.set_callback(boost::bind(&imread::filechange, this, _1));
-      image_file.dirty(true);
-    }
     ecto::spore<cv::Mat> image_out;
     ecto::spore<Image::Modes> mode;
     ecto::spore<std::string> image_file;

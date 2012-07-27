@@ -1,15 +1,14 @@
-#include<fcntl.h>
-#include <sys/file.h>
+#include <fstream>
+#include <iostream>
+#include <string>
+
+#include <boost/filesystem.hpp>
+#include <boost/format.hpp>
+#include <boost/interprocess/sync/file_lock.hpp>
 
 #include <ecto/ecto.hpp>
 
 #include <opencv2/highgui/highgui.hpp>
-
-#include <boost/format.hpp>
-#include <boost/filesystem.hpp>
-
-#include <iostream>
-#include <string>
 
 using ecto::tendrils;
 using ecto::spore;
@@ -49,6 +48,19 @@ namespace ecto_opencv
       out.declare(&C::filename_output, "filename", "The filename that was used for saving the last frame.");
     }
 
+    void
+    configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
+    {
+      // Create the original lock
+      fs::path file(*lock_name_);
+      if (!fs::exists(file))
+      {
+        std::fstream file(lock_name_->c_str(), std::fstream::in | std::fstream::out);
+        file << "nothing";
+        file.close();
+      }
+    }
+
     int
     process(const tendrils& in, const tendrils& out)
     {
@@ -71,11 +83,10 @@ namespace ecto_opencv
 
       if (!lock_name_->empty())
       {
-        int file = open(lock_name_->c_str(), O_WRONLY);
-        flock(file, LOCK_EX);
+        boost::interprocess::file_lock flock(lock_name_->c_str());
+        flock.lock();
         cv::imwrite(name, *image);
-        flock(file, LOCK_UN);
-        close(file);
+        flock.unlock();
       }
       else
         cv::imwrite(name, *image);
