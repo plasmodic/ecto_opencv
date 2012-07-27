@@ -970,7 +970,7 @@ bool RGBDICPOdometryImpl(cv::Mat& Rt, const Mat& initRt,
                 AtA += A1.t() * A1;
                 AtB += A1.t() * B1;
             }
-            if(correspsCount2 >= 6)
+            if(correspsCount2 >= transformDim)
             {
                 calcICPLsmMatrices(pyramidCloud0[level], resultRt,
                                    pyramidCloud1[level], pyramidNormals1[level],
