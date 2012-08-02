@@ -197,24 +197,24 @@ namespace cv
     }
 
     /** Find The planes in a depth image
-     * @param depth image. If it has 3 channels, it is assumed to be 2d points
+     * @param points3d the 3d points organized like the depth image: rows x cols with 3 channels
      * @param the normals for every point in the depth image
      * @param mask An image where each pixel is labeled with the plane it belongs to
      *        and 255 if it does not belong to any plane
      * @param the coefficients of the corresponding planes (a,b,c,d) such that ax+by+cz+d=0
      */
     void
-    operator()(const cv::Mat & depth, const cv::Mat & normals, cv::Mat &mask,
+    operator()(const cv::Mat & points3d, const cv::Mat & normals, cv::Mat &mask,
                std::vector<cv::Vec4f> & plane_coefficients);
 
     /** Find The planes in a depth image but without doing a normal check, which is faster but less accurate
-     * @param depth image. If it has 3 channels, it is assumed to be 2d points
+     * @param points3d the 3d points organized like the depth image: rows x cols with 3 channels
      * @param mask An image where each pixel is labeled with the plane it belongs to
      *        and 255 if it does not belong to any plane
      * @param the coefficients of the corresponding planes (a,b,c,d) such that ax+by+cz+d=0
      */
     void
-    operator()(const cv::Mat & depth, cv::Mat &mask, std::vector<cv::Vec4f> & plane_coefficients);
+    operator()(const cv::Mat & points3d, cv::Mat &mask, std::vector<cv::Vec4f> & plane_coefficients);
 
     AlgorithmInfo*
     info() const;
