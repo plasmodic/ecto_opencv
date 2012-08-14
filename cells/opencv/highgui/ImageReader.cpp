@@ -1,3 +1,11 @@
+#include <algorithm>
+#include <fstream>
+#include <iostream>
+#include <iterator>
+#include <string>
+
+#include <boost/interprocess/sync/file_lock.hpp>
+
 #include <ecto/ecto.hpp>
 
 #include <opencv2/highgui/highgui.hpp>
@@ -7,10 +15,6 @@
 #include <boost/filesystem.hpp>
 #include <boost/foreach.hpp>
 #include <boost/regex.hpp>
-
-#include <iostream>
-#include <algorithm>
-#include <iterator>
 
 #include <string>
 using ecto::tendrils;
@@ -29,6 +33,8 @@ namespace ecto_opencv
                                   ".*\\.(bmp|jpg|png)");
       params.declare<bool>("loop","Loop over the list",false);
       params.declare(&ImageReader::file_list, "file_list","A list of images to read.");
+      params.declare(&ImageReader::lock_name_, "lock_name",
+                     "If set to something, an flock will be created for that file", "");
     }
 
     static void
@@ -116,6 +122,14 @@ namespace ecto_opencv
       params["path"]->dirty(true);
       params["match"]->dirty(true);
 
+      // Create the original lock
+      fs::path file(*lock_name_);
+      if (!fs::exists(file))
+      {
+        std::fstream file(lock_name_->c_str(), std::fstream::in | std::fstream::out);
+        file << "nothing";
+        file.close();
+      }
     }
 
     int
@@ -132,7 +146,16 @@ namespace ecto_opencv
       }
 
       //outputs.get is a reference;
-      outputs["image"] << cv::imread(*iter, CV_LOAD_IMAGE_UNCHANGED);
+      if (!lock_name_->empty())
+      {
+        boost::interprocess::file_lock flock(lock_name_->c_str());
+        flock.lock();
+        outputs["image"] << cv::imread(*iter, CV_LOAD_IMAGE_UNCHANGED);
+        flock.unlock();
+      }
+      else
+        outputs["image"] << cv::imread(*iter, CV_LOAD_IMAGE_UNCHANGED);
+
       *image_file = *iter;
       //increment our frame number.
       ++(outputs.get<int>("frame_number"));
@@ -148,6 +171,7 @@ namespace ecto_opencv
     ecto::spore<int> step;
     ecto::spore<std::string> image_file;
     ecto::spore<std::vector<std::string> > file_list;
+    ecto::spore<std::string> lock_name_;
   };
 }
 ECTO_CELL(highgui, ecto_opencv::ImageReader, "ImageReader", "Read images from a directory.");
