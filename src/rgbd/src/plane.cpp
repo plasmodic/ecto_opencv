@@ -539,10 +539,13 @@ namespace cv
       points3d = points3d_in;
     else
       points3d_in.convertTo(points3d, CV_32F);
-    if (normals_in.depth() == CV_32F)
-      normals = normals_in;
-    else
-      normals_in.convertTo(normals, CV_32F);
+    if (!normals_in.empty())
+    {
+      if (normals_in.depth() == CV_32F)
+        normals = normals_in;
+      else
+        normals_in.convertTo(normals, CV_32F);
+    }
 
     // Pre-computations
     cv::Mat_<unsigned char> & mask_out_uc = (cv::Mat_<unsigned char>&) mask_out;

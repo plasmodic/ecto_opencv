@@ -130,8 +130,8 @@ gen_points_3d(std::vector<Plane>& planes_out, cv::Mat_<unsigned char> &plane_mas
       planes.push_back(px);
     }
   }
-  cv::Mat_ < cv::Vec3f > outp(H, W);
-  cv::Mat_ < cv::Vec3f > outn(H, W);
+  cv::Mat_<cv::Vec3f> outp(H, W);
+  cv::Mat_<cv::Vec3f> outn(H, W);
   plane_mask.create(H, W);
 
   // n  ( r - r_0) = 0
@@ -287,52 +287,64 @@ protected:
   testit(const std::vector<Plane> & gt_planes, const cv::Mat & gt_plane_mask, const cv::Mat & points3d,
          cv::RgbdPlane & plane_computer, float thresh)
   {
-    cv::TickMeter tm1, tm2;
-    tm1.start();
-    // First, get the normals
-    int depth = CV_32F;
-    cv::RgbdNormals normals_computer(H, W, depth, K, 5, cv::RgbdNormals::RGBD_NORMALS_METHOD_FALS);
-    cv::Mat normals = normals_computer(points3d);
-    tm1.stop();
-
-    tm2.start();
-    cv::Mat plane_mask;
-    std::vector<cv::Vec4f> plane_coefficients;
-    plane_computer(points3d, normals, plane_mask, plane_coefficients);
-    tm2.stop();
-
-//    ASSERT_EQ(plane_coefficients.size(), gt_planes.size());
-
-    // Compare each found plane to each ground truth plane
-    size_t n_planes = plane_coefficients.size();
-    size_t n_gt_planes = gt_planes.size();
-    cv::Mat_<int> matching(n_gt_planes, n_planes);
-    for (size_t j = 0; j < n_gt_planes; ++j)
+    for (char i_test = 0; i_test < 2; ++i_test)
     {
-      cv::Mat gt_mask = gt_plane_mask == j;
-      int n_gt = cv::countNonZero(gt_mask);
-      int n_max = 0, i_max = 0;
-      for (size_t i = 0; i < n_planes; ++i)
-      {
-        cv::Mat dst;
-        cv::bitwise_and(gt_mask, plane_mask == i, dst);
-        matching(j, i) = cv::countNonZero(dst);
-        if (matching(j, i) > n_max)
-        {
-          n_max = matching(j, i);
-          i_max = i;
-        }
-      }
-      // Get the best match
-      ASSERT_LE(float(n_max-n_gt)/n_gt, 0.001);
-      // Compare the normals
-      cv::Vec3d normal(plane_coefficients[i_max][0], plane_coefficients[i_max][1], plane_coefficients[i_max][2]);
-      ASSERT_GE(std::abs(gt_planes[j].n.dot(normal)), 0.95);
-    }
+      cv::TickMeter tm1, tm2;
+      cv::Mat plane_mask;
+      std::vector<cv::Vec4f> plane_coefficients;
 
-    //std::cout << matching << std::endl;
-    std::cout << " Speed: normals " << tm1.getTimeMilli() << " ms and plane " << tm2.getTimeMilli() << " ms "
-              << std::endl;
+      if (i_test == 0)
+      {
+        tm1.start();
+        // First, get the normals
+        int depth = CV_32F;
+        cv::RgbdNormals normals_computer(H, W, depth, K, 5, cv::RgbdNormals::RGBD_NORMALS_METHOD_FALS);
+        cv::Mat normals = normals_computer(points3d);
+        tm1.stop();
+
+        tm2.start();
+        plane_computer(points3d, normals, plane_mask, plane_coefficients);
+        tm2.stop();
+      }
+      else
+      {
+        tm2.start();
+        plane_computer(points3d, plane_mask, plane_coefficients);
+        tm2.stop();
+      }
+
+      // Compare each found plane to each ground truth plane
+      size_t n_planes = plane_coefficients.size();
+      size_t n_gt_planes = gt_planes.size();
+      cv::Mat_<int> matching(n_gt_planes, n_planes);
+      for (size_t j = 0; j < n_gt_planes; ++j)
+      {
+        cv::Mat gt_mask = gt_plane_mask == j;
+        int n_gt = cv::countNonZero(gt_mask);
+        int n_max = 0, i_max = 0;
+        for (size_t i = 0; i < n_planes; ++i)
+        {
+          cv::Mat dst;
+          cv::bitwise_and(gt_mask, plane_mask == i, dst);
+          matching(j, i) = cv::countNonZero(dst);
+          if (matching(j, i) > n_max)
+          {
+            n_max = matching(j, i);
+            i_max = i;
+          }
+        }
+        // Get the best match
+        ASSERT_LE(float(n_max-n_gt)/n_gt, 0.001);
+        // Compare the normals
+        cv::Vec3d normal(plane_coefficients[i_max][0], plane_coefficients[i_max][1], plane_coefficients[i_max][2]);
+        ASSERT_GE(std::abs(gt_planes[j].n.dot(normal)), 0.95);
+      }
+
+      std::cout << " Speed: ";
+      if (i_test == 0)
+        std::cout << "normals " << tm1.getTimeMilli() << " ms and ";
+      std::cout << "plane " << tm2.getTimeMilli() << " ms " << std::endl;
+    }
   }
 };
 
