@@ -1,4 +1,6 @@
-ectomodule(rgbd module.cpp
+ectomodule(rgbd DESTINATION ecto_opencv
+                INSTALL
+                module.cpp
                 Normal.cpp
                 Odometry.cpp
                 Plane.cpp
@@ -10,4 +12,3 @@ link_ecto(rgbd ${OpenCV_LIBS}
                ${OpenCV_LIBRARIES}
                opencv_rgbd
 )
-install_ecto_module(rgbd)

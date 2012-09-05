@@ -6,7 +6,8 @@ if (V4L2_LIBRARY)
   set(EXTRA_LIB v4l2)
 endif()
 
-ectomodule(highgui
+ectomodule(highgui DESTINATION ecto_opencv
+                   INSTALL
     module.cpp
     FPSDrawer.cpp
     DoubleDrawer.cpp
@@ -24,4 +25,3 @@ ectomodule(highgui
     serialization.cpp
     )
 link_ecto(highgui ${OpenCV_LIBS} ${EXTRA_LIB})
-install_ecto_module(highgui)

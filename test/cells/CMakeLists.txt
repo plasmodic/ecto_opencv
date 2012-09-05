@@ -1,4 +1,4 @@
-ectomodule(opencv_test
+ectomodule(opencv_test DESTINATION ecto_opencv
   module.cpp
   ImageGen.cpp
   MatGen.cpp

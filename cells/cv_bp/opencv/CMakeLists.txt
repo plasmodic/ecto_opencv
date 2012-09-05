@@ -57,10 +57,9 @@ add_library(${bp_opencv_target} SHARED
   cv_highgui.cpp
   highgui_defines.cpp
   )
-
 set_target_properties(${bp_opencv_target}
   PROPERTIES
-  LIBRARY_OUTPUT_DIRECTORY ${ecto_module_PYTHON_OUTPUT}
+  LIBRARY_OUTPUT_DIRECTORY ${ECTO_PYTHON_BUILD_PATH}/ecto_opencv
   OUTPUT_NAME cv_bp
   PREFIX ""
   )
@@ -72,4 +71,4 @@ target_link_libraries(${bp_opencv_target}
   )
 
 install(TARGETS ${bp_opencv_target}
-  LIBRARY DESTINATION ${PYTHON_PACKAGES_PATH}/ecto_opencv COMPONENT main)
+  LIBRARY DESTINATION ${ECTO_PYTHON_INSTALL_PATH}/ecto_opencv COMPONENT main)

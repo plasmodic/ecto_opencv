@@ -1,5 +1,6 @@
 
-ectomodule(calib
+ectomodule(calib DESTINATION ecto_opencv
+                 INSTALL
   module.cpp
   calib.cpp 
   CameraIntrinsics.cpp
@@ -25,4 +26,3 @@ link_ecto(calib
           ${OpenCV_LIBRARIES}
           opencv_rgbd
 )
-install_ecto_module(calib)

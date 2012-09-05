@@ -1,4 +1,5 @@
-ectomodule(features2d
+ectomodule(features2d DESTINATION ecto_opencv
+                      INSTALL
   module.cpp
   DescriptorExtractor.cpp
   DrawKeypoints.cpp
@@ -18,6 +19,6 @@ find_package(OpenCV REQUIRED)
 link_ecto(features2d
     ${OpenCV_LIBS}
     opencv_candidate)
-install_ecto_module(features2d)
+
 #For Hamming distance
 set_target_properties(features2d_ectomodule PROPERTIES COMPILE_FLAGS "-msse4.2")
