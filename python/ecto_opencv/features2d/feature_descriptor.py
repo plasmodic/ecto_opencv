@@ -3,7 +3,6 @@
 Module defining a function that returns the appropriate ecto cells for Feature and Descriptor finding
 """
 
-import ecto_opencv.ecto_cells.features2d as features2d
 import ecto
 import inspect
 import pkgutil
@@ -40,16 +39,8 @@ class FeatureDescriptor(ecto.BlackBox):
     combining the two (or just using one cell in the background).
     Both the Feature and the Descriptor will be computed
     """
-    ORB_combination = features2d.ORB
-    SIFT_combination = features2d.SIFT
     _image_passthrough = ecto.Passthrough
     _mask_passthrough = ecto.Passthrough
-
-#    def __init__(self, **kwargs):
-#        ecto.BlackBox.__init__(self, **kwargs)
-#        self._feature_cell = None
-#        self._descriptor_cell = None
-#        self._feature_descriptor_cell = None
 
     def declare_params(self, p):
         p.declare('json_feature_params', 'Parameters for the feature as a JSON string. '
@@ -78,17 +69,12 @@ class FeatureDescriptor(ecto.BlackBox):
         self._descriptor_cell = None
         self._feature_descriptor_cell = None
         if self._feature_type == self._descriptor_type and \
-                                self._feature_package == self._descriptor_package == 'ecto_opencv':
-            # deal with the combo case
+                                self._feature_package == self._descriptor_package:
+            # deal with the combo case first
+            feature_descriptor_class = find_cell([self._feature_package], self._feature_type)
             try:
-                if self._feature_type == 'ORB':
-                    self._feature_descriptor_cell = self.ORB_combination(**self._feature_params)
-                elif self._feature_type == 'SIFT':
-                    self._feature_descriptor_cell = self.SIFT_combination(**self._feature_params)
+                self._feature_descriptor_cell = feature_descriptor_class(**self._feature_params)
             except:
-                raise RuntimeError('Parameters not supported for FeatureDescriptor: feature %s; descriptor: %s' %
-                                   (self._feature_params, self._descriptor_params))
-            if self._feature_type not in ['ORB', 'SIFT']:
                 raise RuntimeError('Parameters not supported for FeatureDescriptor: feature %s; descriptor: %s' %
                                    (self._feature_params, self._descriptor_params))
         else:
@@ -109,7 +95,7 @@ class FeatureDescriptor(ecto.BlackBox):
             i.forward('image', cell_name = '_image_passthrough', cell_key = 'in')
             i.forward('mask', cell_name = '_mask_passthrough', cell_key = 'in')
             if 'depth' in self._feature_cell.inputs.keys():
-                i.forward('depth', cell_name = '_feature_cell', cell_key = 'input')
+                i.forward('depth', cell_name = '_feature_cell', cell_key = 'depth')
             o.forward('keypoints', cell_name = '_feature_cell', cell_key = 'keypoints')
             o.forward('descriptors', cell_name = '_descriptor_cell', cell_key = 'descriptors')
         else:
