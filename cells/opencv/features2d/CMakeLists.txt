@@ -1,4 +1,4 @@
-ectomodule(features2d DESTINATION ecto_opencv
+ectomodule(features2d DESTINATION ecto_opencv/ecto_cells
                       INSTALL
   module.cpp
   DescriptorExtractor.cpp

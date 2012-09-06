@@ -38,6 +38,7 @@ install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/opencv_candidate
 )
 
 add_subdirectory(cells)
+add_subdirectory(python)
 add_subdirectory(src)
 
 option(BUILD_TEST "Build tests" ON)
