@@ -2,6 +2,12 @@ cmake_minimum_required(VERSION 2.8)
 project(ecto_opencv)
 find_package(catkin REQUIRED)
 catkin_stack()
+catkin_project(ecto_opencv
+               INCLUDE_DIRS include
+               LIBRARIES opencv_candidate
+                         opencv_rgbd
+)
+
 
 set(${PROJECT_NAME}_GITHUB_URL https://github.com/plasmodic/ecto_opencv)
 
@@ -47,11 +53,5 @@ if(BUILD_TEST)
   add_subdirectory(test)
   add_subdirectory(samples)
 endif()
-
-catkin_project(ecto_opencv
-               INCLUDE_DIRS include
-               LIBRARIES opencv_candidate
-                         opencv_rgbd
-)
 
 #catkin_sphinx(${CMAKE_CURRENT_SOURCE_DIR}/doc doc)
