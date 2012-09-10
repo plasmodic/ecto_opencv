@@ -268,17 +268,19 @@ namespace cv
       return 0.07f;
     }
 
-    /** Method to compute transformation between two neighboring frames.
+    /** Method to compute a transformation between two neighboring frames.
      * Some odometry algorithms do not used some data of frames (eg. ICP does not use images).
      * In such case corresponding arguments can be set as empty cv::Mat.
-     * @param image0 Image data of first frame
-     * @param depth0 Depth data of first frame
-     * @param mask0 Mask that sets which pixels have to be used from first frame
-     * @param image1 Image data of second frame
-     * @param depth1 Depth data of second frame
-     * @param mask1 Mask that sets which pixels have to be used from second frame
-     * @param Rt Resulting transformation from first frame to second one (rigid body motion)
-     * @param initRt Initial transformation from first frame to second one (optional)
+     * @param image0 Image data of the first frame
+     * @param depth0 Depth data of the first frame
+     * @param mask0 Mask that sets which pixels have to be used from the first frame
+     * @param image1 Image data of the second frame
+     * @param depth1 Depth data of the second frame
+     * @param mask1 Mask that sets which pixels have to be used from the second frame
+     * @param Rt Resulting transformation from the first frame to the second one (rigid body motion):
+                 p_2 = Rt * p_1, where p_2 is a homogeneous point in the second frame and p_1 is homogeneous point in the first frame,
+                 Rt is 4x4 matrix of CV_64FC1 type.
+     * @param initRt Initial transformation from the first frame to the second one (optional)
      */
     bool
     compute(const Mat& image0, const Mat& depth0, const Mat& mask0, const Mat& image1, const Mat& depth1,
