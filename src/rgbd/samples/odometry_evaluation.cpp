@@ -46,7 +46,7 @@
 using namespace std;
 using namespace cv;
 
-#define BILATERAL_FILTER 1 // if 1 then bilateral filter will be used for the depth
+#define BILATERAL_FILTER 0 // if 1 then bilateral filter will be used for the depth
 #if BILATERAL_FILTER
 #define SEQUENTIAL_MERGE_METHOD 0 // if 1 then the passed type of Odometry will be ignored and sequence ICP + RGBD (pure rotation) will be used.
 #endif
@@ -131,9 +131,6 @@ int main(int argc, char** argv)
     const int rgbPathLehgth = 17+8;
     const int depthPathLehgth = 17+10;
 
-    Mat image_prev, gray_prev, image_curr, gray_curr;
-    Mat depth_prev, depth_curr;
-    
     float fx = 525.0f, // default
           fy = 525.0f,
           cx = 319.5f,
@@ -150,12 +147,14 @@ int main(int argc, char** argv)
         cameraMatrix.at<float>(1,2) = cy;
     }
 
-    string odometryName = string(argv[3]);
 #if SEQUENTIAL_MERGE_METHOD
     odometryName = "ICP";
 #endif
 
-    Ptr<Odometry> odometry = Algorithm::create<Odometry>("RGBD." + string(argv[3]) + "Odometry");
+    string algType = string(argv[3]);
+    Ptr<OdometryFrameData> frame_prev = new OdometryFrameData(),
+                           frame_curr = new OdometryFrameData();
+    Ptr<Odometry> odometry = Algorithm::create<Odometry>("RGBD." + algType + "Odometry");
     if(odometry.empty())
     {
         cout << "Can not create Odometry algorithm. Check the passed odometry name." << endl;
@@ -168,6 +167,8 @@ int main(int argc, char** argv)
     rgbd.set("transformType", Odometry::ROTATION);
 #endif
 
+    TickMeter gtm;
+    int count = 0;
     for(int i = 0; !file.eof(); i++)
     {
         string str;
@@ -199,6 +200,7 @@ int main(int argc, char** argv)
             Mat depth_flt;
             depth.convertTo(depth_flt, CV_32FC1, 1.f/5000.f);
 #if not BILATERAL_FILTER
+            depth_flt.setTo(std::numeric_limits<float>::quiet_NaN(), depth == 0);
             depth = depth_flt;
 #else
             tm_bilateral_filter.start();
@@ -216,24 +218,26 @@ int main(int argc, char** argv)
         }
 
         {
-            image_curr = image.clone();
-            cvtColor(image_curr, gray_curr, CV_BGR2GRAY);
-            depth_curr = depth.clone();
+            Mat gray;
+            cvtColor(image, gray, CV_BGR2GRAY);
+            frame_curr->image = gray;
+            frame_curr->depth = depth;
             
             Mat Rt = Mat::eye(4,4,CV_64FC1);
-            if(!image_prev.empty())
+            if(!Rts.empty())
             {
                 TickMeter tm;
                 tm.start();
-                bool res = odometry->compute(gray_curr, depth_curr, Mat(), 
-                                             gray_prev, depth_prev, Mat(),
-                                             Rt);
+                gtm.start();
+                bool res = odometry->compute(*frame_curr, *frame_prev, Rt);
+                gtm.stop();
 #if SEQUENTIAL_MERGE_METHOD
                 rgbd.compute(gray_curr, depth_curr, Mat(),
                              gray_prev, depth_prev, Mat(),
                              Rt, Rt.clone());
 #endif
                 tm.stop();
+                count++;
 
                 CV_Assert(res);
                 cout << "Time " << tm.getTimeSec() << endl;
@@ -251,12 +255,13 @@ int main(int argc, char** argv)
                 Rts.push_back( prevRt * Rt );
             }
 
-            std::swap(image_prev, image_curr);
-            std::swap(gray_prev, gray_curr);
-            std::swap(depth_prev, depth_curr);
+            if(!frame_prev.empty())
+                frame_prev->release();
+            std::swap(frame_prev, frame_curr);
         }
     }
 
+    std::cout << "Average time " << gtm.getTimeSec()/count << std::endl;
     writeResults(argv[2], timestamps, Rts);
 
     return 0;

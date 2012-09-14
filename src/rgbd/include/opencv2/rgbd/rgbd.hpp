@@ -235,18 +235,59 @@ namespace cv
     double sensor_error_a_, sensor_error_b_, sensor_error_c_;
   };
 
-  // TODO 
-  //      2) tests
+  /** Object that contains a frame data that is possibly needed for the Odometry.
+   * It's used for the efficiency (to pass precomputed data of the frame that participates
+   * in the Odometry processing several times).
+   */
+  CV_EXPORTS struct OdometryFrameData
+  {
+    OdometryFrameData();
+    OdometryFrameData(const Mat& image, const Mat& depth, const Mat& mask);
+    void release();
+
+    Mat image;
+    Mat depth;
+    Mat mask;
+    Mat normals;
+
+    vector<Mat> pyramidImage;
+    vector<Mat> pyramidDepth;
+    vector<Mat> pyramidMask;
+
+    vector<Mat> pyramidCloud;
+
+    vector<Mat> pyramid_dI_dx;
+    vector<Mat> pyramid_dI_dy;
+    vector<Mat> pyramidTexturedMask;
+
+    vector<Mat> pyramidNormals;
+    vector<Mat> pyramidNormalsMask;
+  };
 
   /** Base class for computation of odometry.
    */
   CV_EXPORTS class Odometry: public Algorithm
   {
   public:
+
+    /** A class of transformation*/
     enum { ROTATION          = 1,
            TRANSLATION       = 2,
            RIGID_BODY_MOTION = 4
          };
+
+    /** These constants are used to set a type of cache which has to be prepared depending on the frame role:
+     * srcFrame or dstFrame (see compute method). For the srcFrame and dstFrame different cache data may be required,
+     * some part of a cache may be common for both frame roles.
+     * @param CACHE_SRC The cache data for the srcFrame will be prepared.
+     * @param CACHE_DST The cache data for the dstFrame will be prepared.
+     * @param CACHE_ALL The cache data for both srcFrame and dstFrame roles will be computed.
+     */
+    enum { CACHE_SRC = 1,
+           CACHE_DST = 2,
+           CACHE_ALL = CACHE_SRC + CACHE_DST
+         };
+
     static inline float
     DEFAULT_MIN_DEPTH()
     {
@@ -268,32 +309,46 @@ namespace cv
       return 0.07f;
     }
 
-    /** Method to compute a transformation between two neighboring frames.
+    /** Method to compute a transformation from the source frame to the destination one.
      * Some odometry algorithms do not used some data of frames (eg. ICP does not use images).
      * In such case corresponding arguments can be set as empty cv::Mat.
-     * @param image0 Image data of the first frame
-     * @param depth0 Depth data of the first frame
-     * @param mask0 Mask that sets which pixels have to be used from the first frame
-     * @param image1 Image data of the second frame
-     * @param depth1 Depth data of the second frame
-     * @param mask1 Mask that sets which pixels have to be used from the second frame
-     * @param Rt Resulting transformation from the first frame to the second one (rigid body motion):
-                 p_2 = Rt * p_1, where p_2 is a homogeneous point in the second frame and p_1 is homogeneous point in the first frame,
+     * @param srcImage Image data of the source frame
+     * @param srcDepth Depth data of the source frame
+     * @param srcMask Mask that sets which pixels have to be used from the source frame
+     * @param dstImage Image data of the destination frame
+     * @param dstDepth Depth data of the destination frame
+     * @param dstMask Mask that sets which pixels have to be used from the destination frame
+     * @param Rt Resulting transformation from the source frame to the destination one (rigid body motion):
+                 dst_p = Rt * src_p, where dst_p is a homogeneous point in the destination frame and src_p is
+                 homogeneous point in the source frame,
                  Rt is 4x4 matrix of CV_64FC1 type.
-     * @param initRt Initial transformation from the first frame to the second one (optional)
+     * @param initRt Initial transformation from the source frame to the destination one (optional)
      */
     bool
-    compute(const Mat& image0, const Mat& depth0, const Mat& mask0, const Mat& image1, const Mat& depth1,
-            const Mat& mask1, Mat& Rt, const Mat& initRt = Mat()) const;
+    compute(const Mat& srcImage, const Mat& srcDepth, const Mat& srcMask,
+            const Mat& dstImage, const Mat& dstDepth, const Mat& dstMask,
+            Mat& Rt, const Mat& initRt = Mat()) const;
+
+    /** One more method to compute a transformation from the source frame to the destination one.
+     * It is designed to save on computing the frame data (image pyramids, normals, etc.).
+     */
+    bool
+    compute(OdometryFrameData& srcFrame, OdometryFrameData& dstFrame, Mat& Rt, const Mat& initRt = Mat()) const;
+
+    /** Prepare a cache for the frame. The function checks the precomputed/passed data (throws the error if this data
+     * does not satisfy) and computes all remaining cache data needed for the frame. Returned size is a resolution
+     * of the prepared frame.
+     * @param odometry The odometry which will process the frame.
+     * @param cacheType The cache type: CACHE_SRC, CACHE_DST or CACHE_ALL.
+     */
+    virtual Size prepareFrameData(OdometryFrameData& frame, int cacheType) const = 0;
+
   protected:
     virtual void
     checkParams() const = 0;
-    virtual void
-    checkFrames(const Mat& image0, const Mat& depth0, const Mat& mask0, const Mat& image1, const Mat& depth1,
-                const Mat& mask1) const = 0;
+
     virtual bool
-    computeImpl(const Mat& image0, const Mat& depth0, const Mat& mask0, const Mat& image1, const Mat& depth1,
-                const Mat& mask1, const Mat& initRt, Mat& Rt) const = 0;
+    computeImpl(const OdometryFrameData& srcFrame, const OdometryFrameData& dstFrame, Mat& Rt, const Mat& initRt) const = 0;
   };
 
   /** Odometry based on the paper "Real-Time Visual Odometry from Dense RGB-D Images", 
@@ -317,20 +372,18 @@ namespace cv
                  float maxDepthDiff = DEFAULT_MAX_DEPTH_DIFF(), const vector<int>& iterCounts = vector<int>(),
                  const vector<float>& minGradientMagnitudes = vector<float>(), int transformType=RIGID_BODY_MOTION);
 
+    virtual Size prepareFrameData(OdometryFrameData& frame, int cacheType) const;
+
     AlgorithmInfo*
     info() const;
 
   protected:
     virtual void
     checkParams() const;
-    virtual void
-    checkFrames(const Mat& image0, const Mat& depth0, const Mat& mask0, const Mat& image1, const Mat& depth1,
-                const Mat& mask1) const;
+
     virtual bool
-    computeImpl(const Mat& image0, const Mat& depth0, const Mat& mask0, const Mat& image1, const Mat& depth1,
-                const Mat& mask1, const Mat& initRt, Mat& Rt) const;
-    // params
-    Mat cameraMatrix;
+    computeImpl(const OdometryFrameData& srcFrame, const OdometryFrameData& dstFrame, Mat& Rt, const Mat& initRt) const;
+
     // Some params have commented desired type. It's due to cv::AlgorithmInfo::addParams does not support it now.
     /*float*/
     double minDepth, maxDepth, maxDepthDiff;
@@ -339,6 +392,7 @@ namespace cv
     /*vector<float>*/
     Mat minGradientMagnitudes;
 
+    Mat cameraMatrix;
     int transformType;
   };
 
@@ -362,20 +416,18 @@ namespace cv
                 float maxDepthDiff = DEFAULT_MAX_DEPTH_DIFF(), float pointsPart = DEFAULT_USED_POINTS_PART(),
                 const vector<int>& iterCounts = vector<int>(), int transformType=RIGID_BODY_MOTION);
 
+    virtual Size prepareFrameData(OdometryFrameData& frame, int cacheType) const;
+
     AlgorithmInfo*
     info() const;
 
   protected:
     virtual void
     checkParams() const;
-    virtual void
-    checkFrames(const Mat& image0, const Mat& depth0, const Mat& mask0, const Mat& image1, const Mat& depth1,
-                const Mat& mask1) const;
+
     virtual bool
-    computeImpl(const Mat& image0, const Mat& depth0, const Mat& mask0, const Mat& image1, const Mat& depth1,
-                const Mat& mask1, const Mat& initRt, Mat& Rt) const;
-    // params
-    Mat cameraMatrix;
+    computeImpl(const OdometryFrameData& srcFrame, const OdometryFrameData& dstFrame, Mat& Rt, const Mat& initRt) const;
+
     // Some params have commented desired type. It's due to cv::AlgorithmInfo::addParams does not support it now.
     /*float*/
     double minDepth, maxDepth, maxDepthDiff;
@@ -384,13 +436,15 @@ namespace cv
     /*vector<int>*/
     Mat iterCounts;
 
-    mutable vector<cv::Ptr<cv::RgbdNormals> > normalComputers;
-
+    Mat cameraMatrix;
     int transformType;
+
+    mutable cv::Ptr<cv::RgbdNormals> normalsComputer;
   };
 
   /** Odometry that merges RgbdOdometry and ICPOdometry by minimize sum of their energy functions.
    */
+
   class RgbdICPOdometry: public Odometry
   {
   public:
@@ -412,20 +466,18 @@ namespace cv
                     const vector<float>& minGradientMagnitudes = vector<float>(),
                     int transformType=RIGID_BODY_MOTION);
 
+    virtual Size prepareFrameData(OdometryFrameData& frame, int cacheType) const;
+
     AlgorithmInfo*
     info() const;
 
   protected:
     virtual void
     checkParams() const;
-    virtual void
-    checkFrames(const Mat& image0, const Mat& depth0, const Mat& mask0, const Mat& image1, const Mat& depth1,
-                const Mat& mask1) const;
+
     virtual bool
-    computeImpl(const Mat& image0, const Mat& depth0, const Mat& mask0, const Mat& image1, const Mat& depth1,
-                const Mat& mask1, const Mat& initRt, Mat& Rt) const;
-    // params
-    Mat cameraMatrix;
+    computeImpl(const OdometryFrameData& srcFrame, const OdometryFrameData& dstFrame, Mat& Rt, const Mat& initRt) const;
+
     // Some params have commented desired type. It's due to cv::AlgorithmInfo::addParams does not support it now.
     /*float*/
     double minDepth, maxDepth, maxDepthDiff;
@@ -436,9 +488,10 @@ namespace cv
     /*vector<float>*/
     Mat minGradientMagnitudes;
 
-    mutable vector<cv::Ptr<cv::RgbdNormals> > normalComputers;
-
+    Mat cameraMatrix;
     int transformType;
+
+    mutable cv::Ptr<cv::RgbdNormals> normalsComputer;
   };
 
 // TODO Depth interpolation

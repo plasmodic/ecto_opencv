@@ -72,7 +72,7 @@ namespace cv
       obj.info()->addParam(obj, "pointsPart", obj.pointsPart);
       obj.info()->addParam(obj, "iterCounts", obj.iterCounts);
       obj.info()->addParam(obj, "transformType", obj.transformType);
-      /*obj.info()->addParam(obj, "normalComputers", obj.normalComputers, true);*/)
+      obj.info()->addParam(obj, "normalsComputer", obj.normalsComputer, true);)
 
   CV_INIT_ALGORITHM(RgbdICPOdometry, "RGBD.RgbdICPOdometry",
       obj.info()->addParam(obj, "cameraMatrix", obj.cameraMatrix);
@@ -83,7 +83,7 @@ namespace cv
       obj.info()->addParam(obj, "iterCounts", obj.iterCounts);
       obj.info()->addParam(obj, "minGradientMagnitudes", obj.minGradientMagnitudes);
       obj.info()->addParam(obj, "transformType", obj.transformType);
-      /*obj.info()->addParam(obj, "normalComputers", obj.normalComputers, true);*/)
+      obj.info()->addParam(obj, "normalsComputer", obj.normalsComputer, true);)
 
   bool
   initModule_rgbd(void)
