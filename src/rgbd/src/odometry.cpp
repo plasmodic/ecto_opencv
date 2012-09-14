@@ -321,7 +321,23 @@ void preparePyramidNormals(const Mat& normals, const vector<Mat>& pyramidDepth, 
         }
     }
     else
+    {
         buildPyramid(normals, pyramidNormals, pyramidDepth.size() - 1);
+        // renormalize normals
+        for(size_t i = 1; i < pyramidNormals.size(); i++)
+        {
+            Mat& currNormals = pyramidNormals[i];
+            for(int y = 0; y < currNormals.rows; y++)
+            {
+                Point3f* normals_row = currNormals.ptr<Point3f>(y);
+                for(int x = 0; x < currNormals.cols; x++)
+                {
+                    double nrm = norm(normals_row[x]);
+                    normals_row[x] *= 1./nrm;
+                }
+            }
+        }
+    }
 }
 
 static
@@ -879,6 +895,45 @@ bool RGBDICPOdometryImpl(Mat& Rt, const Mat& initRt,
     return !Rt.empty();
 }
 
+template<class ImageElemType>
+static void
+warpImageImpl(const cv::Mat& image, const Mat& depth, const Mat& Rt, const Mat& cameraMatrix, const Mat& distCoeff,
+          Mat& warpedImage)
+{
+    const Rect rect = Rect(0, 0, image.cols, image.rows);
+
+    vector<Point2f> points2d;
+    Mat cloud, transformedCloud;
+
+    depthTo3d(depth, cameraMatrix, cloud);
+    perspectiveTransform(cloud, transformedCloud, Rt);
+    projectPoints(transformedCloud.reshape(3, 1), Mat::eye(3, 3, CV_64FC1), Mat::zeros(3, 1, CV_64FC1), cameraMatrix,
+                distCoeff, points2d);
+
+    Mat pointsPositions(points2d);
+    pointsPositions = pointsPositions.reshape(2, image.rows);
+
+    warpedImage.create(image.size(), image.type());
+    warpedImage = Scalar::all(0);
+
+    Mat zBuffer(image.size(), CV_32FC1, FLT_MAX);
+
+    for (int y = 0; y < image.rows; y++)
+    {
+        for (int x = 0; x < image.cols; x++)
+        {
+            const Point3f p3d = transformedCloud.at<Point3f>(y, x);
+            const Point2i p2d = pointsPositions.at<Point2f>(y, x);
+            if(!cvIsNaN(cloud.at<Point3f>(y, x).z) && cloud.at<Point3f>(y, x).z > 0 && rect.contains(p2d)
+              && zBuffer.at<float>(p2d) > p3d.z)
+            {
+                warpedImage.at<ImageElemType>(p2d) = image.at<ImageElemType>(y, x);
+                zBuffer.at<float>(p2d) = p3d.z;
+            }
+        }
+    }
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////
 
 namespace cv
@@ -1219,5 +1274,19 @@ void RgbdICPOdometry::checkParams() const
 bool RgbdICPOdometry::computeImpl(const OdometryFrameData& srcFrame, const OdometryFrameData& dstFrame, Mat& Rt, const Mat& initRt) const
 {
     return RGBDICPOdometryImpl(Rt, initRt, srcFrame, dstFrame, cameraMatrix, maxDepthDiff, iterCounts, MERGED_ODOMETRY, transformType);
+}
+
+//
+
+void
+warpImage(const Mat& image, const Mat& depth, const Mat& Rt, const Mat& cameraMatrix, const Mat& distCoeff,
+          Mat& warpedImage)
+{
+    if(image.type() == CV_8UC1)
+        warpImageImpl<uchar>(image, depth, Rt, cameraMatrix, distCoeff, warpedImage);
+    else if(image.type() == CV_8UC3)
+        warpImageImpl<Point3_<uchar> >(image, depth, Rt, cameraMatrix, distCoeff, warpedImage);
+    else
+        CV_Error(CV_StsBadArg, "Image has to be type of CV_8UC1 or CV_8UC3");
 }
 } // namespace cv

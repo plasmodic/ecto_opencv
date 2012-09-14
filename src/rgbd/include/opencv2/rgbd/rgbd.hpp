@@ -359,7 +359,7 @@ namespace cv
   public:
     RgbdOdometry();
     /** Constructor.
-     * @param cameraMatrix Camera matrrix
+     * @param cameraMatrix Camera matrix
      * @param minDepth Pixels with depth less than minDepth will not be used
      * @param maxDepth Pixels with depth larger than maxDepth will not be used
      * @param maxDepthDiff Correspondences between pixels of two given frames will be filtered out
@@ -404,7 +404,7 @@ namespace cv
   public:
     ICPOdometry();
     /** Constructor.
-     * @param cameraMatrix Camera matrrix
+     * @param cameraMatrix Camera matrix
      * @param minDepth Pixels with depth less than minDepth will not be used
      * @param maxDepth Pixels with depth larger than maxDepth will not be used
      * @param maxDepthDiff Correspondences between pixels of two given frames will be filtered out
@@ -450,7 +450,7 @@ namespace cv
   public:
     RgbdICPOdometry();
     /** Constructor.
-     * @param cameraMatrix Camera matrrix
+     * @param cameraMatrix Camera matrix
      * @param minDepth Pixels with depth less than minDepth will not be used
      * @param maxDepth Pixels with depth larger than maxDepth will not be used
      * @param maxDepthDiff Correspondences between pixels of two given frames will be filtered out
@@ -493,6 +493,21 @@ namespace cv
 
     mutable cv::Ptr<cv::RgbdNormals> normalsComputer;
   };
+  
+  /** Warp the image: compute 3d points from the depth, transform them using given transformation, 
+   * then project color point cloud to an image plane. 
+   * This function can be used to visualize results of the Odometry algorithm.
+   * @param image The image (of CV_8UC1 or CV_8UC3 type)
+   * @param depth The depth (of type used in depthTo3d fuction)
+   * @param Rt The transformation that will be applied to the 3d points computed from the depth
+   * @param cameraMatrix Camera matrix
+   * @param distCoeff Distortion coefficients
+   * @param warpedImage The warped image.
+   */
+  CV_EXPORTS
+  void
+  warpImage(const Mat& image, const Mat& depth, const Mat& Rt, const Mat& cameraMatrix, const Mat& distCoeff,
+            Mat& warpedImage);
 
 // TODO Depth interpolation
 // Curvature

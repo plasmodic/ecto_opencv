@@ -46,45 +46,6 @@ using ecto::tendrils;
 using namespace cv;
 using namespace std;
 
-template<class ImageElemType>
-static void
-warpImage(const cv::Mat& image, const Mat& depth, const Mat& Rt, const Mat& cameraMatrix, const Mat& distCoeff,
-          Mat& warpedImage)
-{
-  const Rect rect = Rect(0, 0, image.cols, image.rows);
-
-  vector<Point2f> points2d;
-  Mat cloud, transformedCloud;
-
-  depthTo3d(depth, cameraMatrix, cloud);
-  perspectiveTransform(cloud, transformedCloud, Rt);
-  projectPoints(transformedCloud.reshape(3, 1), Mat::eye(3, 3, CV_64FC1), Mat::zeros(3, 1, CV_64FC1), cameraMatrix,
-                distCoeff, points2d);
-
-  Mat pointsPositions(points2d);
-  pointsPositions = pointsPositions.reshape(2, image.rows);
-
-  warpedImage.create(image.size(), image.type());
-  warpedImage = Scalar::all(0);
-
-  Mat zBuffer(image.size(), CV_32FC1, FLT_MAX);
-
-  for (int y = 0; y < image.rows; y++)
-  {
-    for (int x = 0; x < image.cols; x++)
-    {
-      const Point3f p3d = transformedCloud.at<Point3f>(y, x);
-      const Point2i p2d = pointsPositions.at<Point2f>(y, x);
-      if (!cvIsNaN(cloud.at<Point3f>(y, x).z) && cloud.at<Point3f>(y, x).z > 0 && rect.contains(p2d)
-          && zBuffer.at<float>(p2d) > p3d.z)
-      {
-        warpedImage.at<ImageElemType>(p2d) = image.at<ImageElemType>(y, x);
-        zBuffer.at<float>(p2d) = p3d.z;
-      }
-    }
-  }
-}
-
 namespace rgbd
 {
   struct Odometry
@@ -192,8 +153,8 @@ namespace rgbd
         const Mat distCoeff(1, 5, CV_32FC1, Scalar(0));
 
         std::cout << previous_pose_ << std::endl;
-        warpImage<Point3_<uchar> >(first_image_, first_depth_meters_, previous_pose_, cameraMatrix, distCoeff,
-                                   warpedImage0);
+        cv::warpImage(first_image_, first_depth_meters_, previous_pose_, cameraMatrix, distCoeff,
+                      warpedImage0);
         warpedImage0.copyTo(*warp_);
       }
 
