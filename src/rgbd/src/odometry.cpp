@@ -772,12 +772,26 @@ bool solveSystem(const Mat& AtA, const Mat& AtB, double detThreshold, Mat& x)
     return true;
 }
 
+static 
+bool testDeltaTransformation(const Mat& deltaRt, double maxTranslation, double maxRotation)
+{
+    double translation = norm(deltaRt(Rect(3, 0, 1, 3)));
+    
+    Mat rvec;
+    Rodrigues(deltaRt(Rect(0,0,3,3)), rvec);
+    
+    double rotation = norm(rvec);
+    
+    return (translation <= maxTranslation) && (rotation <= maxRotation * CV_PI/180.);
+}
+
 static
 bool RGBDICPOdometryImpl(Mat& Rt, const Mat& initRt,
-                         const OdometryFrameData& srcFrame,
-                         const OdometryFrameData& dstFrame,
+                         const OdometryFrameCache& srcFrame,
+                         const OdometryFrameCache& dstFrame,
                          const cv::Mat& cameraMatrix,
                          float maxDepthDiff, const vector<int>& iterCounts,
+                         double maxTranslation, double maxRotation,
                          int method, int transfromType)
 {
     int transformDim = -1;
@@ -809,6 +823,8 @@ bool RGBDICPOdometryImpl(Mat& Rt, const Mat& initRt,
 
     Mat resultRt = initRt.empty() ? Mat::eye(4,4,CV_64FC1) : initRt.clone();
     Mat currRt, ksi;
+    
+    bool isOk = false;
     for(int level = iterCounts.size() - 1; level >= 0; level--)
     {
         const Mat& levelCameraMatrix = pyramidCameraMatrix[level];
@@ -852,7 +868,6 @@ bool RGBDICPOdometryImpl(Mat& Rt, const Mat& initRt,
             Mat AtA(transformDim, transformDim, CV_64FC1, Scalar(0)), AtB(transformDim, 1, CV_64FC1, Scalar(0));
             if(correspsCount_rgbd >= transformDim)
             {
-
                 calcRgbdLsmMatrices(srcFrame.pyramidImage[level], srcFrame.pyramidCloud[level],
                                     dstFrame.pyramidImage[level], dstFrame.pyramid_dI_dx[level], dstFrame.pyramid_dI_dy[level],
                                     corresps_rgbd, correspsCount_rgbd, fx, fy, sobelScale,
@@ -888,9 +903,22 @@ bool RGBDICPOdometryImpl(Mat& Rt, const Mat& initRt,
 
             computeProjectiveMatrix(ksi, currRt);
             resultRt = currRt * resultRt;
+            isOk = true;
         }
     }
+    
     Rt = resultRt;
+        
+    if(isOk)
+    {
+        Mat deltaRt;
+        if(initRt.empty())
+            deltaRt = resultRt;
+        else
+            deltaRt = resultRt * initRt.inv(DECOMP_SVD);
+        
+        isOk = testDeltaTransformation(deltaRt, maxTranslation, maxRotation);
+    }
 
     return !Rt.empty();
 }
@@ -898,37 +926,38 @@ bool RGBDICPOdometryImpl(Mat& Rt, const Mat& initRt,
 template<class ImageElemType>
 static void
 warpImageImpl(const cv::Mat& image, const Mat& depth, const Mat& Rt, const Mat& cameraMatrix, const Mat& distCoeff,
-          Mat& warpedImage)
+              Mat& warpedImage)
 {
-    const Rect rect = Rect(0, 0, image.cols, image.rows);
-
-    vector<Point2f> points2d;
-    Mat cloud, transformedCloud;
-
+    CV_Assert(image.size() == depth.size());
+    
+    Mat cloud;
     depthTo3d(depth, cameraMatrix, cloud);
+    
+    vector<Point2f> points2d;
+    Mat transformedCloud;
     perspectiveTransform(cloud, transformedCloud, Rt);
     projectPoints(transformedCloud.reshape(3, 1), Mat::eye(3, 3, CV_64FC1), Mat::zeros(3, 1, CV_64FC1), cameraMatrix,
                 distCoeff, points2d);
 
-    Mat pointsPositions(points2d);
-    pointsPositions = pointsPositions.reshape(2, image.rows);
-
-    warpedImage.create(image.size(), image.type());
-    warpedImage = Scalar::all(0);
+    warpedImage = Mat(image.size(), image.type(), Scalar::all(0));
 
     Mat zBuffer(image.size(), CV_32FC1, FLT_MAX);
-
+    const Rect rect = Rect(0, 0, image.cols, image.rows);
+    
     for (int y = 0; y < image.rows; y++)
     {
+        //const Point3f* cloud_row = cloud.ptr<Point3f>(y);
+        const Point3f* transformedCloud_row = transformedCloud.ptr<Point3f>(y);
+        const Point2f* points2d_row = &points2d[y*image.cols];
+        const ImageElemType* image_row = image.ptr<ImageElemType>(y);
         for (int x = 0; x < image.cols; x++)
         {
-            const Point3f p3d = transformedCloud.at<Point3f>(y, x);
-            const Point2i p2d = pointsPositions.at<Point2f>(y, x);
-            if(!cvIsNaN(cloud.at<Point3f>(y, x).z) && cloud.at<Point3f>(y, x).z > 0 && rect.contains(p2d)
-              && zBuffer.at<float>(p2d) > p3d.z)
+            const float transformed_z = transformedCloud_row[x].z;
+            const Point2i p2d = points2d_row[x];
+            if(transformed_z > 0 && rect.contains(p2d) && /*!cvIsNaN(cloud_row[x].z) && */zBuffer.at<float>(p2d) > transformed_z)
             {
-                warpedImage.at<ImageElemType>(p2d) = image.at<ImageElemType>(y, x);
-                zBuffer.at<float>(p2d) = p3d.z;
+                warpedImage.at<ImageElemType>(p2d) = image_row[x];
+                zBuffer.at<float>(p2d) = transformed_z;
             }
         }
     }
@@ -939,17 +968,17 @@ warpImageImpl(const cv::Mat& image, const Mat& depth, const Mat& Rt, const Mat& 
 namespace cv
 {
 
-OdometryFrameData::OdometryFrameData()
+OdometryFrameCache::OdometryFrameCache()
 {}
 
-OdometryFrameData::OdometryFrameData(const Mat& _image, const Mat& _depth, const Mat& _mask)
+OdometryFrameCache::OdometryFrameCache(const Mat& _image, const Mat& _depth, const Mat& _mask)
 {
     image = _image;
     depth = _depth;
     mask = _mask;
 }
 
-void OdometryFrameData::release()
+void OdometryFrameCache::release()
 {
     image.release();
     depth.release();
@@ -974,18 +1003,18 @@ bool Odometry::compute(const Mat& srcImage, const Mat& srcDepth, const Mat& srcM
                        const Mat& dstImage, const Mat& dstDepth, const Mat& dstMask,
                        Mat& Rt, const Mat& initRt) const
 {
-    OdometryFrameData srcFrame(srcImage, srcDepth, srcMask);
-    OdometryFrameData dstFrame(dstImage, dstDepth, dstMask);
+    OdometryFrameCache srcFrame(srcImage, srcDepth, srcMask);
+    OdometryFrameCache dstFrame(dstImage, dstDepth, dstMask);
 
     return compute(srcFrame, dstFrame, Rt, initRt);
 }
 
-bool Odometry::compute(OdometryFrameData& srcFrame, OdometryFrameData& dstFrame, Mat& Rt, const Mat& initRt) const
+bool Odometry::compute(OdometryFrameCache& srcFrame, OdometryFrameCache& dstFrame, Mat& Rt, const Mat& initRt) const
 {
     checkParams();
 
-    Size srcSize = prepareFrameData(srcFrame, CACHE_SRC);
-    Size dstSize = prepareFrameData(dstFrame, CACHE_DST);
+    Size srcSize = prepareFrameCache(srcFrame, CACHE_SRC);
+    Size dstSize = prepareFrameCache(dstFrame, CACHE_DST);
 
     if(srcSize != dstSize)
         CV_Error(CV_StsBadSize, "srcFrame and dstFrame have to have the same size (resolution).");
@@ -1019,7 +1048,7 @@ RgbdOdometry::RgbdOdometry(const Mat& _cameraMatrix,
     }
 }
 
-Size RgbdOdometry::prepareFrameData(OdometryFrameData& frame, int cacheType) const
+Size RgbdOdometry::prepareFrameCache(OdometryFrameCache& frame, int cacheType) const
 {
     if(frame.image.empty())
     {
@@ -1076,9 +1105,9 @@ void RgbdOdometry::checkParams() const
     CV_Assert(minGradientMagnitudes.size() == iterCounts.size());
 }
 
-bool RgbdOdometry::computeImpl(const OdometryFrameData& srcFrame, const OdometryFrameData& dstFrame, Mat& Rt, const Mat& initRt) const
+bool RgbdOdometry::computeImpl(const OdometryFrameCache& srcFrame, const OdometryFrameCache& dstFrame, Mat& Rt, const Mat& initRt) const
 {
-    return RGBDICPOdometryImpl(Rt, initRt, srcFrame, dstFrame, cameraMatrix, maxDepthDiff, iterCounts, RGBD_ODOMETRY, transformType);
+    return RGBDICPOdometryImpl(Rt, initRt, srcFrame, dstFrame, cameraMatrix, maxDepthDiff, iterCounts, maxTranslation, maxRotation, RGBD_ODOMETRY, transformType);
 }
 
 //
@@ -1101,7 +1130,7 @@ ICPOdometry::ICPOdometry(const Mat& _cameraMatrix,
         setDefaultIterCounts(iterCounts);
 }
 
-Size ICPOdometry::prepareFrameData(OdometryFrameData& frame, int cacheType) const
+Size ICPOdometry::prepareFrameCache(OdometryFrameCache& frame, int cacheType) const
 {
     if(frame.depth.empty())
     {
@@ -1162,9 +1191,9 @@ void ICPOdometry::checkParams() const
     CV_Assert(cameraMatrix.size() == Size(3,3) && cameraMatrix.type() == CV_32FC1);
 }
 
-bool ICPOdometry::computeImpl(const OdometryFrameData& srcFrame, const OdometryFrameData& dstFrame, Mat& Rt, const Mat& initRt) const
+bool ICPOdometry::computeImpl(const OdometryFrameCache& srcFrame, const OdometryFrameCache& dstFrame, Mat& Rt, const Mat& initRt) const
 {
-    return RGBDICPOdometryImpl(Rt, initRt, srcFrame, dstFrame, cameraMatrix, maxDepthDiff, iterCounts, ICP_ODOMETRY, transformType);
+    return RGBDICPOdometryImpl(Rt, initRt, srcFrame, dstFrame, cameraMatrix, maxDepthDiff, iterCounts, maxTranslation, maxRotation, ICP_ODOMETRY, transformType);
 }
 
 //
@@ -1194,7 +1223,7 @@ RgbdICPOdometry::RgbdICPOdometry(const Mat& _cameraMatrix,
     }
 }
 
-Size RgbdICPOdometry::prepareFrameData(OdometryFrameData& frame, int cacheType) const
+Size RgbdICPOdometry::prepareFrameCache(OdometryFrameCache& frame, int cacheType) const
 {
     if(frame.image.empty())
     {
@@ -1271,9 +1300,9 @@ void RgbdICPOdometry::checkParams() const
     CV_Assert(minGradientMagnitudes.size() == iterCounts.size());
 }
 
-bool RgbdICPOdometry::computeImpl(const OdometryFrameData& srcFrame, const OdometryFrameData& dstFrame, Mat& Rt, const Mat& initRt) const
+bool RgbdICPOdometry::computeImpl(const OdometryFrameCache& srcFrame, const OdometryFrameCache& dstFrame, Mat& Rt, const Mat& initRt) const
 {
-    return RGBDICPOdometryImpl(Rt, initRt, srcFrame, dstFrame, cameraMatrix, maxDepthDiff, iterCounts, MERGED_ODOMETRY, transformType);
+    return RGBDICPOdometryImpl(Rt, initRt, srcFrame, dstFrame, cameraMatrix, maxDepthDiff, iterCounts,  maxTranslation, maxRotation, MERGED_ODOMETRY, transformType);
 }
 
 //

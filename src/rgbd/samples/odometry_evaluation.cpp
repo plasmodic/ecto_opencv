@@ -46,10 +46,7 @@
 using namespace std;
 using namespace cv;
 
-#define BILATERAL_FILTER 0 // if 1 then bilateral filter will be used for the depth
-#if BILATERAL_FILTER
-#define SEQUENTIAL_MERGE_METHOD 0 // if 1 then the passed type of Odometry will be ignored and sequence ICP + RGBD (pure rotation) will be used.
-#endif
+#define BILATERAL_FILTER 0// if 1 then bilateral filter will be used for the depth
 
 static
 void writeResults( const string& filename, const vector<string>& timestamps, const vector<Mat>& Rt )
@@ -147,25 +144,15 @@ int main(int argc, char** argv)
         cameraMatrix.at<float>(1,2) = cy;
     }
 
-#if SEQUENTIAL_MERGE_METHOD
-    odometryName = "ICP";
-#endif
-
-    string algType = string(argv[3]);
-    Ptr<OdometryFrameData> frame_prev = new OdometryFrameData(),
-                           frame_curr = new OdometryFrameData();
-    Ptr<Odometry> odometry = Algorithm::create<Odometry>("RGBD." + algType + "Odometry");
+    Ptr<OdometryFrameCache> frame_prev = new OdometryFrameCache(),
+                           frame_curr = new OdometryFrameCache();
+    Ptr<Odometry> odometry = Algorithm::create<Odometry>("RGBD." + string(argv[3]) + "Odometry");
     if(odometry.empty())
     {
         cout << "Can not create Odometry algorithm. Check the passed odometry name." << endl;
         return -1;
     }
     odometry->set("cameraMatrix", cameraMatrix);
-
-#if SEQUENTIAL_MERGE_METHOD
-    RgbdOdometry rgbd(cameraMatrix);
-    rgbd.set("transformType", Odometry::ROTATION);
-#endif
 
     TickMeter gtm;
     int count = 0;
@@ -223,7 +210,7 @@ int main(int argc, char** argv)
             frame_curr->image = gray;
             frame_curr->depth = depth;
             
-            Mat Rt = Mat::eye(4,4,CV_64FC1);
+            Mat Rt;
             if(!Rts.empty())
             {
                 TickMeter tm;
@@ -231,23 +218,18 @@ int main(int argc, char** argv)
                 gtm.start();
                 bool res = odometry->compute(*frame_curr, *frame_prev, Rt);
                 gtm.stop();
-#if SEQUENTIAL_MERGE_METHOD
-                rgbd.compute(gray_curr, depth_curr, Mat(),
-                             gray_prev, depth_prev, Mat(),
-                             Rt, Rt.clone());
-#endif
                 tm.stop();
                 count++;
-
-                CV_Assert(res);
                 cout << "Time " << tm.getTimeSec() << endl;
 #if BILATERAL_FILTER
                 cout << "Time ratio " << tm_bilateral_filter.getTimeSec() / tm.getTimeSec() << endl;
 #endif
+                if(!res)
+                    Rt = Mat::eye(4,4,CV_64FC1);
             }
 
             if( Rts.empty() )
-                Rts.push_back( Rt );
+                Rts.push_back(Mat::eye(4,4,CV_64FC1));
             else
             {
                 Mat& prevRt = *Rts.rbegin();

@@ -236,13 +236,13 @@ namespace cv
   };
 
   /** Object that contains a frame data that is possibly needed for the Odometry.
-   * It's used for the efficiency (to pass precomputed data of the frame that participates
+   * It's used for the efficiency (to pass precomputed/cached data of the frame that participates
    * in the Odometry processing several times).
    */
-  CV_EXPORTS struct OdometryFrameData
+  CV_EXPORTS struct OdometryFrameCache
   {
-    OdometryFrameData();
-    OdometryFrameData(const Mat& image, const Mat& depth, const Mat& mask);
+    OdometryFrameCache();
+    OdometryFrameCache(const Mat& image, const Mat& depth, const Mat& mask);
     void release();
 
     Mat image;
@@ -291,33 +291,46 @@ namespace cv
     static inline float
     DEFAULT_MIN_DEPTH()
     {
-      return 0.f;
+      return 0.f; // in meters
     }
     static inline float
     DEFAULT_MAX_DEPTH()
     {
-      return 4.f;
+      return 4.f; // in meters
     }
     static inline float
     DEFAULT_MAX_DEPTH_DIFF()
     {
-      return 0.07f;
+      return 0.07f; // in meters
     }
     static inline float
     DEFAULT_USED_POINTS_PART()
     {
-      return 0.07f;
+      return 0.07f; // in [0, 1]
+    }
+    static inline float
+    DEFAULT_MAX_TRANSLATION()
+    {
+      return 0.1f; // in meters
+    }
+    static inline float
+    DEFAULT_MAX_ROTATION()
+    {
+      return 10; // in degrees
     }
 
     /** Method to compute a transformation from the source frame to the destination one.
      * Some odometry algorithms do not used some data of frames (eg. ICP does not use images).
      * In such case corresponding arguments can be set as empty cv::Mat.
-     * @param srcImage Image data of the source frame
-     * @param srcDepth Depth data of the source frame
-     * @param srcMask Mask that sets which pixels have to be used from the source frame
-     * @param dstImage Image data of the destination frame
-     * @param dstDepth Depth data of the destination frame
-     * @param dstMask Mask that sets which pixels have to be used from the destination frame
+     * The method returns true if all internal computions were possible (e.g. there were enough correspondences, 
+     * system of equations has a solution, etc) and resulting transformation satisfies some test if it's provided
+     * by the Odometry inheritor implementation (e.g. thresholds for maximum translation and rotation).
+     * @param srcImage Image data of the source frame (CV_8UC1)
+     * @param srcDepth Depth data of the source frame (CV_32FC1, in meters)
+     * @param srcMask Mask that sets which pixels have to be used from the source frame (CV_8UC1)
+     * @param dstImage Image data of the destination frame (CV_8UC1)
+     * @param dstDepth Depth data of the destination frame (CV_32FC1, in meters)
+     * @param dstMask Mask that sets which pixels have to be used from the destination frame (CV_8UC1)
      * @param Rt Resulting transformation from the source frame to the destination one (rigid body motion):
                  dst_p = Rt * src_p, where dst_p is a homogeneous point in the destination frame and src_p is
                  homogeneous point in the source frame,
@@ -333,7 +346,7 @@ namespace cv
      * It is designed to save on computing the frame data (image pyramids, normals, etc.).
      */
     bool
-    compute(OdometryFrameData& srcFrame, OdometryFrameData& dstFrame, Mat& Rt, const Mat& initRt = Mat()) const;
+    compute(OdometryFrameCache& srcFrame, OdometryFrameCache& dstFrame, Mat& Rt, const Mat& initRt = Mat()) const;
 
     /** Prepare a cache for the frame. The function checks the precomputed/passed data (throws the error if this data
      * does not satisfy) and computes all remaining cache data needed for the frame. Returned size is a resolution
@@ -341,14 +354,14 @@ namespace cv
      * @param odometry The odometry which will process the frame.
      * @param cacheType The cache type: CACHE_SRC, CACHE_DST or CACHE_ALL.
      */
-    virtual Size prepareFrameData(OdometryFrameData& frame, int cacheType) const = 0;
+    virtual Size prepareFrameCache(OdometryFrameCache& frame, int cacheType) const = 0;
 
   protected:
     virtual void
     checkParams() const = 0;
 
     virtual bool
-    computeImpl(const OdometryFrameData& srcFrame, const OdometryFrameData& dstFrame, Mat& Rt, const Mat& initRt) const = 0;
+    computeImpl(const OdometryFrameCache& srcFrame, const OdometryFrameCache& dstFrame, Mat& Rt, const Mat& initRt) const = 0;
   };
 
   /** Odometry based on the paper "Real-Time Visual Odometry from Dense RGB-D Images", 
@@ -360,10 +373,10 @@ namespace cv
     RgbdOdometry();
     /** Constructor.
      * @param cameraMatrix Camera matrix
-     * @param minDepth Pixels with depth less than minDepth will not be used
-     * @param maxDepth Pixels with depth larger than maxDepth will not be used
+     * @param minDepth Pixels with depth less than minDepth will not be used (in meters)
+     * @param maxDepth Pixels with depth larger than maxDepth will not be used (in meters)
      * @param maxDepthDiff Correspondences between pixels of two given frames will be filtered out
-     *                     if their depth difference is larger than maxDepthDiff
+     *                     if their depth difference is larger than maxDepthDiff (in meters)
      * @param iterCounts Count of iterations on each pyramid level.
      * @param minGradientMagnitudes For each pyramid level the pixels will be filtered out
      *                              if they have gradient magnitude less than minGradientMagnitudes[level].
@@ -372,7 +385,7 @@ namespace cv
                  float maxDepthDiff = DEFAULT_MAX_DEPTH_DIFF(), const vector<int>& iterCounts = vector<int>(),
                  const vector<float>& minGradientMagnitudes = vector<float>(), int transformType=RIGID_BODY_MOTION);
 
-    virtual Size prepareFrameData(OdometryFrameData& frame, int cacheType) const;
+    virtual Size prepareFrameCache(OdometryFrameCache& frame, int cacheType) const;
 
     AlgorithmInfo*
     info() const;
@@ -382,7 +395,7 @@ namespace cv
     checkParams() const;
 
     virtual bool
-    computeImpl(const OdometryFrameData& srcFrame, const OdometryFrameData& dstFrame, Mat& Rt, const Mat& initRt) const;
+    computeImpl(const OdometryFrameCache& srcFrame, const OdometryFrameCache& dstFrame, Mat& Rt, const Mat& initRt) const;
 
     // Some params have commented desired type. It's due to cv::AlgorithmInfo::addParams does not support it now.
     /*float*/
@@ -394,6 +407,8 @@ namespace cv
 
     Mat cameraMatrix;
     int transformType;
+    
+    double maxTranslation, maxRotation;
   };
 
   /** Odometry based on the paper "KinectFusion: Real-Time Dense Surface Mapping and Tracking", 
@@ -416,7 +431,7 @@ namespace cv
                 float maxDepthDiff = DEFAULT_MAX_DEPTH_DIFF(), float pointsPart = DEFAULT_USED_POINTS_PART(),
                 const vector<int>& iterCounts = vector<int>(), int transformType=RIGID_BODY_MOTION);
 
-    virtual Size prepareFrameData(OdometryFrameData& frame, int cacheType) const;
+    virtual Size prepareFrameCache(OdometryFrameCache& frame, int cacheType) const;
 
     AlgorithmInfo*
     info() const;
@@ -426,7 +441,7 @@ namespace cv
     checkParams() const;
 
     virtual bool
-    computeImpl(const OdometryFrameData& srcFrame, const OdometryFrameData& dstFrame, Mat& Rt, const Mat& initRt) const;
+    computeImpl(const OdometryFrameCache& srcFrame, const OdometryFrameCache& dstFrame, Mat& Rt, const Mat& initRt) const;
 
     // Some params have commented desired type. It's due to cv::AlgorithmInfo::addParams does not support it now.
     /*float*/
@@ -438,6 +453,8 @@ namespace cv
 
     Mat cameraMatrix;
     int transformType;
+    
+    double maxTranslation, maxRotation;
 
     mutable cv::Ptr<cv::RgbdNormals> normalsComputer;
   };
@@ -466,7 +483,7 @@ namespace cv
                     const vector<float>& minGradientMagnitudes = vector<float>(),
                     int transformType=RIGID_BODY_MOTION);
 
-    virtual Size prepareFrameData(OdometryFrameData& frame, int cacheType) const;
+    virtual Size prepareFrameCache(OdometryFrameCache& frame, int cacheType) const;
 
     AlgorithmInfo*
     info() const;
@@ -476,7 +493,7 @@ namespace cv
     checkParams() const;
 
     virtual bool
-    computeImpl(const OdometryFrameData& srcFrame, const OdometryFrameData& dstFrame, Mat& Rt, const Mat& initRt) const;
+    computeImpl(const OdometryFrameCache& srcFrame, const OdometryFrameCache& dstFrame, Mat& Rt, const Mat& initRt) const;
 
     // Some params have commented desired type. It's due to cv::AlgorithmInfo::addParams does not support it now.
     /*float*/
@@ -490,6 +507,8 @@ namespace cv
 
     Mat cameraMatrix;
     int transformType;
+    
+    double maxTranslation, maxRotation;
 
     mutable cv::Ptr<cv::RgbdNormals> normalsComputer;
   };
