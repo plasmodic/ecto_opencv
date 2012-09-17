@@ -780,9 +780,9 @@ bool testDeltaTransformation(const Mat& deltaRt, double maxTranslation, double m
     Mat rvec;
     Rodrigues(deltaRt(Rect(0,0,3,3)), rvec);
     
-    double rotation = norm(rvec);
+    double rotation = norm(rvec) * 180. / CV_PI;
     
-    return (translation <= maxTranslation) && (rotation <= maxRotation * CV_PI/180.);
+    return translation <= maxTranslation && rotation <= maxRotation;
 }
 
 static
@@ -919,8 +919,10 @@ bool RGBDICPOdometryImpl(Mat& Rt, const Mat& initRt,
         
         isOk = testDeltaTransformation(deltaRt, maxTranslation, maxRotation);
     }
+    else
+        Rt.release();
 
-    return !Rt.empty();
+    return isOk;
 }
 
 template<class ImageElemType>
@@ -1024,7 +1026,12 @@ bool Odometry::compute(OdometryFrameCache& srcFrame, OdometryFrameCache& dstFram
 
 //
 RgbdOdometry::RgbdOdometry() :
-    minDepth(DEFAULT_MIN_DEPTH()), maxDepth(DEFAULT_MAX_DEPTH()), maxDepthDiff(DEFAULT_MAX_DEPTH_DIFF()), transformType(Odometry::RIGID_BODY_MOTION)
+    minDepth(DEFAULT_MIN_DEPTH()),
+    maxDepth(DEFAULT_MAX_DEPTH()),
+    maxDepthDiff(DEFAULT_MAX_DEPTH_DIFF()),
+    transformType(Odometry::RIGID_BODY_MOTION),
+    maxTranslation(DEFAULT_MAX_TRANSLATION()),
+    maxRotation(DEFAULT_MAX_ROTATION())
 
 {
     setDefaultIterCounts(iterCounts);
@@ -1039,7 +1046,8 @@ RgbdOdometry::RgbdOdometry(const Mat& _cameraMatrix,
                            minDepth(_minDepth), maxDepth(_maxDepth), maxDepthDiff(_maxDepthDiff),
                            iterCounts(Mat(_iterCounts).clone()),
                            minGradientMagnitudes(Mat(_minGradientMagnitudes).clone()),
-                           cameraMatrix(_cameraMatrix), transformType(_transformType)
+                           cameraMatrix(_cameraMatrix), transformType(_transformType),
+                           maxTranslation(DEFAULT_MAX_TRANSLATION()), maxRotation(DEFAULT_MAX_ROTATION())
 {
     if(iterCounts.empty() || minGradientMagnitudes.empty())
     {
@@ -1113,7 +1121,8 @@ bool RgbdOdometry::computeImpl(const OdometryFrameCache& srcFrame, const Odometr
 //
 ICPOdometry::ICPOdometry() :
     minDepth(DEFAULT_MIN_DEPTH()), maxDepth(DEFAULT_MAX_DEPTH()),
-    maxDepthDiff(DEFAULT_MAX_DEPTH_DIFF()), pointsPart(DEFAULT_USED_POINTS_PART()), transformType(Odometry::RIGID_BODY_MOTION)
+    maxDepthDiff(DEFAULT_MAX_DEPTH_DIFF()), pointsPart(DEFAULT_USED_POINTS_PART()), transformType(Odometry::RIGID_BODY_MOTION),
+    maxTranslation(DEFAULT_MAX_TRANSLATION()), maxRotation(DEFAULT_MAX_ROTATION())
 {
     setDefaultIterCounts(iterCounts);
 }
@@ -1124,7 +1133,8 @@ ICPOdometry::ICPOdometry(const Mat& _cameraMatrix,
                          int _transformType) :
                          minDepth(_minDepth), maxDepth(_maxDepth), maxDepthDiff(_maxDepthDiff),
                          pointsPart(_pointsPart), iterCounts(Mat(_iterCounts).clone()),
-                         cameraMatrix(_cameraMatrix), transformType(_transformType)
+                         cameraMatrix(_cameraMatrix), transformType(_transformType),
+                         maxTranslation(DEFAULT_MAX_TRANSLATION()), maxRotation(DEFAULT_MAX_ROTATION())
 {
     if(iterCounts.empty())
         setDefaultIterCounts(iterCounts);
@@ -1199,7 +1209,8 @@ bool ICPOdometry::computeImpl(const OdometryFrameCache& srcFrame, const Odometry
 //
 RgbdICPOdometry::RgbdICPOdometry() :
     minDepth(DEFAULT_MIN_DEPTH()), maxDepth(DEFAULT_MAX_DEPTH()),
-    maxDepthDiff(DEFAULT_MAX_DEPTH_DIFF()), pointsPart(DEFAULT_USED_POINTS_PART()), transformType(Odometry::RIGID_BODY_MOTION)
+    maxDepthDiff(DEFAULT_MAX_DEPTH_DIFF()), pointsPart(DEFAULT_USED_POINTS_PART()), transformType(Odometry::RIGID_BODY_MOTION),
+    maxTranslation(DEFAULT_MAX_TRANSLATION()), maxRotation(DEFAULT_MAX_ROTATION())
 {
     setDefaultIterCounts(iterCounts);
     setDefaultMinGradientMagnitudes(minGradientMagnitudes);
@@ -1213,8 +1224,8 @@ RgbdICPOdometry::RgbdICPOdometry(const Mat& _cameraMatrix,
                                  minDepth(_minDepth), maxDepth(_maxDepth), maxDepthDiff(_maxDepthDiff),
                                  pointsPart(_pointsPart), iterCounts(Mat(_iterCounts).clone()),
                                  minGradientMagnitudes(Mat(_minGradientMagnitudes).clone()),
-                                 cameraMatrix(_cameraMatrix),
-                                 transformType(_transformType)
+                                 cameraMatrix(_cameraMatrix), transformType(_transformType),
+                                 maxTranslation(DEFAULT_MAX_TRANSLATION()), maxRotation(DEFAULT_MAX_ROTATION())
 {
     if(iterCounts.empty() || minGradientMagnitudes.empty())
     {
