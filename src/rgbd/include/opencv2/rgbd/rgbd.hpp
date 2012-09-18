@@ -241,6 +241,18 @@ namespace cv
    */
   CV_EXPORTS struct OdometryFrameCache
   {
+    /** These constants are used to set a type of cache which has to be prepared depending on the frame role:
+     * srcFrame or dstFrame (see compute method of the Odometry class). For the srcFrame and dstFrame different cache data may be required,
+     * some part of a cache may be common for both frame roles.
+     * @param CACHE_SRC The cache data for the srcFrame will be prepared.
+     * @param CACHE_DST The cache data for the dstFrame will be prepared.
+     * @param CACHE_ALL The cache data for both srcFrame and dstFrame roles will be computed.
+     */
+    enum { CACHE_SRC = 1,
+           CACHE_DST = 2,
+           CACHE_ALL = CACHE_SRC + CACHE_DST
+         };
+
     OdometryFrameCache();
     OdometryFrameCache(const Mat& image, const Mat& depth, const Mat& mask);
     void release();
@@ -274,18 +286,6 @@ namespace cv
     enum { ROTATION          = 1,
            TRANSLATION       = 2,
            RIGID_BODY_MOTION = 4
-         };
-
-    /** These constants are used to set a type of cache which has to be prepared depending on the frame role:
-     * srcFrame or dstFrame (see compute method). For the srcFrame and dstFrame different cache data may be required,
-     * some part of a cache may be common for both frame roles.
-     * @param CACHE_SRC The cache data for the srcFrame will be prepared.
-     * @param CACHE_DST The cache data for the dstFrame will be prepared.
-     * @param CACHE_ALL The cache data for both srcFrame and dstFrame roles will be computed.
-     */
-    enum { CACHE_SRC = 1,
-           CACHE_DST = 2,
-           CACHE_ALL = CACHE_SRC + CACHE_DST
          };
 
     static inline float

@@ -1015,8 +1015,8 @@ bool Odometry::compute(OdometryFrameCache& srcFrame, OdometryFrameCache& dstFram
 {
     checkParams();
 
-    Size srcSize = prepareFrameCache(srcFrame, CACHE_SRC);
-    Size dstSize = prepareFrameCache(dstFrame, CACHE_DST);
+    Size srcSize = prepareFrameCache(srcFrame, OdometryFrameCache::CACHE_SRC);
+    Size dstSize = prepareFrameCache(dstFrame, OdometryFrameCache::CACHE_DST);
 
     if(srcSize != dstSize)
         CV_Error(CV_StsBadSize, "srcFrame and dstFrame have to have the same size (resolution).");
@@ -1093,10 +1093,10 @@ Size RgbdOdometry::prepareFrameCache(OdometryFrameCache& frame, int cacheType) c
 
     preparePyramidMask(frame.mask, frame.pyramidDepth, minDepth, maxDepth, frame.pyramidMask);
 
-    if(cacheType & CACHE_SRC)
+    if(cacheType & OdometryFrameCache::CACHE_SRC)
         preparePyramidCloud(frame.pyramidDepth, cameraMatrix, frame.pyramidCloud);
 
-    if(cacheType & CACHE_DST)
+    if(cacheType & OdometryFrameCache::CACHE_DST)
     {
         preparePyramidSobel(frame.pyramidImage, 1, 0, frame.pyramid_dI_dx);
         preparePyramidSobel(frame.pyramidImage, 0, 1, frame.pyramid_dI_dy);
@@ -1168,7 +1168,7 @@ Size ICPOdometry::prepareFrameCache(OdometryFrameCache& frame, int cacheType) co
 
     preparePyramidCloud(frame.pyramidDepth, cameraMatrix, frame.pyramidCloud);
 
-    if(cacheType & CACHE_DST)
+    if(cacheType & OdometryFrameCache::CACHE_DST)
     {
         if(frame.normals.empty())
         {
@@ -1273,7 +1273,7 @@ Size RgbdICPOdometry::prepareFrameCache(OdometryFrameCache& frame, int cacheType
 
     preparePyramidCloud(frame.pyramidDepth, cameraMatrix, frame.pyramidCloud);
 
-    if(cacheType & CACHE_DST)
+    if(cacheType & OdometryFrameCache::CACHE_DST)
     {
         preparePyramidSobel(frame.pyramidImage, 1, 0, frame.pyramid_dI_dx);
         preparePyramidSobel(frame.pyramidImage, 0, 1, frame.pyramid_dI_dy);
