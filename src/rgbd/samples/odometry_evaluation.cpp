@@ -192,7 +192,7 @@ int main(int argc, char** argv)
 #else
             tm_bilateral_filter.start();
             depth = Mat(depth_flt.size(), CV_32FC1, Scalar(0));
-            const double depth_sigma = 0.1; // in meters; it was OK even with 0.3
+            const double depth_sigma = 0.03;
             const double space_sigma = 4.5;  // in pixels
             Mat invalidDepthMask = depth_flt == 0.f;
             depth_flt.setTo(-5*depth_sigma, invalidDepthMask);
