@@ -1,11 +1,10 @@
 cmake_minimum_required(VERSION 2.8)
 project(ecto_opencv)
 find_package(catkin REQUIRED)
-if (${catkin_VERSION} VERSION_GREATER "0.5.26")
-catkin_package()
-catkin_package_export(INCLUDE_DIRS include
-                      LIBRARIES opencv_candidate
-                                opencv_rgbd
+if (${catkin_VERSION} VERSION_GREATER "0.5.28")
+catkin_package(INCLUDE_DIRS include
+               LIBRARIES opencv_candidate
+                         opencv_rgbd
 )
 else()
 catkin_stack()
