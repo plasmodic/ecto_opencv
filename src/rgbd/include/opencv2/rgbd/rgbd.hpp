@@ -53,13 +53,13 @@ namespace cv
   inline bool
   isValidDepth(const float & depth)
   {
-    return cvIsNaN(depth);
+    return !cvIsNaN(depth);
   }
   CV_EXPORTS
   inline bool
   isValidDepth(const double & depth)
   {
-    return cvIsNaN(depth);
+    return !cvIsNaN(depth);
   }
   CV_EXPORTS
   inline bool
