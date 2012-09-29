@@ -311,12 +311,12 @@ namespace cv
     static inline float
     DEFAULT_MAX_TRANSLATION()
     {
-      return 0.1f; // in meters
+      return 0.15f; // in meters
     }
     static inline float
     DEFAULT_MAX_ROTATION()
     {
-      return 10; // in degrees
+      return 15; // in degrees
     }
 
     /** Method to compute a transformation from the source frame to the destination one.
