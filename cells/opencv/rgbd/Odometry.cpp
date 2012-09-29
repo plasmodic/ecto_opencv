@@ -153,7 +153,7 @@ namespace rgbd
         const Mat distCoeff(1, 5, CV_32FC1, Scalar(0));
 
         std::cout << previous_pose_ << std::endl;
-        cv::warpImage(first_image_, first_depth_meters_, previous_pose_, cameraMatrix, distCoeff,
+        cv::warpFrame(first_image_, first_depth_meters_, cv::Mat(), previous_pose_, cameraMatrix, distCoeff,
                       warpedImage0);
         warpedImage0.copyTo(*warp_);
       }

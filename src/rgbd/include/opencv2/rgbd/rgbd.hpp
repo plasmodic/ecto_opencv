@@ -518,15 +518,19 @@ namespace cv
    * This function can be used to visualize results of the Odometry algorithm.
    * @param image The image (of CV_8UC1 or CV_8UC3 type)
    * @param depth The depth (of type used in depthTo3d fuction)
+   * @param mask The mask of used pixels (of CV_8UC1), it can be empty
    * @param Rt The transformation that will be applied to the 3d points computed from the depth
    * @param cameraMatrix Camera matrix
    * @param distCoeff Distortion coefficients
    * @param warpedImage The warped image.
+   * @param warpedDepth The warped depth.
+   * @param warpedMask The warped mask.
    */
   CV_EXPORTS
   void
-  warpImage(const Mat& image, const Mat& depth, const Mat& Rt, const Mat& cameraMatrix, const Mat& distCoeff,
-            Mat& warpedImage);
+  warpFrame(const Mat& image, const Mat& depth, const Mat& mask,
+            const Mat& Rt, const Mat& cameraMatrix, const Mat& distCoeff,
+            Mat& warpedImage, Mat* warpedDepth=0, Mat* warpedMask=0);
 
 // TODO Depth interpolation
 // Curvature

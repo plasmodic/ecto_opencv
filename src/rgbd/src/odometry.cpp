@@ -40,6 +40,7 @@
 #include <opencv2/rgbd/rgbd.hpp>
 
 #include <iostream>
+#include <limits>
 
 #if defined(HAVE_EIGEN) && EIGEN_WORLD_VERSION == 3
 #define HAVE_EIGEN3_HERE
@@ -919,16 +920,15 @@ bool RGBDICPOdometryImpl(Mat& Rt, const Mat& initRt,
         
         isOk = testDeltaTransformation(deltaRt, maxTranslation, maxRotation);
     }
-    else
-        Rt.release();
 
     return isOk;
 }
 
 template<class ImageElemType>
 static void
-warpImageImpl(const cv::Mat& image, const Mat& depth, const Mat& Rt, const Mat& cameraMatrix, const Mat& distCoeff,
-              Mat& warpedImage)
+warpFrameImpl(const cv::Mat& image, const Mat& depth, const Mat& mask,
+              const Mat& Rt, const Mat& cameraMatrix, const Mat& distCoeff,
+              Mat& warpedImage, Mat* warpedDepth, Mat* warpedMask)
 {
     CV_Assert(image.size() == depth.size());
     
@@ -943,7 +943,7 @@ warpImageImpl(const cv::Mat& image, const Mat& depth, const Mat& Rt, const Mat& 
 
     warpedImage = Mat(image.size(), image.type(), Scalar::all(0));
 
-    Mat zBuffer(image.size(), CV_32FC1, FLT_MAX);
+    Mat zBuffer(image.size(), CV_32FC1, std::numeric_limits<float>::max());
     const Rect rect = Rect(0, 0, image.cols, image.rows);
     
     for (int y = 0; y < image.rows; y++)
@@ -952,16 +952,26 @@ warpImageImpl(const cv::Mat& image, const Mat& depth, const Mat& Rt, const Mat& 
         const Point3f* transformedCloud_row = transformedCloud.ptr<Point3f>(y);
         const Point2f* points2d_row = &points2d[y*image.cols];
         const ImageElemType* image_row = image.ptr<ImageElemType>(y);
+        const uchar* mask_row = mask.empty() ? 0 : mask.ptr<uchar>(y);
         for (int x = 0; x < image.cols; x++)
         {
             const float transformed_z = transformedCloud_row[x].z;
             const Point2i p2d = points2d_row[x];
-            if(transformed_z > 0 && rect.contains(p2d) && /*!cvIsNaN(cloud_row[x].z) && */zBuffer.at<float>(p2d) > transformed_z)
+            if((!mask_row || mask_row[x]) && transformed_z > 0 && rect.contains(p2d) && /*!cvIsNaN(cloud_row[x].z) && */zBuffer.at<float>(p2d) > transformed_z)
             {
                 warpedImage.at<ImageElemType>(p2d) = image_row[x];
                 zBuffer.at<float>(p2d) = transformed_z;
             }
         }
+    }
+
+    if(warpedMask)
+        *warpedMask = zBuffer != std::numeric_limits<float>::max();
+
+    if(warpedDepth)
+    {
+        zBuffer.setTo(std::numeric_limits<float>::quiet_NaN(), zBuffer == std::numeric_limits<float>::max());
+        *warpedDepth = zBuffer;
     }
 }
 
@@ -1319,13 +1329,14 @@ bool RgbdICPOdometry::computeImpl(const OdometryFrameCache& srcFrame, const Odom
 //
 
 void
-warpImage(const Mat& image, const Mat& depth, const Mat& Rt, const Mat& cameraMatrix, const Mat& distCoeff,
-          Mat& warpedImage)
+warpFrame(const Mat& image, const Mat& depth, const Mat& mask,
+          const Mat& Rt, const Mat& cameraMatrix, const Mat& distCoeff,
+          Mat& warpedImage, Mat* warpedDepth, Mat* warpedMask)
 {
     if(image.type() == CV_8UC1)
-        warpImageImpl<uchar>(image, depth, Rt, cameraMatrix, distCoeff, warpedImage);
+        warpFrameImpl<uchar>(image, depth, mask, Rt, cameraMatrix, distCoeff, warpedImage, warpedDepth, warpedMask);
     else if(image.type() == CV_8UC3)
-        warpImageImpl<Point3_<uchar> >(image, depth, Rt, cameraMatrix, distCoeff, warpedImage);
+        warpFrameImpl<Point3_<uchar> >(image, depth, mask, Rt, cameraMatrix, distCoeff, warpedImage, warpedDepth, warpedMask);
     else
         CV_Error(CV_StsBadArg, "Image has to be type of CV_8UC1 or CV_8UC3");
 }
