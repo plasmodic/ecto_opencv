@@ -1,3 +1,5 @@
+.. _ecto_opencv:
+
 ecto_opencv: Ecto OpenCV Wrappers
 =================================
 

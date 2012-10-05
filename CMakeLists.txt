@@ -60,4 +60,5 @@ if(BUILD_TEST)
   add_subdirectory(samples)
 endif()
 
-#catkin_sphinx(${CMAKE_CURRENT_SOURCE_DIR}/doc doc)
+ecto_sphinx(${CMAKE_CURRENT_SOURCE_DIR}/doc doc)
+
