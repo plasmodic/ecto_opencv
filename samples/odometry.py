@@ -32,7 +32,6 @@
 #  POSSIBILITY OF SUCH DAMAGE.
 
 
-import roscompat
 import ecto
 
 from ecto_opencv.highgui import imshow
