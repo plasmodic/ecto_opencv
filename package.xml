@@ -6,15 +6,16 @@
   <author email="straszheim@willowgarage.com">Troy Straszheim</author>
   <maintainer email="vrabaud@willowgarage.com">Vincent Rabaud</maintainer>
   <license>BSD</license>
-  <copyright>Willow Garage</copyright>
 
   <url>http://ecto.willowgarage.com</url>
   <build_depend>catkin</build_depend>
   <build_depend>boost</build_depend>
   <build_depend>ecto</build_depend>
+  <build_depend>opencv_candidate</build_depend>
   <build_depend>opencv2</build_depend>
 
   <run_depend>boost</run_depend>
   <run_depend>ecto</run_depend>
+  <run_depend>opencv_candidate</run_depend>
   <run_depend>opencv2</run_depend>
 </package>
