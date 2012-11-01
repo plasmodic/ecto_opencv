@@ -8,7 +8,8 @@ catkin_stack()
 catkin_project(ecto_opencv DEPENDS opencv_candidate)
 endif()
 
-include_directories(SYSTEM ${catkin_INCLUDE_DIRS})
+
+include_directories(SYSTEM ${opencv_candidate_INCLUDE_DIRS})
 
 set(${PROJECT_NAME}_GITHUB_URL https://github.com/plasmodic/ecto_opencv)
 
