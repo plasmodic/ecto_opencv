@@ -36,15 +36,6 @@ endif()
 # configure and install Python
 catkin_python_setup()
 
-# install the include directory
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src/rgbd/include)
-
-install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/opencv_candidate
-        DESTINATION include
-        COMPONENT main
-)
-
 add_subdirectory(cells)
 add_subdirectory(python)
 
