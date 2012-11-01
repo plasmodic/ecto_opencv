@@ -8,6 +8,8 @@ catkin_stack()
 catkin_project(ecto_opencv DEPENDS opencv_candidate)
 endif()
 
+include_directories(SYSTEM ${catkin_INCLUDE_DIRS})
+
 set(${PROJECT_NAME}_GITHUB_URL https://github.com/plasmodic/ecto_opencv)
 
 if(NOT CMAKE_BUILD_TYPE)#Only do this the on the first run, if the build type hasn't been set prior
