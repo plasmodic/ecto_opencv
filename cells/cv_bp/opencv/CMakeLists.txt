@@ -57,6 +57,14 @@ add_library(${bp_opencv_target} SHARED
   cv_highgui.cpp
   highgui_defines.cpp
   )
+
+if (ROS_GROOVY_OR_ABOVE_FOUND)
+  set(ECTO_PYTHON_BUILD_PATH ${CATKIN_BUILD_PREFIX}/${CATKIN_GLOBAL_PYTHON_DESTINATION}/)
+else()
+  set(ECTO_PYTHON_BUILD_PATH ${CMAKE_BINARY_DIR}/gen/py/)
+endif()
+
+
 set_target_properties(${bp_opencv_target}
   PROPERTIES
   LIBRARY_OUTPUT_DIRECTORY ${ECTO_PYTHON_BUILD_PATH}/ecto_opencv
