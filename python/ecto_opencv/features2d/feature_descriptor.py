@@ -100,7 +100,9 @@ class FeatureDescriptor(ecto.BlackBox):
             o.forward('descriptors', cell_name = '_descriptor_cell', cell_key = 'descriptors')
         else:
             # deal with the combo case
-            i.forward_all('_feature_descriptor_cell')
+            i.forward('image', cell_name = '_image_passthrough', cell_key = 'in')
+            i.forward('mask', cell_name = '_feature_descriptor_cell', cell_key = 'mask')
+            #i.forward_all('_feature_descriptor_cell')
             o.forward_all('_feature_descriptor_cell')
 
     def configure(self, p, i, o):
@@ -115,6 +117,6 @@ class FeatureDescriptor(ecto.BlackBox):
                        self._mask_passthrough[:] >> self._descriptor_cell['mask'] ]
             connections += [ self._feature_cell['keypoints'] >> self._descriptor_cell['keypoints'] ]
         else:
-            connections = [ ]
+            connections = [ self._image_passthrough[:] >> self._feature_descriptor_cell['image'] ]
 
         return connections
