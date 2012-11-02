@@ -72,5 +72,6 @@ if __name__ == '__main__':
     
     # display the warped image
     plasm.connect(odometry['image'] >> imshow(name='warped')[:])
+    plasm.connect(source['image'] >> imshow(name='non-warped')[:])
 
     run_plasm(options, plasm, locals=vars())

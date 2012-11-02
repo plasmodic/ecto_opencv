@@ -100,6 +100,7 @@ namespace rgbd
       if ((previous_image_gray_.empty()) || (counter == 5))
       {
         first_image_ = current_image;
+        first_image_gray_ = current_image_gray;
         first_depth_meters_ = current_depth_meters;
         previous_pose_ = cv::Mat::eye(4, 4, CV_32F);
         previous_image_ = current_image;
@@ -128,12 +129,22 @@ namespace rgbd
       
       tm.start();
 
-      bool isFound = odometry->compute(previous_image_gray_, previous_depth_meters_, cv::Mat(),
+      bool isFound;
+      bool compare_to_first = false;
+      if (compare_to_first)
+      isFound = odometry->compute(first_image_gray_, first_depth_meters_, cv::Mat(),
                                        current_image_gray, current_depth_meters, cv::Mat(),
                                        Rt);
-
-      if (isFound)
-        previous_pose_ = cv::Mat_<float>(Rt) * previous_pose_;
+      else
+      isFound = odometry->compute(previous_image_gray_, previous_depth_meters_, cv::Mat(),
+                                       current_image_gray, current_depth_meters, cv::Mat(),
+                                       Rt);
+      if (isFound) {
+        if (compare_to_first)
+          previous_pose_ = cv::Mat_<float>(Rt);
+        else
+          previous_pose_ = cv::Mat_<float>(Rt) * previous_pose_;
+      }
 
       tm.stop();
 
@@ -143,7 +154,7 @@ namespace rgbd
       if (!isFound)
       {
         std::cout << "Rigid body motion cann't be estimated for given RGBD data." << std::endl;
-        return -1;
+        return ecto::OK;
       }
 
       // Just for display
@@ -170,6 +181,7 @@ namespace rgbd
     ecto::spore<cv::Mat> current_image_;
     ecto::spore<cv::Mat> current_depth_;
     cv::Mat first_image_;
+    cv::Mat first_image_gray_;
     cv::Mat first_depth_meters_;
     cv::Mat previous_image_gray_;
     cv::Mat previous_image_;
