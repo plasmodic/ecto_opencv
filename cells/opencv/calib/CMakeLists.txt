@@ -20,9 +20,7 @@ ectomodule(calib DESTINATION ecto_opencv
   DepthMask.cpp
   PointsTo3d.cpp
   )
-add_dependencies(calib_ectomodule opencv_rgbd)
-link_ecto(calib
-          ${OpenCV_LIBS}
-          ${OpenCV_LIBRARIES}
-          opencv_rgbd
+
+link_ecto(calib ${catkin_LIBRARIES}
+                ${OpenCV_LIBRARIES}
 )

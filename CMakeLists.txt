@@ -1,11 +1,12 @@
 cmake_minimum_required(VERSION 2.8)
 project(ecto_opencv)
-find_package(catkin REQUIRED opencv_candidate)
+
+find_package(catkin REQUIRED ecto opencv_candidate)
 if (${catkin_VERSION} VERSION_GREATER "0.5.28")
-catkin_package(DEPENDS opencv_candidate)
+catkin_package(DEPENDS ecto opencv_candidate)
 else()
 catkin_stack()
-catkin_project(ecto_opencv DEPENDS opencv_candidate)
+catkin_project(ecto_opencv DEPENDS ecto opencv_candidate)
 endif()
 
 
@@ -21,12 +22,11 @@ endif()
 
 add_definitions(-Wno-strict-aliasing -Wall -Werror)
 
-find_package(OpenCV REQUIRED core imgproc highgui calib3d)
+find_package(OpenCV REQUIRED)
 message(STATUS "OpenCV version: ${OpenCV_VERSION}")
 message(STATUS "OpenCV headers: ${OpenCV_INCLUDE_DIRS}")
 include_directories(SYSTEM ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
 
-find_package(ecto REQUIRED)
 find_package(Boost COMPONENTS serialization filesystem system REQUIRED)
 
 if(NOT CMAKE_LIBRARY_OUTPUT_DIRECTORY)
@@ -47,4 +47,3 @@ if(BUILD_TEST)
 endif()
 
 ecto_sphinx(${CMAKE_CURRENT_SOURCE_DIR}/doc doc)
-
