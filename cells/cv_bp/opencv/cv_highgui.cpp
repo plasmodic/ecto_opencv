@@ -102,7 +102,12 @@ namespace opencv_wrappers
     //image io
     bp::def("imread", cv::imread, imread_overloads());
     bp::def("imwrite", cv::imwrite, imwrite_overloads());
-    bp::def("imdecode", cv::imdecode);
+    cv::Mat (*f1)(cv::InputArray, int) = &cv::imdecode;
+    bp::def("imdecode", f1);
+#if (CV_MAJOR_VERSION > 2) || ((CV_MAJOR_VERSION==2) && ((CV_MINOR_VERSION>4) || (CV_MINOR_VERSION==4 && CV_SUBMINOR_VERSION>=3)))
+    cv::Mat (*f2)(cv::InputArray, int, cv::Mat*) = &cv::imdecode;
+    bp::def("imdecode", f2);
+#endif
     bp::def("imencode", cv::imencode, imencode_overloads());
   }
 }
