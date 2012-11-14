@@ -9,5 +9,6 @@ ECTO_DEFINE_MODULE(rgbd)
 {
   bp::enum_<cv::RgbdNormals::RGBD_NORMALS_METHOD>("RgbdNormalsTypes").value("SRI",
                                                                             cv::RgbdNormals::RGBD_NORMALS_METHOD_SRI).value(
-      "FALS", cv::RgbdNormals::RGBD_NORMALS_METHOD_FALS);
+      "FALS", cv::RgbdNormals::RGBD_NORMALS_METHOD_FALS).value(
+      "LINEMOD", cv::RgbdNormals::RGBD_NORMALS_METHOD_LINEMOD);
 }
