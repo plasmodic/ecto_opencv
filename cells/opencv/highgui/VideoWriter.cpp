@@ -22,29 +22,26 @@ namespace ecto_opencv
     static void
     declare_params(tendrils& params)
     {
-      params.declare<std::string>("video_file", "A video file name.", "video.mpg");
-      params.declare<double>("fps", "Framerate of the created video stream.", 30);
+      params.declare<std::string>(&VideoWriter::video_file,"video_file", "A video file name.", "video.mpg");
+      params.declare<double>(&VideoWriter::fps,"fps", "Framerate of the created video stream.", 30);
 
-      params.declare<Record::RecordCommands>("command", "The video recorder command", Record::START);
+      params.declare<Record::RecordCommands>(&VideoWriter::command,"command", "The video recorder command", Record::START);
     }
 
     static void
     declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
     {
       //set outputs
-      inputs.declare<cv::Mat>("image", "Frame to record.").required(true);
+      inputs.declare<cv::Mat>(&VideoWriter::frame, "image", "Frame to record.").required(true);
     }
 
     void
     configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
     {
-      video_file = params.get<std::string>("video_file");
-      fps = params.get<double>("fps");
-      command = params["command"];
-      frame = inputs["image"];
     }
+
     void
-    start()
+    start_writer()
     {
       if (!writer)
       {
@@ -52,11 +49,11 @@ namespace ecto_opencv
       }
       if (!writer->isOpened())
       {
-        std::cout << "Opening : " << video_file << std::endl;
+        std::cout << "Opening : " << *video_file << std::endl;
         framesize = frame->size();
-        bool success = writer->open(video_file, CV_FOURCC_DEFAULT, fps, framesize);
+        bool success = writer->open(*video_file, CV_FOURCC_DEFAULT, *fps, framesize);
         if (!success)
-          throw std::runtime_error("Could not open video file for writing: " + video_file);
+          throw std::runtime_error("Could not open video file for writing: " + (*video_file));
       }
     }
 
@@ -64,13 +61,14 @@ namespace ecto_opencv
     stop()
     {
       writer.reset();
-      std::cout << "Closed : " << video_file << std::endl;
+      std::cout << "Closed : " << *video_file << std::endl;
     }
 
     void
     record()
     {
-      start();
+      start_writer();
+      std::cout << framesize.width << " " << framesize.height << std::endl;
       if (frame->size() != framesize)
       {
         std::string msg = boost::str(
@@ -80,13 +78,15 @@ namespace ecto_opencv
             % frame->size().height);
         throw std::runtime_error(msg);
       }
-      cv::Mat temp;
-      frame->copyTo(temp);
-      writer->write(temp);
+      *writer << *frame;
     }
     int
     process(const tendrils& inputs, const tendrils& outputs)
     {
+      // Only start when we do have a frame
+      if (frame->empty())
+        return ecto::OK;
+
       switch (*command)
       {
         case Record::START:
@@ -102,9 +102,9 @@ namespace ecto_opencv
       return ecto::OK;
     }
     boost::shared_ptr<cv::VideoWriter> writer;
-    std::string video_file;
+    ecto::spore<std::string> video_file;
     cv::Size framesize;
-    double fps;
+    ecto::spore<double> fps;
     ecto::spore<cv::Mat> frame;
     ecto::spore<Record::RecordCommands> command;
   };
