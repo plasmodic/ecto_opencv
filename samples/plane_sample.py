@@ -28,11 +28,17 @@ if __name__ == '__main__':
     from ecto_openni import SXGA_RES, FPS_15, VGA_RES, FPS_30
     source = create_source('image_pipeline','OpenNISource',image_mode=VGA_RES,image_fps=FPS_30)
     rgb2gray = cvtColor('Grayscale', flag=Conversion.RGB2GRAY)
-    plane_finder = PlaneFinder(threshold=0.03,sensor_error_a=0.0075)
     depth_to_3d = DepthTo3d()
-    compute_normals1 = ComputeNormals(method=RgbdNormalsTypes.FALS)
-    draw_normals1 = DrawNormals(step=20)
-    plane_drawer = PlaneDrawer()
+    compute_normals = {}
+    draw_normals = {}
+    plane_drawer = {}
+    plane_finder = {}
+    normal_types = [ RgbdNormalsTypes.FALS, RgbdNormalsTypes.LINEMOD ]
+    for type in normal_types:
+        compute_normals[type] = ComputeNormals(method=type)
+        draw_normals[type] = DrawNormals(step=20)
+        plane_drawer[type] = PlaneDrawer()
+        plane_finder[type] = PlaneFinder(threshold=0.03,sensor_error_a=0.0075)
 
     #plasm.connect(source['image'] >> rgb2gray ['image'])
 
@@ -41,21 +47,30 @@ if __name__ == '__main__':
                     source['K'] >> depth_to_3d['K'],
                     source['image'] >> imshow(name='original',waitKey=1)[:]
                     ]
-    connections += [ source['K'] >> compute_normals1['K'],
-                    depth_to_3d['points3d'] >> compute_normals1['points3d']
-                    ]
-    connections += [ compute_normals1['normals'] >> draw_normals1['normals'],
-                     depth_to_3d['points3d'] >> draw_normals1['points3d'],
-                     source['image', 'K'] >> draw_normals1['image', 'K'],
-                     draw_normals1['normal_intensity'] >> imshow(name='normalsFALS',waitKey=1)[:] ]
-    connections += [ depth_to_3d['points3d'] >> plane_finder['point3d'],
-                     compute_normals1['normals'] >> plane_finder['normals'] ]
-    connections += [ plane_finder['masks'] >> plane_drawer['masks'],
-                     plane_finder['planes'] >> plane_drawer['planes'],
-                     source['K'] >> plane_finder['K'],
-                     source['image'] >> plane_drawer['image'],
-                     plane_drawer['image'] >> imshow(name='plane')[:],
-                     source['image'] >> imshow(name='original', waitKey=10)[:]]
+    for type in [RgbdNormalsTypes.FALS, RgbdNormalsTypes.SRI]:
+        if type in normal_types:
+            connections += [ depth_to_3d['points3d'] >> compute_normals[RgbdNormalsTypes.FALS]['points3d'] ]
+    if RgbdNormalsTypes.LINEMOD in normal_types:
+        connections += [ source['depth_raw'] >> compute_normals[RgbdNormalsTypes.LINEMOD]['points3d'] ]
+
+    for type in normal_types:
+        connections += [ source['K'] >> compute_normals[type]['K'] ]
+
+    for type in normal_types:
+        connections += [ compute_normals[type]['normals'] >> draw_normals[type]['normals'],
+                         depth_to_3d['points3d'] >> draw_normals[type]['points3d'],
+                         source['image', 'K'] >> draw_normals[type]['image', 'K'],
+                         draw_normals[type]['normal_intensity'] >> imshow(name=str(type),waitKey=1)[:] ]
+
+    for type in normal_types:
+        connections += [ depth_to_3d['points3d'] >> plane_finder[type]['point3d'],
+                         compute_normals[type]['normals'] >> plane_finder[type]['normals'] ]
+        connections += [ plane_finder[type]['masks'] >> plane_drawer[type]['masks'],
+                         plane_finder[type]['planes'] >> plane_drawer[type]['planes'],
+                         source['K'] >> plane_finder[type]['K'],
+                         source['image'] >> plane_drawer[type]['image'],
+                         plane_drawer[type]['image'] >> imshow(name='plane'+str(type))[:] ]
+    connections += [ source['image'] >> imshow(name='original', waitKey=10)[:] ]
     plasm.connect(connections)
 
     run_plasm(options, plasm, locals=vars())
