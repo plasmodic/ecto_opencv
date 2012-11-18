@@ -5,14 +5,13 @@ find_package(catkin REQUIRED ecto opencv_candidate)
 if (${catkin_VERSION} VERSION_GREATER "0.5.28")
 catkin_package(DEPENDS ecto opencv_candidate)
 else()
+find_package(ROS REQUIRED ecto opencv_candidate)
 catkin_stack()
 catkin_project(ecto_opencv DEPENDS ecto opencv_candidate)
 endif()
 
 
 include_directories(SYSTEM ${opencv_candidate_INCLUDE_DIRS})
-
-set(${PROJECT_NAME}_GITHUB_URL https://github.com/plasmodic/ecto_opencv)
 
 if(NOT CMAKE_BUILD_TYPE)#Only do this the on the first run, if the build type hasn't been set prior
   set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING
