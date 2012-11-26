@@ -33,7 +33,7 @@ if __name__ == '__main__':
     draw_normals = {}
     plane_drawer = {}
     plane_finder = {}
-    normal_types = [ RgbdNormalsTypes.FALS, RgbdNormalsTypes.LINEMOD ]
+    normal_types = [ RgbdNormalsTypes.LINEMOD, RgbdNormalsTypes.FALS ]
     for type in normal_types:
         compute_normals[type] = ComputeNormals(method=type)
         draw_normals[type] = DrawNormals(step=20)
@@ -49,9 +49,10 @@ if __name__ == '__main__':
                     ]
     for type in [RgbdNormalsTypes.FALS, RgbdNormalsTypes.SRI]:
         if type in normal_types:
-            connections += [ depth_to_3d['points3d'] >> compute_normals[RgbdNormalsTypes.FALS]['points3d'] ]
-    if RgbdNormalsTypes.LINEMOD in normal_types:
-        connections += [ source['depth_raw'] >> compute_normals[RgbdNormalsTypes.LINEMOD]['points3d'] ]
+            connections += [ depth_to_3d['points3d'] >> compute_normals[type]['points3d'] ]
+    for type in [RgbdNormalsTypes.LINEMOD ]:
+        if type in normal_types:
+            connections += [ source['depth_raw'] >> compute_normals[type]['points3d'] ]
 
     for type in normal_types:
         connections += [ source['K'] >> compute_normals[type]['K'] ]
