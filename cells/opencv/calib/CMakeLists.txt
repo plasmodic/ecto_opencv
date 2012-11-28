@@ -19,6 +19,7 @@ ectomodule(calib DESTINATION ecto_opencv
   GatherPoints.cpp
   DepthMask.cpp
   PointsTo3d.cpp
+  CropBox.cpp
   )
 
 link_ecto(calib ${catkin_LIBRARIES}
