@@ -47,6 +47,8 @@ if __name__ == '__main__':
                     source['K'] >> depth_to_3d['K'],
                     source['image'] >> imshow(name='original',waitKey=1)[:]
                     ]
+
+    # compute the normals
     for type in [RgbdNormalsTypes.FALS, RgbdNormalsTypes.SRI]:
         if type in normal_types:
             connections += [ depth_to_3d['points3d'] >> compute_normals[type]['points3d'] ]
@@ -54,15 +56,18 @@ if __name__ == '__main__':
         if type in normal_types:
             connections += [ source['depth_raw'] >> compute_normals[type]['points3d'] ]
 
+    # send the camera calibration parameters
     for type in normal_types:
         connections += [ source['K'] >> compute_normals[type]['K'] ]
 
+    # draw the normals
     for type in normal_types:
         connections += [ compute_normals[type]['normals'] >> draw_normals[type]['normals'],
                          depth_to_3d['points3d'] >> draw_normals[type]['points3d'],
                          source['image', 'K'] >> draw_normals[type]['image', 'K'],
                          draw_normals[type]['normal_intensity'] >> imshow(name=str(type),waitKey=1)[:] ]
 
+    # find the planes
     for type in normal_types:
         connections += [ depth_to_3d['points3d'] >> plane_finder[type]['point3d'],
                          compute_normals[type]['normals'] >> plane_finder[type]['normals'] ]
