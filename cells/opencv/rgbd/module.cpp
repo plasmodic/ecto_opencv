@@ -11,4 +11,6 @@ ECTO_DEFINE_MODULE(rgbd)
                                                                             cv::RgbdNormals::RGBD_NORMALS_METHOD_SRI).value(
       "FALS", cv::RgbdNormals::RGBD_NORMALS_METHOD_FALS).value(
       "LINEMOD", cv::RgbdNormals::RGBD_NORMALS_METHOD_LINEMOD);
+  bp::enum_<cv::DepthCleaner::DEPTH_CLEANER_METHOD>("DepthCleanerTypes").value("NIL",
+                                                                            cv::DepthCleaner::DEPTH_CLEANER_NIL);
 }

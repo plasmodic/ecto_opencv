@@ -10,7 +10,6 @@ catkin_stack()
 catkin_project(ecto_opencv DEPENDS ecto opencv_candidate)
 endif()
 
-
 include_directories(SYSTEM ${opencv_candidate_INCLUDE_DIRS})
 
 if(NOT CMAKE_BUILD_TYPE)#Only do this the on the first run, if the build type hasn't been set prior

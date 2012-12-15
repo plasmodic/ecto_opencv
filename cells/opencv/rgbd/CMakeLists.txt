@@ -1,5 +1,7 @@
 ectomodule(rgbd DESTINATION ecto_opencv
                 INSTALL
+                Cleaner.cpp
+                DepthSwapper.cpp
                 module.cpp
                 Normal.cpp
                 Odometry.cpp

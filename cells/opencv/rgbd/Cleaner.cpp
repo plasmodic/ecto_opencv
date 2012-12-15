@@ -1,0 +1,77 @@
+/*
+ * Software License Agreement (BSD License)
+ *
+ *  Copyright (c) 2009, Willow Garage, Inc.
+ *  All rights reserved.
+ *
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions
+ *  are met:
+ *
+ *   * Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *   * Redistributions in binary form must reproduce the above
+ *     copyright notice, this list of conditions and the following
+ *     disclaimer in the documentation and/or other materials provided
+ *     with the distribution.
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ *  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ *  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ *  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ *  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ *  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ *  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ *  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ *  POSSIBILITY OF SUCH DAMAGE.
+ *
+ */
+
+#include <ecto/ecto.hpp>
+#include <opencv2/calib3d/calib3d.hpp>
+#include <opencv2/rgbd/rgbd.hpp>
+
+using ecto::tendrils;
+namespace rgbd
+{
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+  struct DepthCleaner
+  {
+    static void
+    declare_params(tendrils & params)
+    {
+      params.declare(&DepthCleaner::method_, "method", "Conversion type.", cv::DepthCleaner::DEPTH_CLEANER_NIL);
+    }
+
+    static void
+    declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
+    {
+      inputs.declare(&DepthCleaner::image_in_, "image", "The depth map").required(true);
+
+      outputs.declare(&DepthCleaner::image_out_, "image", "The cleaned up depth image");
+    }
+
+    int
+    process(const tendrils& inputs, const tendrils& outputs)
+    {
+      if (depth_cleaner_.empty()) {
+        depth_cleaner_ = new cv::DepthCleaner(image_in_->depth(), 5, *method_);
+      }
+      *image_out_ = (*depth_cleaner_)(*image_in_);
+
+      return ecto::OK;
+    }
+    cv::Ptr<cv::DepthCleaner> depth_cleaner_;
+    ecto::spore<cv::Mat> image_in_, image_out_;
+    ecto::spore<cv::DepthCleaner::DEPTH_CLEANER_METHOD> method_;
+  };
+}
+
+ECTO_CELL(rgbd, rgbd::DepthCleaner, "DepthCleaner", "Clean the depth map")
