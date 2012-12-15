@@ -8,7 +8,7 @@
   <license>BSD</license>
 
   <url>http://ecto.willowgarage.com</url>
-  <build_depend>catkin</build_depend>
+
   <build_depend>boost</build_depend>
   <build_depend>ecto</build_depend>
   <build_depend>opencv_candidate</build_depend>
@@ -18,4 +18,6 @@
   <run_depend>ecto</run_depend>
   <run_depend>opencv_candidate</run_depend>
   <run_depend>opencv2</run_depend>
+
+  <buildtool_depend>catkin</buildtool_depend>
 </package>
