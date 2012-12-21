@@ -88,7 +88,7 @@ namespace calib
 								(*z_min_ < channels[2]) & (channels[2] < *z_max_)
 							);
 
-			*mask_ = mask;
+			mask.copyTo(*mask_);
 
 			rgb_->copyTo(*out_rgb_, mask);
 			depth_->copyTo(*out_depth_, mask);
