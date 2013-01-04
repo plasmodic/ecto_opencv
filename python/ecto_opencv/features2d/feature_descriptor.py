@@ -6,6 +6,7 @@ Module defining a function that returns the appropriate ecto cells for Feature a
 import ecto
 import inspect
 import pkgutil
+from ecto import BlackBoxCellInfo as CellInfo, BlackBoxForward as Forward
 
 def find_cell(modules, cell_name):
     '''
@@ -65,7 +66,7 @@ class FeatureDescriptor(ecto.BlackBox):
             # deal with the combo case first
             feature_descriptor_class = find_cell([properties['feature_module']], properties['feature_type'])
             try:
-                cell_types['feature_descriptor_cell'] = feature_descriptor_class(**properties['feature_params'])
+                cell_types['feature_descriptor_cell'] = feature_descriptor_class
             except:
                 raise RuntimeError('Parameters not supported for FeatureDescriptor: feature %s; descriptor: %s' %
                                    (properties['feature_params'], properties['descriptor_params']))
@@ -74,51 +75,60 @@ class FeatureDescriptor(ecto.BlackBox):
             feature_class = find_cell([properties['feature_module']], properties['feature_type'])
             if feature_class is None:
                 raise RuntimeError('Feature class not found: (type, module) = (%s, %s)' % (properties['feature_type'], properties['feature_module']))
-            cell_types['feature_cell'] = feature_class(**properties['feature_params'])
+            cell_types['feature_cell'] = feature_class
 
             descriptor_class = find_cell([properties['descriptor_module']], properties['descriptor_type'])
             if descriptor_class is None:
                 raise RuntimeError('Descriptor class not found: (type, module) = (%s, %s)' % (properties['descriptor_type'], properties['descriptor_module']))
-            cell_types['descriptor_cell'] = descriptor_class(**properties['descriptor_params'])
+            cell_types['descriptor_cell'] = descriptor_class
         return cell_types
 
     @staticmethod
-    def declare_params(p):
-        p.declare('json_feature_params', 'Parameters for the feature as a JSON string. '
-                  'It should have the format: "{"type":"ORB/SIFT whatever", "module":"where_it_is", "param_1":val1, ....}')
-        p.declare('json_descriptor_params', 'Parameters for the descriptor as a JSON string. '
-                  'It should have the format: "{"type":"ORB/SIFT whatever", "module":"where_it_is", "param_1":val1, ....}')
+    def declare_cells(p):
+        cell_types = FeatureDescriptor._figure_out_cell_types(p)
+
+        cells = {}
+        if cell_types['feature_descriptor_cell'] is not None:
+            cells['feature_descriptor_cell'] = CellInfo(cell_types['feature_descriptor_cell'])
+        else:
+            cells['image_passthrough'] = CellInfo(ecto.Passthrough)
+            cells['mask_passthrough'] = CellInfo(ecto.Passthrough)
+            cells['feature_cell'] = CellInfo(cell_types['feature_cell'])
+            cells['descriptor_cell'] = CellInfo(cell_types['descriptor_cell'])
+
+        return cells
 
     @staticmethod
-    def declare_io(p, i, o):
+    def declare_direct_params(p):
+        p.declare('json_feature_params', 'Parameters for the feature as a JSON string. '
+                  'It should have the format: "{"type":"ORB/SIFT whatever", "module":"where_it_is", "param_1":val1, ....}',
+                  '{"type": "ORB", "module": "ecto_opencv.features2d"}')
+        p.declare('json_descriptor_params', 'Parameters for the descriptor as a JSON string. '
+                  'It should have the format: "{"type":"ORB/SIFT whatever", "module":"where_it_is", "param_1":val1, ....}',
+                  '{"type": "ORB", "module": "ecto_opencv.features2d"}')
+
+    @staticmethod
+    def declare_forwards(p):
         cell_types = FeatureDescriptor._figure_out_cell_types(p)
 
         # everybody needs an image
         if cell_types['feature_descriptor_cell'] is None:
-            i.forward('image', cell_name = 'image_passthrough', cell_type = ecto.Passthrough, cell_key = 'in')
-            i.forward('mask', cell_name = 'mask_passthrough', cell_type = ecto.Passthrough, cell_key = 'in')
+            i = {'image_passthrough': [Forward('in', 'image')],
+                 'mask_passthrough': [Forward('in','mask')]}
+
             if 'depth' in cell_types['feature_cell'].inputs.keys():
-                i.forward('depth', cell_name = 'feature_cell', cell_type = cell_types['feature_cell'], cell_key = 'depth')
-            o.forward('keypoints', cell_name = 'feature_cell', cell_type = cell_types['feature_cell'], cell_key = 'keypoints')
-            o.forward('descriptors', cell_name = 'descriptor_cell', cell_type = cell_types['descriptor_cell'], cell_key = 'descriptors')
+                i['feature_cell'] = [Forward('depth')]
+
+            o = {'feature_cell': Forward('keypoints'),
+                 'descriptor_cell': Forward('descriptors')}
         else:
             # deal with the combo case
-            i.forward_all('feature_descriptor_cell', cell_type = cell_types['feature_descriptor_cell'])
-            o.forward_all('feature_descriptor_cell', cell_type = cell_types['feature_descriptor_cell'])
+            i = {'feature_descriptor_cell': 'all'}
+            o = {'feature_descriptor_cell': 'all'}
 
-    def configure(self, p, i, o):
-        cell_types = self._figure_out_cell_types(p)
+        return ({},i,o)
 
-        # Create the corresponding cells
-        if cell_types['feature_descriptor_cell'] is None:
-            self.image_passthrough = ecto.Passthrough()
-            self.mask_passthrough = ecto.Passthrough()
-            self.feature_cell = cell_types['feature_cell']
-            self.descriptor_cell = cell_types['descriptor_cell']
-        else:
-            self.feature_descriptor_cell = cell_types['feature_descriptor_cell']
-
-    def connections(self):
+    def connections(self, _p):
         connections = []
         if self.feature_descriptor_cell is None and self.feature_cell is not None and self.descriptor_cell is not None:
             connections += [ self.image_passthrough[:] >> self.feature_cell['image'],
