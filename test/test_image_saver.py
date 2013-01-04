@@ -13,8 +13,7 @@ saver = highgui.ImageSaver(filename_format='img_%05d.png')
 
 plasm = ecto.Plasm()
 plasm.connect(opencv_test.ImageGen()['image'] >> saver['image'])
-sched = ecto.schedulers.Singlethreaded(plasm)
-sched.execute(niter=1)
+plasm.execute(niter=1)
 
 assert os.path.isfile('img_00000.png')
 stats =  os.stat('img_00000.png')
