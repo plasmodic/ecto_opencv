@@ -8,9 +8,9 @@ else()
 find_package(ROS REQUIRED ecto opencv_candidate)
 catkin_stack()
 catkin_project(ecto_opencv DEPENDS ecto opencv_candidate)
-endif()
-
+list(APPEND catkin_LIBRARIES ${opencv_candidate_LIBRARIES})
 include_directories(SYSTEM ${opencv_candidate_INCLUDE_DIRS})
+endif()
 
 if(NOT CMAKE_BUILD_TYPE)#Only do this the on the first run, if the build type hasn't been set prior
   set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING
