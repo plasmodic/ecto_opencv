@@ -59,18 +59,20 @@ add_library(${bp_opencv_target} SHARED
   )
 
 if (ROS_GROOVY_OR_ABOVE_FOUND)
-  set(ECTO_PYTHON_BUILD_PATH ${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_PYTHON_DESTINATION}/)
-else()
-  set(ECTO_PYTHON_BUILD_PATH ${CMAKE_BINARY_DIR}/gen/py/)
-endif()
-
-
 set_target_properties(${bp_opencv_target}
   PROPERTIES
-  LIBRARY_OUTPUT_DIRECTORY ${ECTO_PYTHON_BUILD_PATH}/ecto_opencv
+  LIBRARY_OUTPUT_DIRECTORY ${CATKIN_DEVEL_PREFIX}/${CATKIN_PACKAGE_PYTHON_DESTINATION}/
   OUTPUT_NAME cv_bp
   PREFIX ""
   )
+else()
+set_target_properties(${bp_opencv_target}
+  PROPERTIES
+  LIBRARY_OUTPUT_DIRECTORY ${CATKIN_DEVEL_PREFIX}/${CATKIN_PACKAGE_PYTHON_BUILD_DESTINATION}/
+  OUTPUT_NAME cv_bp
+  PREFIX ""
+  )
+endif()
 
 target_link_libraries(${bp_opencv_target}
   ${Boost_LIBRARIES}
@@ -79,4 +81,4 @@ target_link_libraries(${bp_opencv_target}
   )
 
 install(TARGETS ${bp_opencv_target}
-  LIBRARY DESTINATION ${ECTO_PYTHON_INSTALL_PATH}/ecto_opencv COMPONENT main)
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_PYTHON_DESTINATION}/ COMPONENT main)
