@@ -72,7 +72,6 @@ if __name__ == '__main__':
         connections += [ depth_to_3d['points3d'] >> plane_finder[type]['point3d'],
                          compute_normals[type]['normals'] >> plane_finder[type]['normals'] ]
         connections += [ plane_finder[type]['masks'] >> plane_drawer[type]['masks'],
-                         plane_finder[type]['planes'] >> plane_drawer[type]['planes'],
                          source['K'] >> plane_finder[type]['K'],
                          source['image'] >> plane_drawer[type]['image'],
                          plane_drawer[type]['image'] >> imshow(name='plane'+str(type))[:] ]

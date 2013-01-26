@@ -146,7 +146,6 @@ namespace rgbd
     declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
     {
       inputs.declare(&PlaneDrawer::image_, "image", "The current gray frame.").required(true);
-      inputs.declare(&PlaneDrawer::planes_, "planes", "The different found planes (a,b,c,d) of equation ax+by+cz+d=0.");
       inputs.declare(&PlaneDrawer::masks_, "masks", "The masks for each plane.");
 
       outputs.declare(&PlaneDrawer::image_clusters_, "image", "The depth image with the convex hulls for the planes.");
@@ -163,7 +162,8 @@ namespace rgbd
         hsv(i) = cv::Vec3b((i * 180) / n_colors, 255, 255);
       cv::cvtColor(hsv, rgb, CV_HSV2RGB);
       for (size_t i = 0; i < n_colors; ++i)
-        colors_.push_back(cv::Scalar(rgb(i)[0], rgb(i)[1], rgb(i)[2]));
+        colors_.push_back(cv::Vec3b(rgb(i)[0], rgb(i)[1], rgb(i)[2]));
+      previous_plane_number_ = 0;
     }
 
     int
@@ -172,24 +172,32 @@ namespace rgbd
       //// Perform some display
       // Compare each mask to the previous ones
       std::map<int, int> color_index;
-      if (previous_planes_.empty())
+      // Compute the current number of planes
+      int max_index = -1;
+      cv::Mat_<int> overlap = cv::Mat_<int>::zeros(255, previous_plane_number_);
+      for (int y = 0; y < masks_->rows; ++y)
       {
-        for (size_t i = 0; i < planes_->size(); ++i)
+        const unsigned char *mask = masks_->ptr(y), *mask_end = mask + masks_->cols;
+        const unsigned char *previous_mask = previous_masks_.ptr(y);
+        for (; mask != mask_end; ++mask, ++previous_mask)
+        {
+          if (*mask != 255) {
+            if (*mask > max_index)
+              max_index = *mask;
+            if (*previous_mask != 255)
+              ++overlap(*mask, *previous_mask);
+          }
+        }
+      }
+      int plane_number = max_index + 1;
+
+      if (previous_plane_number_ == 0)
+      {
+        for (int i = 0; i < plane_number; ++i)
           color_index[i] = i;
       }
-      else if (!planes_->empty())
+      else if (plane_number)
       {
-        cv::Mat_<int> overlap = cv::Mat_<int>::zeros(planes_->size(), previous_planes_.size());
-
-        for (int y = 0; y < masks_->rows; ++y)
-        {
-          const unsigned char *mask = masks_->ptr(y), *mask_end = mask + masks_->cols;
-          const unsigned char *previous_mask = previous_masks_.ptr(y);
-          for (; mask != mask_end; ++mask, ++previous_mask)
-            if ((*mask != 255) && (*previous_mask != 255))
-              ++overlap(*mask, *previous_mask);
-        }
-
         // Maps a new index to the corresponding old index
         while (true)
         {
@@ -240,16 +248,20 @@ namespace rgbd
         }
       }
       previous_color_index_ = color_index;
-      previous_planes_ = *planes_;
+      previous_plane_number_ = plane_number;
       masks_->copyTo(previous_masks_);
 
       // Draw the clusters
       image_->copyTo(*image_clusters_);
-      for (size_t i = 0; i < std::max(size_t(10), planes_->size()); ++i)
+      for (int y = 0; y < image_clusters_->rows; ++y)
       {
-        cv::Mat mask;
-        cv::compare(*masks_, cv::Scalar(i), mask, cv::CMP_EQ);
-        image_clusters_->setTo(colors_[color_index[i]], mask);
+        cv::Vec3b *image = image_clusters_->ptr<cv::Vec3b>(y);
+        const unsigned char *mask = masks_->ptr(y), *mask_end = mask + masks_->cols;
+        for (; mask != mask_end; ++image, ++mask)
+        {
+          if (*mask < 30)
+            *image = colors_[color_index[*mask]];
+        }
       }
 
       return ecto::OK;
@@ -258,10 +270,8 @@ namespace rgbd
     /** Input image */
     ecto::spore<cv::Mat> image_;
 
-    /** Output planes */
-    ecto::spore<std::vector<cv::Vec4f> > planes_;
-    /** Previous output planes */
-    std::vector<cv::Vec4f> previous_planes_;
+    /** Previous size of the output planes */
+    size_t previous_plane_number_;
     /** Output mask of the planes */
     ecto::spore<cv::Mat> masks_;
 
@@ -274,7 +284,7 @@ namespace rgbd
     std::map<int, int> previous_color_index_;
 
     /** The list of colors to use for display */
-    std::vector<cv::Scalar> colors_;
+    std::vector<cv::Vec3b> colors_;
   };
 }
 
