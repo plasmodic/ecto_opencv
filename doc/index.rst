@@ -3,8 +3,7 @@
 ecto_opencv: Ecto OpenCV Wrappers
 =================================
 
-ecto opencv is a collection of cells that perception researchers may or may not find intriguing.
-Please see :ref:`Ecto <overview-ecto>` for information on how ecto opencv is built.
+ecto opencv is a collection of ecto cells wrapping several OpenCV functionalities.
 
 .. toctree::
    :maxdepth: 2
