@@ -23,5 +23,6 @@ ectomodule(calib DESTINATION ecto_opencv
   )
 
 link_ecto(calib ${catkin_LIBRARIES}
+                ${opencv_candidate_LIBRARIES}
                 ${OpenCV_LIBRARIES}
 )
