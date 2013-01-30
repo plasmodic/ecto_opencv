@@ -71,7 +71,7 @@ namespace rgbd
           normals_computer_ = new cv::RgbdNormals(points3d_->rows, points3d_->cols, CV_32F, *K_,
                                                   *window_size_, *method_);
       }
-      *normals_ = (*normals_computer_)(*points3d_);
+      (*normals_computer_)(*points3d_, *normals_);
 
       return ecto::OK;
     }

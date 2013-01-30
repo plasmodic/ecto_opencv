@@ -64,7 +64,7 @@ namespace rgbd
       if (depth_cleaner_.empty()) {
         depth_cleaner_ = new cv::DepthCleaner(image_in_->depth(), 5, *method_);
       }
-      *image_out_ = (*depth_cleaner_)(*image_in_);
+      (*depth_cleaner_)(*image_in_, *image_out_);
 
       return ecto::OK;
     }
