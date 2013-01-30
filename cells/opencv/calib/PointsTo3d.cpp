@@ -94,7 +94,6 @@ namespace calib
         cv::Mat(points->t()).copyTo(out);
       }
       out.resize(3, cv::Scalar(0));
-      std::cout << out.rows << " " << out.cols << std::endl;
       cv::Mat outr;
       cv::Mat(out.t()).copyTo(outr);
       if (outr.depth() == CV_32F)
