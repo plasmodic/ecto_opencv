@@ -127,7 +127,7 @@ float pointPlaneDistance(const cv::Vec3f& vec, const cv::Vec4f& plane)
         if (plane_closest < 0)
           continue;
         // Create a new cluster
-        std::vector<cv::Vec2f> cluster2d;
+        std::vector<cv::Vec2i> cluster2d;
         std::vector<cv::Vec3f> cluster3d;
 
         // Now, proceed by region growing to find the rest of the object
@@ -147,8 +147,10 @@ float pointPlaneDistance(const cv::Vec3f& vec, const cv::Vec4f& plane)
                 point_list.push_back(cv::Point(xx, yy));
                 // Only add the point if it is within the plane distance boundaries
                 float dist = pointPlaneDistance(point3d_2, (*table_coefficients_)[plane_closest]);
-                if ((*table_z_filter_min_ < dist) && (dist < *table_z_filter_max_))
+                if ((*table_z_filter_min_ < dist) && (dist < *table_z_filter_max_)) {
+                  cluster2d.push_back(cv::Vec2i(xx, yy));
                   cluster3d.push_back(point3d_2);
+                }
               }
             }
           point_list.pop_front();
@@ -179,7 +181,7 @@ float pointPlaneDistance(const cv::Vec3f& vec, const cv::Vec4f& plane)
     /** The mask of the different planes */
     ecto::spore<cv::Mat> mask_;
     /** The resulting clusters: for each table, return a vector of clusters */
-    ecto::spore<std::vector<std::vector<std::vector<cv::Vec2f> > > > clusters2d_;
+    ecto::spore<std::vector<std::vector<std::vector<cv::Vec2i> > > > clusters2d_;
     ecto::spore<std::vector<std::vector<std::vector<cv::Vec3f> > > > clusters3d_;
   };
 

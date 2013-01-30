@@ -65,12 +65,12 @@ using ecto::tendrils;
       // Draw each cluster
       image_->copyTo(*image_clusters_);
       for(size_t plane_index = 0; plane_index < clusters2d_->size(); ++plane_index) {
-        const std::vector<std::vector<cv::Vec2f> > &clusters = (*clusters2d_)[plane_index];
+        const std::vector<std::vector<cv::Vec2i> > &clusters = (*clusters2d_)[plane_index];
         for(size_t cluster_index = 0; cluster_index < clusters.size(); ++cluster_index) {
-          const std::vector<cv::Vec2f> &cluster = clusters[cluster_index];
+          const std::vector<cv::Vec2i> &cluster = clusters[cluster_index];
           for(size_t i = 0; i < cluster.size(); ++i) {
             // Draw the cluster in white
-            (*image_).at<cv::Vec3f>(cluster[i][0], cluster[i][1]) = cv::Vec3f(255,255,255);
+            (*image_clusters_).at<cv::Vec3b>(cluster[i][1], cluster[i][0]) = cv::Vec3b(255,255,255);
           }
         }
         // Find the contour of the cluster
@@ -88,7 +88,7 @@ using ecto::tendrils;
     ecto::spore<cv::Mat> image_clusters_;
 
     /** The resulting clusters: for each table, return a vector of clusters */
-    ecto::spore<std::vector<std::vector<std::vector<cv::Vec2f> > > > clusters2d_;
+    ecto::spore<std::vector<std::vector<std::vector<cv::Vec2i> > > > clusters2d_;
   };
 
 ECTO_CELL(rgbd, ClusterDrawer, "ClusterDrawer", "Draws some clusters in an image.")

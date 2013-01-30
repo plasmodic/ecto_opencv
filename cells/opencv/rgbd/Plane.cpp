@@ -69,6 +69,7 @@ namespace rgbd
       params.declare(&PlaneFinder::window_size_, "window_size", "The window size for smoothing.", 5);
       params.declare(&PlaneFinder::normal_method_, "normal_method", "The window size for smoothing.",
                      cv::RgbdNormals::RGBD_NORMALS_METHOD_FALS);
+      params.declare(&PlaneFinder::min_size_, "min_size", "The smallest size in pixels of a plane.", 0);
     }
 
     static void
@@ -105,6 +106,7 @@ namespace rgbd
         plane_computer_->set("sensor_error_a", *sensor_error_a_);
         plane_computer_->set("sensor_error_b", *sensor_error_b_);
         plane_computer_->set("sensor_error_c", *sensor_error_c_);
+        plane_computer_->set("min_size", *min_size_);
       }
       (*plane_computer_)(*points3d_, *normals_, *masks_, *planes_);
 
@@ -132,6 +134,8 @@ namespace rgbd
     ecto::spore<cv::Mat> masks_;
 
     ecto::spore<cv::Mat> K_;
+    /** The smallest size in pixels of a plane */
+    ecto::spore<int> min_size_;
 
     ecto::spore<int> window_size_;
 
