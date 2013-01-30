@@ -96,7 +96,7 @@ namespace rgbd
         if (normals_computer_.empty())
           normals_computer_ = new cv::RgbdNormals(points3d_->rows, points3d_->cols, points3d_->depth(), *K_,
                                                   *window_size_, *normal_method_);
-        *normals_ = (*normals_computer_)(*points3d_);
+        (*normals_computer_)(*points3d_, *normals_);
       }
 
       if (plane_computer_.empty())
@@ -175,17 +175,33 @@ namespace rgbd
       // Compute the current number of planes
       int max_index = -1;
       cv::Mat_<int> overlap = cv::Mat_<int>::zeros(255, previous_plane_number_);
-      for (int y = 0; y < masks_->rows; ++y)
-      {
-        const unsigned char *mask = masks_->ptr(y), *mask_end = mask + masks_->cols;
-        const unsigned char *previous_mask = previous_masks_.ptr(y);
-        for (; mask != mask_end; ++mask, ++previous_mask)
-        {
-          if (*mask != 255) {
-            if (*mask > max_index)
-              max_index = *mask;
-            if (*previous_mask != 255)
-              ++overlap(*mask, *previous_mask);
+      if (!masks_->empty()) {
+        if (!previous_masks_.empty()) {
+          // Count the number of current planes as well as the overlap with the previous mask
+          for (int y = 0; y < masks_->rows; ++y)
+          {
+            const unsigned char *mask = masks_->ptr(y), *mask_end = mask + masks_->cols;
+            const unsigned char *previous_mask = previous_masks_.ptr(y);
+            for (; mask != mask_end; ++mask, ++previous_mask)
+            {
+              if (*mask != 255) {
+                if (*mask > max_index)
+                  max_index = *mask;
+                if (*previous_mask != 255)
+                  ++overlap(*mask, *previous_mask);
+              }
+            }
+          }
+        } else {
+          // Only count the number of planes
+          for (int y = 0; y < masks_->rows; ++y)
+          {
+            const unsigned char *mask = masks_->ptr(y), *mask_end = mask + masks_->cols;
+            for (; mask != mask_end; ++mask)
+            {
+              if ((*mask != 255) && (*mask > max_index))
+                  max_index = *mask;
+            }
           }
         }
       }
