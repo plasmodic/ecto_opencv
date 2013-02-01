@@ -88,37 +88,43 @@ namespace calib
       std::copy(hull.begin(), hull.end(), points.begin());
       cv::fillConvexPoly(box_mask, points.data(), points.size(), cv::Scalar::all(255));
 
-      cv::Mat_<cv::Vec3f> points3d;
-      depthTo3d(depth, K, points3d, box_mask);
-      if (points3d.empty())
+      std::vector<cv::Vec2i> mask_points(depth.size().area());
+      size_t index = 0;
+      for (int v = 0; v < depth.rows; ++v) {
+        uchar* r = box_mask.ptr<uchar>(v, 0);
+
+        for (int u = 0; u < depth.cols; ++u, ++r)
+         if (*r)
+           mask_points[index++] = cv::Vec2i(u, v);
+      }
+      mask_points.resize(index);
+
+      if (index == 0)
         return ecto::OK;
+
+      std::vector<cv::Vec3f> points3d;
+      depthTo3dSparse(depth, K, mask_points, points3d);
 
       cv::Vec3f p_r, Tx(T); //Translation
       cv::Matx33f Rx = R.t(); //inverse Rotation
-      cv::Mat_<cv::Vec3f>::iterator point = points3d.begin(), end = points3d.end();
+      std::vector<cv::Vec3f>::iterator point = points3d.begin(), end = points3d.end();
+      std::vector<cv::Vec2i>::iterator mask_point = mask_points.begin();
 
-      double z_min_ = *z_min, z_max_ = *z_crop, x_min_ = -*x_crop, x_max_ = *x_crop, y_min_ = -*y_crop,
-          y_max_ = *y_crop;
-      float fx = K(0, 0);
-      float fy = K(1, 1);
-      float cx = K(0,2);
-      float cy = K(1,2);
+      double z_min_ = *z_min, z_max_ = *z_crop;
       while (point != end)
       {
         //calculate the point based on the depth
         p_r = Rx * (*point - Tx);
-        p_r(2) = std::abs(p_r(2));
-        if ((p_r(2) > z_min_)
-            && p_r(2) < z_max_
-            && p_r(0) > x_min_
-            && p_r(0) < x_max_
-            && p_r(1) > y_min_
-            && p_r(1) < y_max_) {
-          int u = (*point)[0] * fx / (*point)[2] + cx + 0.5;
-          int v = (*point)[1] * fy / (*point)[2] + cy + 0.5;
-          mask.at<uint8_t>(v, u) = 255;
+        if (!cvIsNaN((*point)[0])) {
+          if ((p_r(2) > z_min_
+              && p_r(2) < z_max_
+              && std::abs(p_r(0)) < *x_crop
+              && std::abs(p_r(1)) < *y_crop) || true) {
+            mask.at<uint8_t>((*mask_point)[1], (*mask_point)[0]) = 255;
+          }
         }
         ++point;
+        ++mask_point;
       }
       out["mask"] << mask;
       return ecto::OK;
