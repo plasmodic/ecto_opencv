@@ -12,7 +12,6 @@ ectomodule(calib DESTINATION ecto_opencv
   DepthTo3d.cpp
   pose_drawing.cpp
   Latch.cpp
-  PlaneFitter.cpp
   TransformCompose.cpp
   FiducialPoseEst.cpp
   CameraCalibrator.cpp
