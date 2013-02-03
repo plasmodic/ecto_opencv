@@ -46,7 +46,7 @@ if __name__ == '__main__':
     connections += [ source['K'] >> compute_normals['K'] ]
 
     # find the planes
-    connections += [ depth_to_3d['points3d'] >> plane_finder['point3d'],
+    connections += [ depth_to_3d['points3d'] >> plane_finder['points3d'],
                          compute_normals['normals'] >> plane_finder['normals'] ]
     connections += [ plane_finder['masks'] >> plane_drawer['masks'],
                          source['K'] >> plane_finder['K'],

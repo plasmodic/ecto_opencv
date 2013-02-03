@@ -69,7 +69,7 @@ if __name__ == '__main__':
 
     # find the planes
     for type in normal_types:
-        connections += [ depth_to_3d['points3d'] >> plane_finder[type]['point3d'],
+        connections += [ depth_to_3d['points3d'] >> plane_finder[type]['points3d'],
                          compute_normals[type]['normals'] >> plane_finder[type]['normals'] ]
         connections += [ plane_finder[type]['masks'] >> plane_drawer[type]['masks'],
                          source['K'] >> plane_finder[type]['K'],

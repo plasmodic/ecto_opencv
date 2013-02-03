@@ -75,7 +75,7 @@ namespace rgbd
     static void
     declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
     {
-      inputs.declare(&PlaneFinder::points3d_, "point3d", "The current depth frame.").required(true);
+      inputs.declare(&PlaneFinder::points3d_, "points3d", "The current depth frame.").required(true);
       inputs.declare(&PlaneFinder::K_, "K", "The calibration matrix").required(true);
       inputs.declare(&PlaneFinder::normals_, "normals", "The normals");
 
