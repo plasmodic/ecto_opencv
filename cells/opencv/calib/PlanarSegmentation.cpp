@@ -17,16 +17,16 @@ namespace calib
     static void
     declare_params(tendrils& params)
     {
-      params.declare<float>("x_crop", "The amount to keep in the x direction (meters) relative\n"
+      params.declare(&PlanarSegmentation::x_crop, "x_crop", "The amount to keep in the x direction (meters) relative\n"
                             "to the coordinate frame defined by the pose.",
                             0.15);
-      params.declare<float>("y_crop", "The amount to keep in the y direction (meters) relative to\n"
+      params.declare(&PlanarSegmentation::y_crop, "y_crop", "The amount to keep in the y direction (meters) relative to\n"
                             "the coordinate frame defined by the pose.",
                             0.15);
-      params.declare<float>("z_crop", "The amount to keep in the z direction (meters) relative to\n"
+      params.declare(&PlanarSegmentation::z_crop, "z_crop", "The amount to keep in the z direction (meters) relative to\n"
                             "the coordinate frame defined by the pose.",
                             0.5);
-      params.declare<float>("z_min", "The amount to crop above the plane, in meters.", 0.0075);
+      params.declare(&PlanarSegmentation::z_min, "z_min", "The amount to crop above the plane, in meters.", 0.0075);
     }
 
     static void
@@ -40,14 +40,6 @@ namespace calib
       out.declare<cv::Mat>("mask", "The output mask, determined by the segmentation.\n"
                            "255 is the value for objects satisfying the constraints.\n"
                            "0 otherwise.");
-    }
-    void
-    configure(const tendrils& p, const tendrils& inputs, const tendrils& outputs)
-    {
-      z_crop = p["z_crop"];
-      x_crop = p["x_crop"];
-      y_crop = p["y_crop"];
-      z_min = p["z_min"];
     }
 
     int
@@ -65,8 +57,7 @@ namespace calib
 
       cv::Mat mask = cv::Mat::zeros(depth.size(), CV_8UC1);
 
-      box_mask.create(depth.size());
-      box_mask.setTo(cv::Scalar(0));
+      cv::Mat_<uchar> box_mask = cv::Mat_<uchar>::zeros(depth.size());
 
       std::vector<cv::Point3f> box(8);
       box[0] = cv::Point3f(*x_crop, *y_crop, *z_min);
@@ -110,16 +101,13 @@ namespace calib
       std::vector<cv::Vec3f>::iterator point = points3d.begin(), end = points3d.end();
       std::vector<cv::Vec2i>::iterator mask_point = mask_points.begin();
 
-      double z_min_ = *z_min, z_max_ = *z_crop;
       while (point != end)
       {
         //calculate the point based on the depth
         p_r = Rx * (*point - Tx);
         if (!cvIsNaN((*point)[0])) {
-          if ((p_r(2) > z_min_
-              && p_r(2) < z_max_
-              && std::abs(p_r(0)) < *x_crop
-              && std::abs(p_r(1)) < *y_crop) || true) {
+          if (p_r(2) > *z_min && p_r(2) < *z_crop
+              && std::abs(p_r(0)) < *x_crop && std::abs(p_r(1)) < *y_crop) {
             mask.at<uint8_t>((*mask_point)[1], (*mask_point)[0]) = 255;
           }
         }
@@ -130,7 +118,6 @@ namespace calib
       return ecto::OK;
     }
     ecto::spore<float> x_crop, y_crop, z_crop, z_min;
-    cv::Mat_<uint8_t> box_mask;
     ecto::spore<cv::Mat> K_, R_, T_;
   }
   ;
