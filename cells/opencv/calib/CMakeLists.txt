@@ -4,7 +4,6 @@ ectomodule(calib DESTINATION ecto_opencv
   module.cpp
   calib.cpp 
   CameraIntrinsics.cpp
-  PlanarSegmentation.cpp 
   PatternDrawer.cpp
   PatternDetector.cpp
   CircleDrawer.cpp
