@@ -49,8 +49,7 @@ float pointDistanceSq(const cv::Vec3f& vec1, const cv::Vec3f& vec2) {
 }
 
 float pointPlaneDistance(const cv::Vec3f& vec, const cv::Vec4f& plane) {
-  return std::abs(
-      vec[0] * plane[0] + vec[1] * plane[1] + vec[2] * plane[2] + plane[3]);
+  return vec[0] * plane[0] + vec[1] * plane[1] + vec[2] * plane[2] + plane[3];
 }
 
 cv::Vec3f projectPointOnPlane(const cv::Vec3f& vec, const cv::Vec4f& plane) {
@@ -146,8 +145,8 @@ struct OnPlaneClusterer {
           // Look at the neighboring points
           const cv::Point& point2d = point_list.front();
           const cv::Vec3f& point3d_1 = points3d(point2d.y, point2d.x);
-          for (int yy = point2d.y - 1; yy <= point2d.y + 1; ++yy)
-            for (int xx = point2d.x - 1; xx <= point2d.x + 1; ++xx) {
+          for (int yy = std::max(point2d.y - 1, 0); yy <= std::min(point2d.y + 1, masks_->rows - 1); ++yy)
+            for (int xx = std::max(point2d.x - 1, 0); xx <= std::min(point2d.x + 1, masks_->cols - 1); ++xx) {
               if (checked(yy, xx))
                 continue;
               // Compute the distance from that point to the original point
@@ -282,8 +281,8 @@ struct OnPlaneClustererCylinder {
         while (!point_list.empty()) {
           // Look at the neighboring points
           const cv::Point & point2d = point_list.front();
-          for (int yy = std::max(point2d.y - 1, 0); yy < std::min(point2d.y + 1, masks_->rows); ++yy)
-            for (int xx = std::max(point2d.x - 1, 0); xx < std::min(point2d.x + 1, mask_->cols); ++xx) {
+          for (int yy = std::max(point2d.y - 1, 0); yy <= std::min(point2d.y + 1, masks_->rows - 1); ++yy)
+            for (int xx = std::max(point2d.x - 1, 0); xx <= std::min(point2d.x + 1, mask_->cols - 1); ++xx) {
               if (checked(yy, xx))
                 continue;
               const cv::Vec3f& point3d = points3d(yy, xx);
