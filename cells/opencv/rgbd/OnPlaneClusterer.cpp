@@ -108,12 +108,11 @@ struct OnPlaneClusterer {
 
     // If an object touches a plane, its pixels also touch some pixels of the plane
     // Let's find those pixels first
-    cv::Mat_<uchar> mask_binary = (*masks_) != 255, object_seeds;
-    cv::dilate(mask_binary, object_seeds, cv::Mat());
-    object_seeds = object_seeds - mask_binary;
+    cv::Mat_<uchar> checked = (*masks_) != 255, object_seeds;
+    cv::dilate(checked, object_seeds, cv::Mat());
+    object_seeds = object_seeds - checked;
 
     // For each potential pixel ...
-    cv::Mat_<uchar> checked = mask_binary.clone();
     for (int y = 1; y < masks_->rows - 1; ++y) {
       uchar* iter = object_seeds.ptr<uchar>(y);
       for (int x = 1; x < masks_->cols - 1; ++x, ++iter) {
@@ -244,7 +243,7 @@ struct OnPlaneClustererCylinder {
     cluster3d_->clear();
     cv::Mat_<uchar> mask = cv::Mat_<uchar>::zeros(masks_->size());
 
-    if (planes_->empty()) {
+    if (planes_->empty() || T_->empty()) {
       *mask_ = mask;
       return ecto::OK;
     }
@@ -267,15 +266,14 @@ struct OnPlaneClustererCylinder {
 
     // If an object touches a plane, its pixels also touch some pixels of the plane
     // Let's find those pixels first
-    cv::Mat_<uchar> mask_binary = (*masks_) == plane_best_index, object_seeds;
-    cv::dilate(mask_binary, object_seeds, cv::Mat());
-    object_seeds = object_seeds - mask_binary;
+    cv::Mat_<uchar> checked = (*masks_) == plane_best_index, object_seeds;
+    cv::dilate(checked, object_seeds, cv::Mat());
+    object_seeds = object_seeds - checked;
 
     // For each potential pixel ...
-    cv::Mat_<uchar> checked = mask_binary.clone();
-    for (int y = 1; y < masks_->rows - 1; ++y) {
+    for (int y = 0; y < masks_->rows; ++y) {
       uchar* iter = object_seeds.ptr<uchar>(y);
-      for (int x = 1; x < masks_->cols - 1; ++x, ++iter) {
+      for (int x = 0; x < masks_->cols; ++x, ++iter) {
         // Only look at pixels that are on the edge of planes
         if ((!(*iter)) || (checked(y, x)))
           continue;
@@ -283,14 +281,14 @@ struct OnPlaneClustererCylinder {
         std::list<cv::Point> point_list(1, cv::Point(x, y));
         while (!point_list.empty()) {
           // Look at the neighboring points
-          const cv::Point& point2d = point_list.front();
-          for (int yy = point2d.y - 1; yy <= point2d.y + 1; ++yy)
-            for (int xx = point2d.x - 1; xx <= point2d.x + 1; ++xx) {
+          const cv::Point & point2d = point_list.front();
+          for (int yy = std::max(point2d.y - 1, 0); yy < std::min(point2d.y + 1, masks_->rows); ++yy)
+            for (int xx = std::max(point2d.x - 1, 0); xx < std::min(point2d.x + 1, mask_->cols); ++xx) {
               if (checked(yy, xx))
                 continue;
               const cv::Vec3f& point3d = points3d(yy, xx);
-              checked(yy, xx) = 1;
-              point_list.push_back(cv::Point(xx, yy));
+              checked(yy, xx) = 255;
+
               // Only add the point if it is within the plane distance boundaries
               float dist = pointPlaneDistance(point3d, plane_best);
               if ((*z_min_ < dist) && (dist < *z_max_)) {
@@ -299,7 +297,8 @@ struct OnPlaneClustererCylinder {
                 if (cv::norm(T - projection) < *radius_max_) {
                   cluster2d_->push_back(cv::Vec2i(xx, yy));
                   cluster3d_->push_back(point3d);
-                  mask(xx, yy) = 255;
+                  mask(yy, xx) = 255;
+                  point_list.push_back(cv::Point(xx, yy));
                 }
               }
             }
@@ -307,6 +306,7 @@ struct OnPlaneClustererCylinder {
         }
       }
     }
+    *mask_ = mask;
 
     return ecto::OK;
   }
