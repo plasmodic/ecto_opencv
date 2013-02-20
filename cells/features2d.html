@@ -1,0 +1,821 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>ecto_opencv.features2d &mdash; ecto_opencv</title>
+    
+    <link rel="stylesheet" href="../_static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="ecto_opencv" href="../index.html" />
+    <link rel="up" title="ecto opencv cells" href="index.html" />
+    <link rel="next" title="ecto_opencv conventions" href="../conventions.html" />
+    <link rel="prev" title="ecto_opencv.imgproc" href="imgproc.html" />
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-25265185-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../conventions.html" title="ecto_opencv conventions"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="imgproc.html" title="ecto_opencv.imgproc"
+             accesskey="P">previous</a> |</li>
+    <li><a href="http://ecto.willowgarage.com/">ecto.willowgarage.com</a> &raquo;</li>
+    
+        <li><a href="../index.html">ecto_opencv</a> &raquo;</li>
+
+          <li><a href="index.html" accesskey="U">ecto opencv cells</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="imgproc.html"
+                        title="previous chapter">ecto_opencv.imgproc</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="../conventions.html"
+                        title="next chapter">ecto_opencv conventions</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/cells/features2d.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="ecto-opencv-features2d">
+<span id="id1"></span><h1>ecto_opencv.features2d<a class="headerlink" href="#ecto-opencv-features2d" title="Permalink to this headline">¶</a></h1>
+<p>Feature detection cells.</p>
+<h1>ecto_opencv.features2d<a class="headerlink" href="#ecto-opencv-features2d" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="MatchRefinementPnP">
+<span id="index-0"></span><span id="ecto_opencv.features2d.MatchRefinementPnP"></span><h2>MatchRefinementPnP<a class="headerlink" href="#MatchRefinementPnP" title="Permalink to this headline">¶</a></h2>
+<p></p>
+<div class="topic">
+<p class="topic-title first">Brief doc<p>A feature descriptor match refiner, using PnP.</p>
+</p>
+<p class="topic-title first">Parameters<ul>
+<li><p class="first"><strong>inlier_thresh</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">float</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">30.0</span></tt></p>
+<p>The thresh hold on number of inliers to consider pose found.</p>
+</li>
+<li><p class="first"><strong>min_inliers</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">unsigned</span> <span class="pre">int</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">100</span></tt></p>
+<p>minimum number of inliers</p>
+</li>
+<li><p class="first"><strong>n_iters</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">unsigned</span> <span class="pre">int</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">100</span></tt></p>
+<p>number of ransac iterations</p>
+</li>
+<li><p class="first"><strong>reprojection_error</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">float</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">8.0</span></tt></p>
+<p>error threshold</p>
+</li>
+</ul>
+</p>
+<p class="topic-title first">Inputs<ul>
+<li><p class="first"><strong>K</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>Camera model.</p>
+</li>
+<li><p class="first"><strong>matches</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">std::vector&lt;cv::DMatch,</span> <span class="pre">std::allocator&lt;cv::DMatch&gt;</span> <span class="pre">&gt;</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The descriptor matches.</p>
+</li>
+<li><p class="first"><strong>test</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The 3d test points.</p>
+</li>
+<li><p class="first"><strong>train</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The 3d training points.</p>
+</li>
+</ul>
+</p>
+<p class="topic-title first">Outputs<ul>
+<li><p class="first"><strong>R</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p></p>
+</li>
+<li><p class="first"><strong>T</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p></p>
+</li>
+<li><p class="first"><strong>found</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">bool</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p></p>
+</li>
+<li><p class="first"><strong>matches</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">std::vector&lt;cv::DMatch,</span> <span class="pre">std::allocator&lt;cv::DMatch&gt;</span> <span class="pre">&gt;</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The verified matches.</p>
+</li>
+<li><p class="first"><strong>matches_mask</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The matches mask, same size as the original matches.</p>
+</li>
+</ul>
+</p>
+</div>
+</div>
+<div class="section" id="MatchRefinementHSvd">
+<span id="index-1"></span><span id="ecto_opencv.features2d.MatchRefinementHSvd"></span><h2>MatchRefinementHSvd<a class="headerlink" href="#MatchRefinementHSvd" title="Permalink to this headline">¶</a></h2>
+<p></p>
+<div class="topic">
+<p class="topic-title first">Brief doc<p>A feature descriptor match refiner, using Homography and svd estimation.</p>
+</p>
+<p class="topic-title first">Parameters<ul>
+<li><p class="first"><strong>inlier_thresh</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">float</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">25.0</span></tt></p>
+<p>The inlier threshold of pose found.</p>
+</li>
+<li><p class="first"><strong>min_inliers</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">unsigned</span> <span class="pre">int</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">100</span></tt></p>
+<p>minimum number of inliers</p>
+</li>
+<li><p class="first"><strong>n_iters</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">unsigned</span> <span class="pre">int</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">200</span></tt></p>
+<p>number of ransac iterations</p>
+</li>
+<li><p class="first"><strong>reprojection_error</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">float</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">43.5</span></tt></p>
+<p>error threshold</p>
+</li>
+</ul>
+</p>
+<p class="topic-title first">Inputs<ul>
+<li><p class="first"><strong>matches</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">std::vector&lt;cv::DMatch,</span> <span class="pre">std::allocator&lt;cv::DMatch&gt;</span> <span class="pre">&gt;</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The descriptor matches.</p>
+</li>
+<li><p class="first"><strong>test_2d</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The 2d test points.</p>
+</li>
+<li><p class="first"><strong>test_3d</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The 3d test points.</p>
+</li>
+<li><p class="first"><strong>train_2d</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The 2d training points.</p>
+</li>
+<li><p class="first"><strong>train_3d</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The 3d training points.</p>
+</li>
+</ul>
+</p>
+<p class="topic-title first">Outputs<ul>
+<li><p class="first"><strong>R</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p></p>
+</li>
+<li><p class="first"><strong>T</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p></p>
+</li>
+<li><p class="first"><strong>found</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">bool</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p></p>
+</li>
+<li><p class="first"><strong>matches</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">std::vector&lt;cv::DMatch,</span> <span class="pre">std::allocator&lt;cv::DMatch&gt;</span> <span class="pre">&gt;</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The verified matches.</p>
+</li>
+<li><p class="first"><strong>matches_mask</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The matches mask, same size as the original matches.</p>
+</li>
+</ul>
+</p>
+</div>
+</div>
+<div class="section" id="SIFT">
+<span id="index-2"></span><span id="ecto_opencv.features2d.SIFT"></span><h2>SIFT<a class="headerlink" href="#SIFT" title="Permalink to this headline">¶</a></h2>
+<p></p>
+<div class="topic">
+<p class="topic-title first">Brief doc<p>An ORB detector. Takes a image and a mask, and computes keypoints and descriptors(32 byte binary).</p>
+</p>
+<p class="topic-title first">Parameters<ul>
+<li><p class="first"><strong>edgeThreshold</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">float</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> no default value</em></p>
+<p></p>
+</li>
+<li><p class="first"><strong>nOctaveLayers</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">int</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">3</span></tt></p>
+<p></p>
+</li>
+<li><p class="first"><strong>threshold</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">float</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> no default value</em></p>
+<p></p>
+</li>
+</ul>
+</p>
+<p class="topic-title first">Inputs<ul>
+<li><p class="first"><strong>image</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>An input image.</p>
+</li>
+<li><p class="first"><strong>keypoints</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">std::vector&lt;cv::KeyPoint,</span> <span class="pre">std::allocator&lt;cv::KeyPoint&gt;</span> <span class="pre">&gt;</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The keypoints.</p>
+</li>
+<li><p class="first"><strong>mask</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>An mask, same size as image.</p>
+</li>
+<li><p class="first"><strong>points</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>2d points.</p>
+</li>
+</ul>
+</p>
+<p class="topic-title first">Outputs<ul>
+<li><p class="first"><strong>descriptors</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The descriptors per keypoints</p>
+</li>
+<li><p class="first"><strong>keypoints</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">std::vector&lt;cv::KeyPoint,</span> <span class="pre">std::allocator&lt;cv::KeyPoint&gt;</span> <span class="pre">&gt;</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The keypoints.</p>
+</li>
+</ul>
+</p>
+</div>
+</div>
+<div class="section" id="MatchRefinement3d">
+<span id="index-3"></span><span id="ecto_opencv.features2d.MatchRefinement3d"></span><h2>MatchRefinement3d<a class="headerlink" href="#MatchRefinement3d" title="Permalink to this headline">¶</a></h2>
+<p></p>
+<div class="topic">
+<p class="topic-title first">Brief doc<p>A feature descriptor match refiner, using an affine 3d to 3d estimator.</p>
+</p>
+<p></p>
+<p class="topic-title first">Inputs<ul>
+<li><p class="first"><strong>matches</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">std::vector&lt;cv::DMatch,</span> <span class="pre">std::allocator&lt;cv::DMatch&gt;</span> <span class="pre">&gt;</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The descriptor matches.</p>
+</li>
+<li><p class="first"><strong>test</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The 3d test points.</p>
+</li>
+<li><p class="first"><strong>train</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The 3d training points.</p>
+</li>
+</ul>
+</p>
+<p class="topic-title first">Outputs<ul>
+<li><p class="first"><strong>R</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p></p>
+</li>
+<li><p class="first"><strong>T</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p></p>
+</li>
+<li><p class="first"><strong>matches</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">std::vector&lt;cv::DMatch,</span> <span class="pre">std::allocator&lt;cv::DMatch&gt;</span> <span class="pre">&gt;</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The verified matches.</p>
+</li>
+<li><p class="first"><strong>matches_mask</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The matches mask, same size as the original matches.</p>
+</li>
+</ul>
+</p>
+</div>
+</div>
+<div class="section" id="LSHMatcher">
+<span id="index-4"></span><span id="ecto_opencv.features2d.LSHMatcher"></span><h2>LSHMatcher<a class="headerlink" href="#LSHMatcher" title="Permalink to this headline">¶</a></h2>
+<p></p>
+<div class="topic">
+<p class="topic-title first">Brief doc<p>Given descriptors, find matches.</p>
+</p>
+<p class="topic-title first">Parameters<ul>
+<li><p class="first"><strong>key_size</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">unsigned</span> <span class="pre">int</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">8</span></tt></p>
+<p></p>
+</li>
+<li><p class="first"><strong>multi_probe_level</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">unsigned</span> <span class="pre">int</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">1</span></tt></p>
+<p></p>
+</li>
+<li><p class="first"><strong>n_tables</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">unsigned</span> <span class="pre">int</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">4</span></tt></p>
+<p></p>
+</li>
+<li><p class="first"><strong>radius</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">unsigned</span> <span class="pre">int</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">55</span></tt></p>
+<p></p>
+</li>
+</ul>
+</p>
+<p class="topic-title first">Inputs<ul>
+<li><p class="first"><strong>test</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>Train descriptors.</p>
+</li>
+<li><p class="first"><strong>train</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>Test descriptors.</p>
+</li>
+<li><p class="first"><strong>update</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">bool</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>If set to true, update the descriptors.</p>
+</li>
+</ul>
+</p>
+<p class="topic-title first">Outputs<ul>
+<li><p class="first"><strong>matches</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">std::vector&lt;cv::DMatch,</span> <span class="pre">std::allocator&lt;cv::DMatch&gt;</span> <span class="pre">&gt;</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The descriptor matches.</p>
+</li>
+</ul>
+</p>
+</div>
+</div>
+<div class="section" id="ORBFeature">
+<span id="index-5"></span><span id="ecto_opencv.features2d.ORBFeature"></span><h2>ORBFeature<a class="headerlink" href="#ORBFeature" title="Permalink to this headline">¶</a></h2>
+<p></p>
+<div class="topic">
+<p class="topic-title first">Brief doc<p>An ORB feature detector.</p>
+</p>
+<p class="topic-title first">Parameters<ul>
+<li><p class="first"><strong>first_level</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">int</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">0</span></tt></p>
+<p>The first level of the scales</p>
+</li>
+<li><p class="first"><strong>n_features</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">int</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">1000</span></tt></p>
+<p>The number of desired features</p>
+</li>
+<li><p class="first"><strong>n_levels</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">int</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">3</span></tt></p>
+<p>The number of scales</p>
+</li>
+<li><p class="first"><strong>scale_factor</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">float</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">1.20000004768</span></tt></p>
+<p>The factor between scales</p>
+</li>
+</ul>
+</p>
+<p></p>
+<p class="topic-title first">Outputs<ul>
+<li><p class="first"><strong>image</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>An input image.</p>
+</li>
+<li><p class="first"><strong>keypoints</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">std::vector&lt;cv::KeyPoint,</span> <span class="pre">std::allocator&lt;cv::KeyPoint&gt;</span> <span class="pre">&gt;</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The keypoints.</p>
+</li>
+<li><p class="first"><strong>mask</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>An mask, same size as image.</p>
+</li>
+</ul>
+</p>
+</div>
+</div>
+<div class="section" id="Matcher">
+<span id="index-6"></span><span id="ecto_opencv.features2d.Matcher"></span><h2>Matcher<a class="headerlink" href="#Matcher" title="Permalink to this headline">¶</a></h2>
+<p></p>
+<div class="topic">
+<p class="topic-title first">Brief doc<p>A feature descriptor matcher.</p>
+</p>
+<p></p>
+<p class="topic-title first">Inputs<ul>
+<li><p class="first"><strong>test</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>Train descriptors.</p>
+</li>
+<li><p class="first"><strong>train</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>Test descriptors.</p>
+</li>
+</ul>
+</p>
+<p class="topic-title first">Outputs<ul>
+<li><p class="first"><strong>matches</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">std::vector&lt;cv::DMatch,</span> <span class="pre">std::allocator&lt;cv::DMatch&gt;</span> <span class="pre">&gt;</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The descriptor matches.</p>
+</li>
+</ul>
+</p>
+</div>
+</div>
+<div class="section" id="DrawMatches">
+<span id="index-7"></span><span id="ecto_opencv.features2d.DrawMatches"></span><h2>DrawMatches<a class="headerlink" href="#DrawMatches" title="Permalink to this headline">¶</a></h2>
+<p></p>
+<div class="topic">
+<p class="topic-title first">Brief doc<p>Draws matches.</p>
+</p>
+<p></p>
+<p class="topic-title first">Inputs<ul>
+<li><p class="first"><strong>matches</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">std::vector&lt;cv::DMatch,</span> <span class="pre">std::allocator&lt;cv::DMatch&gt;</span> <span class="pre">&gt;</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The descriptor matches.</p>
+</li>
+<li><p class="first"><strong>matches_mask</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The descriptor matches mask.</p>
+</li>
+<li><p class="first"><strong>test</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>Test keypoints.</p>
+</li>
+<li><p class="first"><strong>test_image</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>Test image.</p>
+</li>
+<li><p class="first"><strong>train</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>Train keypoints</p>
+</li>
+<li><p class="first"><strong>train_image</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>Test image.</p>
+</li>
+</ul>
+</p>
+<p class="topic-title first">Outputs<ul>
+<li><p class="first"><strong>output</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>An output image.</p>
+</li>
+</ul>
+</p>
+</div>
+</div>
+<div class="section" id="SIFTDescriptor">
+<span id="index-8"></span><span id="ecto_opencv.features2d.SIFTDescriptor"></span><h2>SIFTDescriptor<a class="headerlink" href="#SIFTDescriptor" title="Permalink to this headline">¶</a></h2>
+<p></p>
+<div class="topic">
+<p class="topic-title first">Brief doc<p>A SIFT feature detector.</p>
+</p>
+<p class="topic-title first">Parameters<ul>
+<li><p class="first"><strong>edgeThreshold</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">float</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> no default value</em></p>
+<p></p>
+</li>
+<li><p class="first"><strong>nOctaveLayers</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">int</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">3</span></tt></p>
+<p></p>
+</li>
+<li><p class="first"><strong>threshold</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">float</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> no default value</em></p>
+<p></p>
+</li>
+</ul>
+</p>
+<p></p>
+<p class="topic-title first">Outputs<ul>
+<li><p class="first"><strong>descriptors</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The descriptors per keypoints</p>
+</li>
+<li><p class="first"><strong>image</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>An input image.</p>
+</li>
+<li><p class="first"><strong>keypoints</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">std::vector&lt;cv::KeyPoint,</span> <span class="pre">std::allocator&lt;cv::KeyPoint&gt;</span> <span class="pre">&gt;</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The keypoints.</p>
+</li>
+<li><p class="first"><strong>mask</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>An mask, same size as image.</p>
+</li>
+<li><p class="first"><strong>points</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>2d points.</p>
+</li>
+</ul>
+</p>
+</div>
+</div>
+<div class="section" id="ORBstats">
+<span id="index-9"></span><span id="ecto_opencv.features2d.ORBstats"></span><h2>ORBstats<a class="headerlink" href="#ORBstats" title="Permalink to this headline">¶</a></h2>
+<p></p>
+<div class="topic">
+<p class="topic-title first">Brief doc<p>Prints stats on ORB descriptors.</p>
+</p>
+<p></p>
+<p class="topic-title first">Inputs<ul>
+<li><p class="first"><strong>descriptors</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The input descriptors.</p>
+</li>
+</ul>
+</p>
+<p class="topic-title first">Outputs<ul>
+<li><p class="first"><strong>distances</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>A histogram of the distances in this set.</p>
+</li>
+</ul>
+</p>
+</div>
+</div>
+<div class="section" id="FeatureDescriptor">
+<span id="index-10"></span><span id="ecto_opencv.features2d.FeatureDescriptor"></span><h2>FeatureDescriptor<a class="headerlink" href="#FeatureDescriptor" title="Permalink to this headline">¶</a></h2>
+<p></p>
+<div class="topic">
+<p class="topic-title first">Brief doc<p></p>
+</p>
+<p class="topic-title first">Parameters<ul>
+<li><p class="first"><strong>json_descriptor_params</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">boost::python::api::object</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">{&quot;type&quot;:</span> <span class="pre">&quot;ORB&quot;,</span> <span class="pre">&quot;module&quot;:</span> <span class="pre">&quot;ecto_opencv.features2d&quot;}</span></tt></p>
+<p>Parameters for the descriptor as a JSON string. It should have the format: &#8220;{&#8220;type&#8221;:&#8221;ORB/SIFT whatever&#8221;, &#8220;module&#8221;:&#8221;where_it_is&#8221;, &#8220;param_1&#8221;:val1, ....}</p>
+</li>
+<li><p class="first"><strong>json_feature_params</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">boost::python::api::object</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">{&quot;type&quot;:</span> <span class="pre">&quot;ORB&quot;,</span> <span class="pre">&quot;module&quot;:</span> <span class="pre">&quot;ecto_opencv.features2d&quot;}</span></tt></p>
+<p>Parameters for the feature as a JSON string. It should have the format: &#8220;{&#8220;type&#8221;:&#8221;ORB/SIFT whatever&#8221;, &#8220;module&#8221;:&#8221;where_it_is&#8221;, &#8220;param_1&#8221;:val1, ....}</p>
+</li>
+</ul>
+</p>
+<p class="topic-title first">Inputs<ul>
+<li><p class="first"><strong>image</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>An input image.</p>
+</li>
+<li><p class="first"><strong>keypoints</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">std::vector&lt;cv::KeyPoint,</span> <span class="pre">std::allocator&lt;cv::KeyPoint&gt;</span> <span class="pre">&gt;</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The keypoints.</p>
+</li>
+<li><p class="first"><strong>mask</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>An mask, same size as image.</p>
+</li>
+<li><p class="first"><strong>points</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>2d points.</p>
+</li>
+</ul>
+</p>
+<p class="topic-title first">Outputs<ul>
+<li><p class="first"><strong>descriptors</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The descriptors per keypoints</p>
+</li>
+<li><p class="first"><strong>keypoints</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">std::vector&lt;cv::KeyPoint,</span> <span class="pre">std::allocator&lt;cv::KeyPoint&gt;</span> <span class="pre">&gt;</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The keypoints.</p>
+</li>
+</ul>
+</p>
+</div>
+</div>
+<div class="section" id="DrawKeypoints">
+<span id="index-11"></span><span id="ecto_opencv.features2d.DrawKeypoints"></span><h2>DrawKeypoints<a class="headerlink" href="#DrawKeypoints" title="Permalink to this headline">¶</a></h2>
+<p></p>
+<div class="topic">
+<p class="topic-title first">Brief doc<p>Draws keypoints.</p>
+</p>
+<p></p>
+<p class="topic-title first">Inputs<ul>
+<li><p class="first"><strong>image</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The input image, used as the base to draw on.</p>
+</li>
+<li><p class="first"><strong>keypoints</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">std::vector&lt;cv::KeyPoint,</span> <span class="pre">std::allocator&lt;cv::KeyPoint&gt;</span> <span class="pre">&gt;</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The keypoints to draw.</p>
+</li>
+</ul>
+</p>
+<p class="topic-title first">Outputs<ul>
+<li><p class="first"><strong>image</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The output image.</p>
+</li>
+</ul>
+</p>
+</div>
+</div>
+<div class="section" id="SIFTFeature">
+<span id="index-12"></span><span id="ecto_opencv.features2d.SIFTFeature"></span><h2>SIFTFeature<a class="headerlink" href="#SIFTFeature" title="Permalink to this headline">¶</a></h2>
+<p></p>
+<div class="topic">
+<p class="topic-title first">Brief doc<p>A SIFT feature detector.</p>
+</p>
+<p class="topic-title first">Parameters<ul>
+<li><p class="first"><strong>edgeThreshold</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">float</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> no default value</em></p>
+<p></p>
+</li>
+<li><p class="first"><strong>nOctaveLayers</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">int</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">3</span></tt></p>
+<p></p>
+</li>
+<li><p class="first"><strong>threshold</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">float</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> no default value</em></p>
+<p></p>
+</li>
+</ul>
+</p>
+<p></p>
+<p class="topic-title first">Outputs<ul>
+<li><p class="first"><strong>image</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>An input image.</p>
+</li>
+<li><p class="first"><strong>keypoints</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">std::vector&lt;cv::KeyPoint,</span> <span class="pre">std::allocator&lt;cv::KeyPoint&gt;</span> <span class="pre">&gt;</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The keypoints.</p>
+</li>
+<li><p class="first"><strong>mask</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>An mask, same size as image.</p>
+</li>
+</ul>
+</p>
+</div>
+</div>
+<div class="section" id="ORBDescriptor">
+<span id="index-13"></span><span id="ecto_opencv.features2d.ORBDescriptor"></span><h2>ORBDescriptor<a class="headerlink" href="#ORBDescriptor" title="Permalink to this headline">¶</a></h2>
+<p></p>
+<div class="topic">
+<p class="topic-title first">Brief doc<p>An ORB descriptor extractor.</p>
+</p>
+<p></p>
+<p></p>
+<p class="topic-title first">Outputs<ul>
+<li><p class="first"><strong>descriptors</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The descriptors per keypoints</p>
+</li>
+<li><p class="first"><strong>image</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>An input image.</p>
+</li>
+<li><p class="first"><strong>keypoints</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">std::vector&lt;cv::KeyPoint,</span> <span class="pre">std::allocator&lt;cv::KeyPoint&gt;</span> <span class="pre">&gt;</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The keypoints.</p>
+</li>
+<li><p class="first"><strong>mask</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>An mask, same size as image.</p>
+</li>
+<li><p class="first"><strong>points</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>2d points.</p>
+</li>
+</ul>
+</p>
+</div>
+</div>
+<div class="section" id="FASTFeature">
+<span id="index-14"></span><span id="ecto_opencv.features2d.FASTFeature"></span><h2>FASTFeature<a class="headerlink" href="#FASTFeature" title="Permalink to this headline">¶</a></h2>
+<p></p>
+<div class="topic">
+<p class="topic-title first">Brief doc<p>A FAST feature detector.</p>
+</p>
+<p class="topic-title first">Parameters<ul>
+<li><p class="first"><strong>nonmax</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">bool</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">True</span></tt></p>
+<p>Use the FAST nonmax suppression.</p>
+</li>
+<li><p class="first"><strong>thresh</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">int</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">20</span></tt></p>
+<p>The FAST threshold. 20 is a decent value.</p>
+</li>
+</ul>
+</p>
+<p></p>
+<p class="topic-title first">Outputs<ul>
+<li><p class="first"><strong>image</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>An input image.</p>
+</li>
+<li><p class="first"><strong>keypoints</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">std::vector&lt;cv::KeyPoint,</span> <span class="pre">std::allocator&lt;cv::KeyPoint&gt;</span> <span class="pre">&gt;</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The keypoints.</p>
+</li>
+<li><p class="first"><strong>mask</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>An mask, same size as image.</p>
+</li>
+</ul>
+</p>
+</div>
+</div>
+<div class="section" id="KeypointsToMat">
+<span id="index-15"></span><span id="ecto_opencv.features2d.KeypointsToMat"></span><h2>KeypointsToMat<a class="headerlink" href="#KeypointsToMat" title="Permalink to this headline">¶</a></h2>
+<p></p>
+<div class="topic">
+<p class="topic-title first">Brief doc<p>Take key points and return an array of the x,y coordinates.</p>
+</p>
+<p></p>
+<p class="topic-title first">Inputs<ul>
+<li><p class="first"><strong>keypoints</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">std::vector&lt;cv::KeyPoint,</span> <span class="pre">std::allocator&lt;cv::KeyPoint&gt;</span> <span class="pre">&gt;</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The keypoints</p>
+</li>
+</ul>
+</p>
+<p class="topic-title first">Outputs<ul>
+<li><p class="first"><strong>points</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The array of x,y coordinates</p>
+</li>
+</ul>
+</p>
+</div>
+</div>
+<div class="section" id="MatchRefinement">
+<span id="index-16"></span><span id="ecto_opencv.features2d.MatchRefinement"></span><h2>MatchRefinement<a class="headerlink" href="#MatchRefinement" title="Permalink to this headline">¶</a></h2>
+<p></p>
+<div class="topic">
+<p class="topic-title first">Brief doc<p>A feature descriptor match refiner, using a Homography estimator</p>
+</p>
+<p class="topic-title first">Parameters<ul>
+<li><p class="first"><strong>match_distance</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">double</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">120.0</span></tt></p>
+<p>The match distance threshhold.</p>
+</li>
+</ul>
+</p>
+<p class="topic-title first">Inputs<ul>
+<li><p class="first"><strong>matches</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">std::vector&lt;cv::DMatch,</span> <span class="pre">std::allocator&lt;cv::DMatch&gt;</span> <span class="pre">&gt;</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The descriptor matches.</p>
+</li>
+<li><p class="first"><strong>test</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The test points.</p>
+</li>
+<li><p class="first"><strong>train</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The training points.</p>
+</li>
+</ul>
+</p>
+<p class="topic-title first">Outputs<ul>
+<li><p class="first"><strong>H</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The estimated homography.</p>
+</li>
+<li><p class="first"><strong>matches</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">std::vector&lt;cv::DMatch,</span> <span class="pre">std::allocator&lt;cv::DMatch&gt;</span> <span class="pre">&gt;</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The verified matches.</p>
+</li>
+<li><p class="first"><strong>matches_mask</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The matches mask, same size as the original matches.</p>
+</li>
+</ul>
+</p>
+</div>
+</div>
+<div class="section" id="DescriptorAccumulator">
+<span id="index-17"></span><span id="ecto_opencv.features2d.DescriptorAccumulator"></span><h2>DescriptorAccumulator<a class="headerlink" href="#DescriptorAccumulator" title="Permalink to this headline">¶</a></h2>
+<p></p>
+<div class="topic">
+<p class="topic-title first">Brief doc<p>Accumulates descriptors.</p>
+</p>
+<p></p>
+<p class="topic-title first">Inputs<ul>
+<li><p class="first"><strong>descriptors</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The input descriptors.</p>
+</li>
+</ul>
+</p>
+<p class="topic-title first">Outputs<ul>
+<li><p class="first"><strong>descriptors</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>A cumulative view of all descriptors.</p>
+</li>
+</ul>
+</p>
+</div>
+</div>
+<div class="section" id="ORB">
+<span id="index-18"></span><span id="ecto_opencv.features2d.ORB"></span><h2>ORB<a class="headerlink" href="#ORB" title="Permalink to this headline">¶</a></h2>
+<p></p>
+<div class="topic">
+<p class="topic-title first">Brief doc<p>An ORB detector. Takes a image and a mask, and computes keypoints and descriptors(32 byte binary).</p>
+</p>
+<p class="topic-title first">Parameters<ul>
+<li><p class="first"><strong>n_features</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">int</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">1000</span></tt></p>
+<p>The number of desired features</p>
+</li>
+<li><p class="first"><strong>n_levels</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">int</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">3</span></tt></p>
+<p>The number of scales</p>
+</li>
+<li><p class="first"><strong>scale_factor</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">float</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">1.20000004768</span></tt></p>
+<p>The factor between scales</p>
+</li>
+</ul>
+</p>
+<p class="topic-title first">Inputs<ul>
+<li><p class="first"><strong>image</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>An input image.</p>
+</li>
+<li><p class="first"><strong>keypoints</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">std::vector&lt;cv::KeyPoint,</span> <span class="pre">std::allocator&lt;cv::KeyPoint&gt;</span> <span class="pre">&gt;</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The keypoints.</p>
+</li>
+<li><p class="first"><strong>mask</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>An mask, same size as image.</p>
+</li>
+<li><p class="first"><strong>points</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>2d points.</p>
+</li>
+</ul>
+</p>
+<p class="topic-title first">Outputs<ul>
+<li><p class="first"><strong>descriptors</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The descriptors per keypoints</p>
+</li>
+<li><p class="first"><strong>keypoints</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">std::vector&lt;cv::KeyPoint,</span> <span class="pre">std::allocator&lt;cv::KeyPoint&gt;</span> <span class="pre">&gt;</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The keypoints.</p>
+</li>
+</ul>
+</p>
+</div>
+</div>
+<div class="section" id="MatchesToMat">
+<span id="index-19"></span><span id="ecto_opencv.features2d.MatchesToMat"></span><h2>MatchesToMat<a class="headerlink" href="#MatchesToMat" title="Permalink to this headline">¶</a></h2>
+<p></p>
+<div class="topic">
+<p class="topic-title first">Brief doc<p>Takes matches and turns them into a cv mat alias..</p>
+</p>
+<p></p>
+<p class="topic-title first">Inputs<ul>
+<li><p class="first"><strong>matches</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">std::vector&lt;cv::DMatch,</span> <span class="pre">std::allocator&lt;cv::DMatch&gt;</span> <span class="pre">&gt;</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The matches</p>
+</li>
+</ul>
+</p>
+<p class="topic-title first">Outputs<ul>
+<li><p class="first"><strong>matches</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>An nx3 matrix of matched indices with distances in the 3rd column</p>
+</li>
+</ul>
+</p>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../conventions.html" title="ecto_opencv conventions"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="imgproc.html" title="ecto_opencv.imgproc"
+             >previous</a> |</li>
+    <li><a href="http://ecto.willowgarage.com/">ecto.willowgarage.com</a> &raquo;</li>
+    
+        <li><a href="../index.html">ecto_opencv</a> &raquo;</li>
+
+          <li><a href="index.html" >ecto opencv cells</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+
+    Version <a href="/commit/"></a> at <br/>
+        Copyright &copy; 2012,  Willow Garage, Inc.
+
+    <br/>
+      
+        Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

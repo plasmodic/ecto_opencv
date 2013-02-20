@@ -1,0 +1,176 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Simple video capture &mdash; ecto_opencv</title>
+    
+    <link rel="stylesheet" href="../_static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="ecto_opencv" href="../index.html" />
+    <link rel="up" title="Samples" href="index.html" />
+    <link rel="next" title="Saving images" href="image_saving.html" />
+    <link rel="prev" title="Samples" href="index.html" />
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-25265185-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="image_saving.html" title="Saving images"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Samples"
+             accesskey="P">previous</a> |</li>
+    <li><a href="http://ecto.willowgarage.com/">ecto.willowgarage.com</a> &raquo;</li>
+    
+        <li><a href="../index.html">ecto_opencv</a> &raquo;</li>
+
+          <li><a href="index.html" accesskey="U">Samples</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="index.html"
+                        title="previous chapter">Samples</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="image_saving.html"
+                        title="next chapter">Saving images</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/samples/vidcap.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="simple-video-capture">
+<h1>Simple video capture<a class="headerlink" href="#simple-video-capture" title="Permalink to this headline">¶</a></h1>
+<p>Does video capture direct from the device, via opencv.  Uses the fps
+cell to draw the framerate on the displayed image.</p>
+<p>Download: <a class="reference download internal" href="../_downloads/vidcap.py"><tt class="xref download docutils literal"><span class="pre">vidcap.py</span></tt></a></p>
+<div class="highlight-python"><div class="highlight"><pre><span class="c">#!/usr/bin/env python</span>
+<span class="kn">import</span> <span class="nn">ecto</span>
+<span class="kn">from</span> <span class="nn">ecto_opencv.highgui</span> <span class="kn">import</span> <span class="n">VideoCapture</span><span class="p">,</span> <span class="n">imshow</span><span class="p">,</span> <span class="n">FPSDrawer</span>
+
+<span class="n">video_cap</span> <span class="o">=</span> <span class="n">VideoCapture</span><span class="p">(</span><span class="n">video_device</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">640</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">480</span><span class="p">)</span>
+<span class="n">fps</span> <span class="o">=</span> <span class="n">FPSDrawer</span><span class="p">()</span>
+
+<span class="n">plasm</span> <span class="o">=</span> <span class="n">ecto</span><span class="o">.</span><span class="n">Plasm</span><span class="p">()</span>
+<span class="n">plasm</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">video_cap</span><span class="p">[</span><span class="s">&#39;image&#39;</span><span class="p">]</span> <span class="o">&gt;&gt;</span> <span class="n">fps</span><span class="p">[</span><span class="s">&#39;image&#39;</span><span class="p">],</span>
+              <span class="n">fps</span><span class="p">[</span><span class="s">&#39;image&#39;</span><span class="p">]</span> <span class="o">&gt;&gt;</span> <span class="n">imshow</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">&#39;video_cap&#39;</span><span class="p">)[</span><span class="s">&#39;image&#39;</span><span class="p">],</span>
+              <span class="p">)</span>
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">ecto.opts</span> <span class="kn">import</span> <span class="n">doit</span>
+    <span class="n">doit</span><span class="p">(</span><span class="n">plasm</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s">&#39;Capture a video from the device and display it.&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p class="graphviz">
+<img src="../_images/graphviz-7134bc901217b2057095f7b0003deb93f733f4be.png" alt="digraph G {
+graph [rankdir=TB, ranksep=1]
+edge [labelfontsize=8]
+node [shape=plaintext]
+0[label=&lt;&lt;TABLE BORDER=&quot;0&quot; CELLBORDER=&quot;1&quot; CELLSPACING=&quot;0&quot; CELLPADDING=&quot;4&quot;&gt;  &lt;TR&gt; &lt;TD ROWSPAN=&quot;4&quot; COLSPAN=&quot;2&quot; BGCOLOR=&quot;khaki&quot;&gt;ecto_opencv::VideoCapture&lt;/TD&gt; &lt;TD PORT=&quot;p_height&quot; BGCOLOR=&quot;lightblue&quot;&gt;height&lt;/TD&gt;
+ &lt;/TR&gt; &lt;TR&gt; &lt;TD PORT=&quot;p_video_device&quot; BGCOLOR=&quot;lightblue&quot;&gt;video_device&lt;/TD&gt; &lt;/TR&gt;
+&lt;TR&gt; &lt;TD PORT=&quot;p_video_file&quot; BGCOLOR=&quot;lightblue&quot;&gt;video_file&lt;/TD&gt; &lt;/TR&gt;
+&lt;TR&gt; &lt;TD PORT=&quot;p_width&quot; BGCOLOR=&quot;lightblue&quot;&gt;width&lt;/TD&gt; &lt;/TR&gt;
+ &lt;TR&gt;
+&lt;TD PORT=&quot;o_frame_number&quot; BGCOLOR=&quot;indianred1&quot;&gt;frame_number&lt;/TD&gt;
+&lt;TD PORT=&quot;o_image&quot; BGCOLOR=&quot;indianred1&quot;&gt;image&lt;/TD&gt;
+&lt;/TR&gt; &lt;/TABLE&gt;&gt;];
+1[label=&lt;&lt;TABLE BORDER=&quot;0&quot; CELLBORDER=&quot;1&quot; CELLSPACING=&quot;0&quot; CELLPADDING=&quot;4&quot;&gt; &lt;TR&gt;
+&lt;TD PORT=&quot;i_image&quot; BGCOLOR=&quot;springgreen&quot;&gt;image&lt;/TD&gt;
+&lt;/TR&gt; &lt;TR&gt; &lt;TD ROWSPAN=&quot;1&quot; COLSPAN=&quot;1&quot; BGCOLOR=&quot;khaki&quot;&gt;ecto_opencv::FPSDrawer&lt;/TD&gt;  &lt;/TR&gt;  &lt;TR&gt;
+&lt;TD PORT=&quot;o_image&quot; BGCOLOR=&quot;indianred1&quot;&gt;image&lt;/TD&gt;
+&lt;/TR&gt; &lt;/TABLE&gt;&gt;];
+2[label=&lt;&lt;TABLE BORDER=&quot;0&quot; CELLBORDER=&quot;1&quot; CELLSPACING=&quot;0&quot; CELLPADDING=&quot;4&quot;&gt; &lt;TR&gt;
+&lt;TD PORT=&quot;i_image&quot; BGCOLOR=&quot;springgreen&quot;&gt;image&lt;/TD&gt;
+&lt;/TR&gt; &lt;TR&gt; &lt;TD ROWSPAN=&quot;5&quot; COLSPAN=&quot;1&quot; BGCOLOR=&quot;khaki&quot;&gt;ecto_opencv::imshow&lt;/TD&gt; &lt;TD PORT=&quot;p_autoSize&quot; BGCOLOR=&quot;lightblue&quot;&gt;autoSize&lt;/TD&gt;
+ &lt;/TR&gt; &lt;TR&gt; &lt;TD PORT=&quot;p_maximize&quot; BGCOLOR=&quot;lightblue&quot;&gt;maximize&lt;/TD&gt; &lt;/TR&gt;
+&lt;TR&gt; &lt;TD PORT=&quot;p_name&quot; BGCOLOR=&quot;lightblue&quot;&gt;name&lt;/TD&gt; &lt;/TR&gt;
+&lt;TR&gt; &lt;TD PORT=&quot;p_triggers&quot; BGCOLOR=&quot;lightblue&quot;&gt;triggers&lt;/TD&gt; &lt;/TR&gt;
+&lt;TR&gt; &lt;TD PORT=&quot;p_waitKey&quot; BGCOLOR=&quot;lightblue&quot;&gt;waitKey&lt;/TD&gt; &lt;/TR&gt;
+  &lt;/TABLE&gt;&gt;];
+0-&gt;1 [headport=&quot;i_image&quot; tailport=&quot;o_image&quot;];
+1-&gt;2 [headport=&quot;i_image&quot; tailport=&quot;o_image&quot;];
+}" />
+</p>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="image_saving.html" title="Saving images"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Samples"
+             >previous</a> |</li>
+    <li><a href="http://ecto.willowgarage.com/">ecto.willowgarage.com</a> &raquo;</li>
+    
+        <li><a href="../index.html">ecto_opencv</a> &raquo;</li>
+
+          <li><a href="index.html" >Samples</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+
+    Version <a href="/commit/"></a> at <br/>
+        Copyright &copy; 2012,  Willow Garage, Inc.
+
+    <br/>
+      
+        Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

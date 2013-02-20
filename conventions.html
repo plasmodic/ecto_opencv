@@ -1,0 +1,146 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>ecto_opencv conventions &mdash; ecto_opencv</title>
+    
+    <link rel="stylesheet" href="_static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="ecto_opencv" href="index.html" />
+    <link rel="next" title="writing opencv cells" href="writing_opencv_cells.html" />
+    <link rel="prev" title="ecto_opencv.features2d" href="cells/features2d.html" />
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-25265185-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="writing_opencv_cells.html" title="writing opencv cells"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="cells/features2d.html" title="ecto_opencv.features2d"
+             accesskey="P">previous</a> |</li>
+    <li><a href="http://ecto.willowgarage.com/">ecto.willowgarage.com</a> &raquo;</li>
+    
+        <li><a href="index.html">ecto_opencv</a> &raquo;</li>
+ 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">ecto_opencv conventions</a><ul>
+<li><a class="reference internal" href="#naming">Naming</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="cells/features2d.html"
+                        title="previous chapter">ecto_opencv.features2d</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="writing_opencv_cells.html"
+                        title="next chapter">writing opencv cells</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/conventions.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="ecto-opencv-conventions">
+<h1>ecto_opencv conventions<a class="headerlink" href="#ecto-opencv-conventions" title="Permalink to this headline">¶</a></h1>
+<p>tendrils for opencv based cells should follow the following rules.</p>
+<div class="section" id="naming">
+<h2>Naming<a class="headerlink" href="#naming" title="Permalink to this headline">¶</a></h2>
+<p>In general, the name of opencv tendrils is determined by what they are as datatypes and
+not what they do.</p>
+<ul class="simple">
+<li><tt class="docutils literal"><span class="pre">image</span></tt> for any image, unless it must be further disambiguated, e.g. in the
+case of image, and depth, and may be of common image type.</li>
+<li><tt class="docutils literal"><span class="pre">mask</span></tt> for an image based binary mask, and be of type CV_8UC1. Generally this should be an optional input.</li>
+<li><tt class="docutils literal"><span class="pre">points</span></tt> for any collection of 2d or 3d points, and the should be an NxM multichannel matrix where the number of dimensions is apparent in number of channels.</li>
+<li><tt class="docutils literal"><span class="pre">R</span></tt> is a 3 by 3 rotation matrix</li>
+<li><tt class="docutils literal"><span class="pre">T</span></tt> is a 3 by 1 translation vector</li>
+<li><tt class="docutils literal"><span class="pre">K</span></tt> is a 3 by 3 camera intrinsic matrix</li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="writing_opencv_cells.html" title="writing opencv cells"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="cells/features2d.html" title="ecto_opencv.features2d"
+             >previous</a> |</li>
+    <li><a href="http://ecto.willowgarage.com/">ecto.willowgarage.com</a> &raquo;</li>
+    
+        <li><a href="index.html">ecto_opencv</a> &raquo;</li>
+ 
+      </ul>
+    </div>
+    <div class="footer">
+
+    Version <a href="/commit/"></a> at <br/>
+        Copyright &copy; 2012,  Willow Garage, Inc.
+
+    <br/>
+      
+        Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

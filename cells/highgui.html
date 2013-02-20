@@ -1,0 +1,581 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Highgui Cells &mdash; ecto_opencv</title>
+    
+    <link rel="stylesheet" href="../_static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="ecto_opencv" href="../index.html" />
+    <link rel="up" title="ecto opencv cells" href="index.html" />
+    <link rel="next" title="ecto_opencv.imgproc" href="imgproc.html" />
+    <link rel="prev" title="ecto_opencv.calib" href="calib.html" />
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-25265185-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="imgproc.html" title="ecto_opencv.imgproc"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="calib.html" title="ecto_opencv.calib"
+             accesskey="P">previous</a> |</li>
+    <li><a href="http://ecto.willowgarage.com/">ecto.willowgarage.com</a> &raquo;</li>
+    
+        <li><a href="../index.html">ecto_opencv</a> &raquo;</li>
+
+          <li><a href="index.html" accesskey="U">ecto opencv cells</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Highgui Cells</a><ul>
+<li><a class="reference internal" href="#tricks">Tricks</a><ul>
+<li><a class="reference internal" href="#saving-images-on-a-key-stroke">Saving images on a key stroke</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#reference">Reference</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="calib.html"
+                        title="previous chapter">ecto_opencv.calib</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="imgproc.html"
+                        title="next chapter">ecto_opencv.imgproc</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/cells/highgui.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="highgui-cells">
+<span id="ecto-opencv-highgui"></span><h1>Highgui Cells<a class="headerlink" href="#highgui-cells" title="Permalink to this headline">¶</a></h1>
+<p>Common opencv image input and out, plus display.</p>
+<div class="section" id="tricks">
+<h2>Tricks<a class="headerlink" href="#tricks" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="saving-images-on-a-key-stroke">
+<h3>Saving images on a key stroke<a class="headerlink" href="#saving-images-on-a-key-stroke" title="Permalink to this headline">¶</a></h3>
+<p>imshow accepts an optional dict of string to key value, that it will output as
+trigger bools, useful with the <tt class="docutils literal"><span class="pre">ecto::if</span></tt> cell.</p>
+<p>See <a class="reference internal" href="../samples/image_saving.html#sample-imshow-save"><em>Saving images</em></a></p>
+</div>
+</div>
+<div class="section" id="reference">
+<h2>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
+<h2>ecto_opencv.highgui<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="V4LCapture">
+<span id="index-0"></span><span id="ecto_opencv.highgui.V4LCapture"></span><h3>V4LCapture<a class="headerlink" href="#V4LCapture" title="Permalink to this headline">¶</a></h3>
+<p></p>
+<div class="topic">
+<p class="topic-title first">Brief doc<p>Read images from a directory.</p>
+</p>
+<p class="topic-title first">Parameters<ul>
+<li><p class="first"><strong>height</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">unsigned</span> <span class="pre">int</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">480</span></tt></p>
+<p>Height</p>
+</li>
+<li><p class="first"><strong>video_device</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">std::string</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">/dev/video0</span></tt></p>
+<p>The device path to open.</p>
+</li>
+<li><p class="first"><strong>width</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">unsigned</span> <span class="pre">int</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">640</span></tt></p>
+<p>Width</p>
+</li>
+</ul>
+</p>
+<p></p>
+<p class="topic-title first">Outputs<ul>
+<li><p class="first"><strong>frame_number</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">int</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The number of frames captured.</p>
+</li>
+<li><p class="first"><strong>image</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>A video frame.</p>
+</li>
+</ul>
+</p>
+</div>
+</div>
+<div class="section" id="ImageJpgWriter">
+<span id="index-1"></span><span id="ecto_opencv.highgui.ImageJpgWriter"></span><h3>ImageJpgWriter<a class="headerlink" href="#ImageJpgWriter" title="Permalink to this headline">¶</a></h3>
+<p></p>
+<div class="topic">
+<p class="topic-title first">Brief doc<p>Writes jpg to a file like object</p>
+</p>
+<p class="topic-title first">Parameters<ul>
+<li><p class="first"><strong>file</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">boost::shared_ptr&lt;std::ostream&gt;</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> no default value</em></p>
+<p>A filelike object</p>
+</li>
+</ul>
+</p>
+<p class="topic-title first">Inputs<ul>
+<li><p class="first"><strong>image</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>An image to write.</p>
+</li>
+</ul>
+</p>
+<p class="topic-title first">Outputs<ul>
+<li><p class="first"><strong>file</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">boost::shared_ptr&lt;std::ostream&gt;</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>A filelike object</p>
+</li>
+</ul>
+</p>
+</div>
+</div>
+<div class="section" id="MatWriter">
+<span id="index-2"></span><span id="ecto_opencv.highgui.MatWriter"></span><h3>MatWriter<a class="headerlink" href="#MatWriter" title="Permalink to this headline">¶</a></h3>
+<p></p>
+<div class="topic">
+<p class="topic-title first">Brief doc<p>Write a cv::Mat to a yaml or xml file.</p>
+</p>
+<p class="topic-title first">Parameters<ul>
+<li><p class="first"><strong>filename</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">std::string</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"></tt></p>
+<p>Name of mat to write.</p>
+</li>
+</ul>
+</p>
+<p class="topic-title first">Inputs<ul>
+<li><p class="first"><strong>mat</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>A mat to print.</p>
+</li>
+</ul>
+</p>
+<p></p>
+</div>
+</div>
+<div class="section" id="imread">
+<span id="index-3"></span><span id="ecto_opencv.highgui.imread"></span><h3>imread<a class="headerlink" href="#imread" title="Permalink to this headline">¶</a></h3>
+<p></p>
+<div class="topic">
+<p class="topic-title first">Brief doc<p>Reads a single image, const cell.</p>
+</p>
+<p class="topic-title first">Parameters<ul>
+<li><p class="first"><strong>image_file</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">std::string</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">lena.jpg</span></tt></p>
+<p>The path to the image to read.</p>
+</li>
+<li><p class="first"><strong>lock_name</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">std::string</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"></tt></p>
+<p>If set to something, an flock will be created for that file</p>
+</li>
+<li><p class="first"><strong>mode</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">ecto_opencv::Image::Modes</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">COLOR</span></tt><p><em>Legal Values: </em><tt class="docutils literal"><span class="pre">GRAYSCALE</span> <span class="pre">(0)</span>&nbsp;&nbsp; </tt><tt class="docutils literal"><span class="pre">COLOR</span> <span class="pre">(1)</span>&nbsp;&nbsp; </tt><tt class="docutils literal"><span class="pre">ANYDEPTH</span> <span class="pre">(2)</span>&nbsp;&nbsp; </tt><tt class="docutils literal"><span class="pre">ANYCOLOR</span> <span class="pre">(4)</span>&nbsp;&nbsp; </tt><tt class="docutils literal"><span class="pre">UNCHANGED</span> <span class="pre">(-1)</span>&nbsp;&nbsp; </tt></p>
+</p>
+<p>The image read mode.</p>
+</li>
+<li><p class="first"><strong>refresh</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">bool</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">False</span></tt></p>
+<p>If true, the image is re-read every time</p>
+</li>
+</ul>
+</p>
+<p></p>
+<p class="topic-title first">Outputs<ul>
+<li><p class="first"><strong>image</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The image in full color.</p>
+</li>
+</ul>
+</p>
+</div>
+</div>
+<div class="section" id="FPSDrawer">
+<span id="index-4"></span><span id="ecto_opencv.highgui.FPSDrawer"></span><h3>FPSDrawer<a class="headerlink" href="#FPSDrawer" title="Permalink to this headline">¶</a></h3>
+<p></p>
+<div class="topic">
+<p class="topic-title first">Brief doc<p>Draw the Hz on an image.</p>
+</p>
+<p></p>
+<p class="topic-title first">Inputs<ul>
+<li><p class="first"><strong>image</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The original image to draw the pose onto.</p>
+</li>
+</ul>
+</p>
+<p class="topic-title first">Outputs<ul>
+<li><p class="first"><strong>image</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The image with fps drawn on it.</p>
+</li>
+</ul>
+</p>
+</div>
+</div>
+<div class="section" id="ImageSaver">
+<span id="index-5"></span><span id="ecto_opencv.highgui.ImageSaver"></span><h3>ImageSaver<a class="headerlink" href="#ImageSaver" title="Permalink to this headline">¶</a></h3>
+<p></p>
+<div class="topic">
+<p class="topic-title first">Brief doc<p>An file saver for images.</p>
+</p>
+<p class="topic-title first">Parameters<ul>
+<li><p class="first"><strong>filename_format</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">std::string</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">./image_%04d.png</span></tt></p>
+<p>The filename format string. Must accept one integer, %d. This integer will monotonically increase. The extension determines the image format to write.</p>
+</li>
+<li><p class="first"><strong>filename_param</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">std::string</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"></tt></p>
+<p>A single filename, set this for single file output.</p>
+</li>
+<li><p class="first"><strong>lock_name</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">std::string</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"></tt></p>
+<p>If set to something, an flock will be created for that file</p>
+</li>
+<li><p class="first"><strong>start</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">int</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">0</span></tt></p>
+<p>The starting integer value, that will be inserted into the filename format string</p>
+</li>
+</ul>
+</p>
+<p class="topic-title first">Inputs<ul>
+<li><p class="first"><strong>filename</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">std::string</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>A single filename, set this for single file output.</p>
+</li>
+<li><p class="first"><strong>image</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The image to save.</p>
+</li>
+</ul>
+</p>
+<p class="topic-title first">Outputs<ul>
+<li><p class="first"><strong>filename</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">std::string</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The filename that was used for saving the last frame.</p>
+</li>
+</ul>
+</p>
+</div>
+</div>
+<div class="section" id="imshow">
+<span id="index-6"></span><span id="ecto_opencv.highgui.imshow"></span><h3>imshow<a class="headerlink" href="#imshow" title="Permalink to this headline">¶</a></h3>
+<p></p>
+<div class="topic">
+<p class="topic-title first">Brief doc<p>Displays an image. If a dictionary is defined in triggers, each key is defined as an output, the value being a bool of whether it&#8217;s been pressed</p>
+</p>
+<p class="topic-title first">Parameters<ul>
+<li><p class="first"><strong>autoSize</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">bool</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">True</span></tt></p>
+<p>Autosize the window.</p>
+</li>
+<li><p class="first"><strong>maximize</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">bool</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">False</span></tt></p>
+<p>Fullscreen the window, takes precedence over autoSize.</p>
+</li>
+<li><p class="first"><strong>name</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">std::string</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">image</span></tt></p>
+<p>The window name</p>
+</li>
+<li><p class="first"><strong>triggers</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">boost::python::api::object</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> no default value</em></p>
+<p>A dict of trigger keys, e.g. {&#8216;x_key&#8217;:ord(&#8216;x&#8217;)}</p>
+</li>
+<li><p class="first"><strong>waitKey</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">int</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">-1</span></tt></p>
+<p>Number of millis to wait, -1 for not at all, 0 for infinity.</p>
+</li>
+</ul>
+</p>
+<p class="topic-title first">Inputs<ul>
+<li><p class="first"><strong>image</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The image to show</p>
+</li>
+</ul>
+</p>
+<p></p>
+</div>
+</div>
+<div class="section" id="VideoCapture">
+<span id="index-7"></span><span id="ecto_opencv.highgui.VideoCapture"></span><h3>VideoCapture<a class="headerlink" href="#VideoCapture" title="Permalink to this headline">¶</a></h3>
+<p></p>
+<div class="topic">
+<p class="topic-title first">Brief doc<p>Read images from a directory.</p>
+</p>
+<p class="topic-title first">Parameters<ul>
+<li><p class="first"><strong>height</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">unsigned</span> <span class="pre">int</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">480</span></tt></p>
+<p>Set width to this after opening device</p>
+</li>
+<li><p class="first"><strong>video_device</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">int</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">0</span></tt></p>
+<p>The device ID to open.</p>
+</li>
+<li><p class="first"><strong>video_file</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">std::string</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"></tt></p>
+<p>A video file to read, leave empty to open a video device.</p>
+</li>
+<li><p class="first"><strong>width</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">unsigned</span> <span class="pre">int</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">640</span></tt></p>
+<p>Set width to this after opening device</p>
+</li>
+</ul>
+</p>
+<p></p>
+<p class="topic-title first">Outputs<ul>
+<li><p class="first"><strong>frame_number</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">int</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The number of frames captured.</p>
+</li>
+<li><p class="first"><strong>image</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>A video frame.</p>
+</li>
+</ul>
+</p>
+</div>
+</div>
+<div class="section" id="MatReader">
+<span id="index-8"></span><span id="ecto_opencv.highgui.MatReader"></span><h3>MatReader<a class="headerlink" href="#MatReader" title="Permalink to this headline">¶</a></h3>
+<p></p>
+<div class="topic">
+<p class="topic-title first">Brief doc<p>Read a cv::Mat from a yaml or xml file.</p>
+</p>
+<p class="topic-title first">Parameters<ul>
+<li><p class="first"><strong>filename</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">std::string</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"></tt></p>
+<p>Name of mat to read.</p>
+</li>
+</ul>
+</p>
+<p></p>
+<p class="topic-title first">Outputs<ul>
+<li><p class="first"><strong>mat</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>A mat to print.</p>
+</li>
+</ul>
+</p>
+</div>
+</div>
+<div class="section" id="VideoWriter">
+<span id="index-9"></span><span id="ecto_opencv.highgui.VideoWriter"></span><h3>VideoWriter<a class="headerlink" href="#VideoWriter" title="Permalink to this headline">¶</a></h3>
+<p></p>
+<div class="topic">
+<p class="topic-title first">Brief doc<p>Writes images to motion jpeg file.</p>
+</p>
+<p class="topic-title first">Parameters<ul>
+<li><p class="first"><strong>command</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">ecto_opencv::Record::RecordCommands</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">START</span></tt><p><em>Legal Values: </em><tt class="docutils literal"><span class="pre">START</span> <span class="pre">(0)</span>&nbsp;&nbsp; </tt><tt class="docutils literal"><span class="pre">RESUME</span> <span class="pre">(1)</span>&nbsp;&nbsp; </tt><tt class="docutils literal"><span class="pre">PAUSE</span> <span class="pre">(2)</span>&nbsp;&nbsp; </tt><tt class="docutils literal"><span class="pre">STOP</span> <span class="pre">(3)</span>&nbsp;&nbsp; </tt></p>
+</p>
+<p>The video recorder command</p>
+</li>
+<li><p class="first"><strong>fps</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">double</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">30.0</span></tt></p>
+<p>Framerate of the created video stream.</p>
+</li>
+<li><p class="first"><strong>video_file</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">std::string</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">video.mpg</span></tt></p>
+<p>A video file name.</p>
+</li>
+</ul>
+</p>
+<p class="topic-title first">Inputs<ul>
+<li><p class="first"><strong>image</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>Frame to record.</p>
+</li>
+</ul>
+</p>
+<p></p>
+</div>
+</div>
+<div class="section" id="NiConverter">
+<span id="index-10"></span><span id="ecto_opencv.highgui.NiConverter"></span><h3>NiConverter<a class="headerlink" href="#NiConverter" title="Permalink to this headline">¶</a></h3>
+<p></p>
+<div class="topic">
+<p class="topic-title first">Brief doc<p>Read images from a directory.</p>
+</p>
+<p class="topic-title first">Parameters<ul>
+<li><p class="first"><strong>rescale</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">bool</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">False</span></tt></p>
+<p>Convert depth to floating point and rescale.</p>
+</li>
+</ul>
+</p>
+<p class="topic-title first">Inputs<ul>
+<li><p class="first"><strong>depth_buffer</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">boost::shared_ptr&lt;std::vector&lt;unsigned</span> <span class="pre">short,</span> <span class="pre">std::allocator&lt;unsigned</span> <span class="pre">short&gt;</span> <span class="pre">&gt;</span> <span class="pre">const&gt;</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p></p>
+</li>
+<li><p class="first"><strong>depth_height</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">int</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>Depth frame height.</p>
+</li>
+<li><p class="first"><strong>depth_width</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">int</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>Depth frame width.</p>
+</li>
+<li><p class="first"><strong>image_buffer</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">boost::shared_ptr&lt;std::vector&lt;unsigned</span> <span class="pre">char,</span> <span class="pre">std::allocator&lt;unsigned</span> <span class="pre">char&gt;</span> <span class="pre">&gt;</span> <span class="pre">const&gt;</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p></p>
+</li>
+<li><p class="first"><strong>image_channels</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">int</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>Number of image channels.</p>
+</li>
+<li><p class="first"><strong>image_height</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">int</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>Image frame height.</p>
+</li>
+<li><p class="first"><strong>image_width</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">int</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>Image frame width.</p>
+</li>
+</ul>
+</p>
+<p class="topic-title first">Outputs<ul>
+<li><p class="first"><strong>depth</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p></p>
+</li>
+<li><p class="first"><strong>image</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p></p>
+</li>
+</ul>
+</p>
+</div>
+</div>
+<div class="section" id="MatPrinter">
+<span id="index-11"></span><span id="ecto_opencv.highgui.MatPrinter"></span><h3>MatPrinter<a class="headerlink" href="#MatPrinter" title="Permalink to this headline">¶</a></h3>
+<p></p>
+<div class="topic">
+<p class="topic-title first">Brief doc<p>Print a cv::Mat to the console.</p>
+</p>
+<p class="topic-title first">Parameters<ul>
+<li><p class="first"><strong>name</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">std::string</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> no default value</em></p>
+<p>Name of mat to print.</p>
+</li>
+</ul>
+</p>
+<p class="topic-title first">Inputs<ul>
+<li><p class="first"><strong>mat</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>A mat to print.</p>
+</li>
+</ul>
+</p>
+<p></p>
+</div>
+</div>
+<div class="section" id="ImageReader">
+<span id="index-12"></span><span id="ecto_opencv.highgui.ImageReader"></span><h3>ImageReader<a class="headerlink" href="#ImageReader" title="Permalink to this headline">¶</a></h3>
+<p></p>
+<div class="topic">
+<p class="topic-title first">Brief doc<p>Read images from a directory.</p>
+</p>
+<p class="topic-title first">Parameters<ul>
+<li><p class="first"><strong>file_list</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">std::vector&lt;std::string,</span> <span class="pre">std::allocator&lt;std::string&gt;</span> <span class="pre">&gt;</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">&lt;ecto.ecto_main.VectorString</span> <span class="pre">object</span> <span class="pre">at</span> <span class="pre">0x37f5d50&gt;</span></tt></p>
+<p>A list of images to read.</p>
+</li>
+<li><p class="first"><strong>lock_name</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">std::string</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"></tt></p>
+<p>If set to something, an flock will be created for that file</p>
+</li>
+<li><p class="first"><strong>loop</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">bool</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">False</span></tt></p>
+<p>Loop over the list</p>
+</li>
+<li><p class="first"><strong>match</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">std::string</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">.*\.(bmp|jpg|png)</span></tt></p>
+<p>Use images matching this regex (regex.  not glob.)</p>
+</li>
+<li><p class="first"><strong>path</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">std::string</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">/tmp/ecto/rules</span></tt></p>
+<p>The path to read images from.</p>
+</li>
+</ul>
+</p>
+<p class="topic-title first">Inputs<ul>
+<li><p class="first"><strong>step</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">int</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The set at which to read the images.</p>
+</li>
+</ul>
+</p>
+<p class="topic-title first">Outputs<ul>
+<li><p class="first"><strong>frame_number</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">int</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The number of frames captured.</p>
+</li>
+<li><p class="first"><strong>image</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>A video frame.</p>
+</li>
+<li><p class="first"><strong>image_file</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">std::string</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The current image file being read</p>
+</li>
+</ul>
+</p>
+</div>
+</div>
+<div class="section" id="DoubleDrawer">
+<span id="index-13"></span><span id="ecto_opencv.highgui.DoubleDrawer"></span><h3>DoubleDrawer<a class="headerlink" href="#DoubleDrawer" title="Permalink to this headline">¶</a></h3>
+<p></p>
+<div class="topic">
+<p class="topic-title first">Brief doc<p>Draw a double and legend on an image.</p>
+</p>
+<p class="topic-title first">Parameters<ul>
+<li><p class="first"><strong>format</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">std::string</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">%f</span></tt></p>
+<p>boost::format string.  Will be passed a double</p>
+</li>
+<li><p class="first"><strong>x</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">unsigned</span> <span class="pre">int</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">0</span></tt></p>
+<p>x offset</p>
+</li>
+<li><p class="first"><strong>y</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">unsigned</span> <span class="pre">int</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt><em> not </em><em>required</em><tt class="docutils literal">&nbsp;&nbsp; </tt><em> default: </em><tt class="docutils literal"><span class="pre">0</span></tt></p>
+<p>y offset</p>
+</li>
+</ul>
+</p>
+<p class="topic-title first">Inputs<ul>
+<li><p class="first"><strong>image</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The original image to draw the pose onto.</p>
+</li>
+<li><p class="first"><strong>value</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">double</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>Value to be drawn</p>
+</li>
+</ul>
+</p>
+<p class="topic-title first">Outputs<ul>
+<li><p class="first"><strong>image</strong><tt class="docutils literal">&nbsp;&nbsp; </tt><em>   type: </em><tt class="docutils literal"><span class="pre">cv::Mat</span> </tt><tt class="docutils literal">&nbsp;&nbsp; </tt></p>
+<p>The image with fps drawn on it.</p>
+</li>
+</ul>
+</p>
+</div>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="imgproc.html" title="ecto_opencv.imgproc"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="calib.html" title="ecto_opencv.calib"
+             >previous</a> |</li>
+    <li><a href="http://ecto.willowgarage.com/">ecto.willowgarage.com</a> &raquo;</li>
+    
+        <li><a href="../index.html">ecto_opencv</a> &raquo;</li>
+
+          <li><a href="index.html" >ecto opencv cells</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+
+    Version <a href="/commit/"></a> at <br/>
+        Copyright &copy; 2012,  Willow Garage, Inc.
+
+    <br/>
+      
+        Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>
