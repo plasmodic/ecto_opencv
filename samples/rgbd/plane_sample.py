@@ -43,7 +43,7 @@ if __name__ == '__main__':
     #plasm.connect(source['image'] >> rgb2gray ['image'])
 
     #connect up the pose_est
-    connections = [ source['depth_raw'] >> depth_to_3d['depth'],
+    connections = [ source['depth'] >> depth_to_3d['depth'],
                     source['K'] >> depth_to_3d['K'],
                     source['image'] >> imshow(name='original',waitKey=1)[:]
                     ]
@@ -54,7 +54,7 @@ if __name__ == '__main__':
             connections += [ depth_to_3d['points3d'] >> compute_normals[type]['points3d'] ]
     for type in [RgbdNormalsTypes.LINEMOD ]:
         if type in normal_types:
-            connections += [ source['depth_raw'] >> compute_normals[type]['points3d'] ]
+            connections += [ source['depth'] >> compute_normals[type]['points3d'] ]
 
     # send the camera calibration parameters
     for type in normal_types:
