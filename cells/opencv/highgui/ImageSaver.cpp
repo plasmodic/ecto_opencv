@@ -27,7 +27,7 @@ namespace ecto_opencv
                      "Must accept one integer, %d. This integer will monotonically increase. "
                      "The extension determines the image format to write.",
                      "./image_%04d.png");
-      params.declare(&C::filename_param, "filename_param", "A single filename, set this for single file output.", "");
+      params.declare(&C::filename_param, "filename_param", "A single filename, set this for single file output. Overrides 'filename_format' if non-empty.", "");
       params.declare(&C::count, "start",
                      "The starting integer value, that will be inserted into the filename format string", 0);
       params.declare(&C::lock_name_, "lock_name", "If set to something, an flock will be created for that file", "");
@@ -67,7 +67,7 @@ namespace ecto_opencv
       std::string name;
       if (filename->empty())
       {
-        if (filename_format->empty())
+        if (!filename_param->empty())
           name = *filename_param;
         else
           name = boost::str(boost::format(*filename_format) % (*count)++);
