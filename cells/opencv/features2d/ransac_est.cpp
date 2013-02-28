@@ -200,8 +200,9 @@ struct MatchRefinement
     inputs.declare(&C::train, "train", "The training points.");
     inputs.declare(&C::test, "test", "The test points.");
     inputs.declare(&C::matches_in, "matches", "The descriptor matches.");
+
     outputs.declare(&C::matches_out, "matches", "The verified matches.");
-    outputs.declare(&C::matches_mask, "matches_mask", "The matches mask, same size as the original matches.");
+    outputs.declare(&C::matches_mask, "matches_mask", "The matches mask, same size as the output matches.");
     outputs.declare(&C::H_out, "H", "The estimated homography.");
   }
 
@@ -209,8 +210,11 @@ struct MatchRefinement
   process(const tendrils&inputs, const tendrils& outputs)
   {
 
-    if (matches_in->empty())
+    if (matches_in->empty()) {
+      matches_out->clear();
+      *matches_mask = cv::Mat_<uchar>();
       return ecto::OK;
+    }
     matches_t good_matches;
     std::remove_copy_if(matches_in->begin(), matches_in->end(), std::back_inserter(good_matches),
                         match_distance_predicate_(*match_distance));
@@ -252,8 +256,9 @@ struct MatchRefinement3d
     inputs.declare(&C::train, "train", "The 3d training points.");
     inputs.declare(&C::test, "test", "The 3d test points.");
     inputs.declare(&C::matches_in, "matches", "The descriptor matches.");
+
     outputs.declare(&C::matches_out, "matches", "The verified matches.");
-    outputs.declare(&C::matches_mask, "matches_mask", "The matches mask, same size as the original matches.");
+    outputs.declare(&C::matches_mask, "matches_mask", "The matches mask, same size as the output matches.");
     outputs.declare(&C::R_out, "R");
     outputs.declare(&C::T_out, "T");
   }
@@ -269,8 +274,11 @@ struct MatchRefinement3d
 
     //    std::cout << "Non-NAN matches: " << non_nan_matches.size() << std::endl;
 
-    if (non_nan_matches.empty())
+    if (non_nan_matches.empty()) {
+      matches_out->clear();
+      *matches_mask = cv::Mat_<uchar>();
       return ecto::OK;
+    }
 
     //need to preallocate the mask!
     //    cv::Mat inl(1, non_nan_matches.size(), CV_8U, 1);
@@ -329,8 +337,9 @@ struct MatchRefinementPnP
     inputs.declare(&C::train, "train", "The 3d training points.");
     inputs.declare(&C::test, "test", "The 3d test points.");
     inputs.declare(&C::matches_in, "matches", "The descriptor matches.");
+
     outputs.declare(&C::matches_out, "matches", "The verified matches.");
-    outputs.declare(&C::matches_mask, "matches_mask", "The matches mask, same size as the original matches.");
+    outputs.declare(&C::matches_mask, "matches_mask", "The matches mask, same size as the output matches.");
     outputs.declare(&C::R_out, "R");
     outputs.declare(&C::T_out, "T");
     outputs.declare(&C::found_out, "found");
@@ -344,8 +353,11 @@ struct MatchRefinementPnP
     std::remove_copy_if(matches_in->begin(), matches_in->end(), std::back_inserter(good_matches),
                         match_distance_predicate<50>());
 
-    if (good_matches.size() < 50)
+    if (good_matches.size() < 50) {
+      matches_out->clear();
+      *matches_mask = cv::Mat_<uchar>();
       return ecto::OK;
+    }
 
     //collate the matches into contiguous blocks of 3d points.
     points3d_t train_m;
@@ -402,8 +414,9 @@ struct MatchRefinementHSvd
     inputs.declare(&C::train_3d, "train_3d", "The 3d training points.");
     inputs.declare(&C::test_3d, "test_3d", "The 3d test points.");
     inputs.declare(&C::matches_in, "matches", "The descriptor matches.");
+
     outputs.declare(&C::matches_out, "matches", "The verified matches.");
-    outputs.declare(&C::matches_mask, "matches_mask", "The matches mask, same size as the original matches.");
+    outputs.declare(&C::matches_mask, "matches_mask", "The matches mask, same size as the output matches.");
     outputs.declare(&C::R_out, "R");
     outputs.declare(&C::T_out, "T");
     outputs.declare(&C::found_out, "found");
@@ -416,8 +429,11 @@ struct MatchRefinementHSvd
     matches_t good_matches, good_matches_H;
     std::remove_copy_if(matches_in->begin(), matches_in->end(), std::back_inserter(good_matches),
                         match_distance_predicate<90>());
-    if (good_matches.size() < 2 * (*min_inliers))
+    if (good_matches.size() < 2 * (*min_inliers)) {
+      matches_out->clear();
+      *matches_mask = cv::Mat_<uchar>();
       return ecto::OK;
+    }
 
     //collate the matches into contiguous blocks of 3d points.
     points_t train_pts;
