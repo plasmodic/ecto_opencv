@@ -34,7 +34,7 @@ if __name__ == '__main__':
     plane_finder = PlaneFinder(threshold=0.03,sensor_error_a=0.0075, min_size=10000)
 
     #connect up the pose_est
-    connections = [ source['depth_raw'] >> depth_to_3d['depth'],
+    connections = [ source['depth'] >> depth_to_3d['depth'],
                     source['K'] >> depth_to_3d['K'],
                     source['image'] >> imshow(name='original')[:]
                     ]
@@ -57,8 +57,8 @@ if __name__ == '__main__':
     # find the clusters
     on_plane_clusterer = OnPlaneClusterer()
     connections += [ depth_to_3d['points3d'] >> on_plane_clusterer['points3d'],
-                     plane_finder['masks'] >> on_plane_clusterer['table_mask'],
-                     plane_finder['planes'] >> on_plane_clusterer['table_coefficients'],
+                     plane_finder['masks'] >> on_plane_clusterer['masks'],
+                     plane_finder['planes'] >> on_plane_clusterer['planes'],
                    ]
 
     # draw the clusters
