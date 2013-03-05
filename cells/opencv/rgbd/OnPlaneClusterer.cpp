@@ -61,6 +61,114 @@ cv::Vec3f projectPointOnPlane(const cv::Vec3f& vec, const cv::Vec4f& plane) {
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+class BelongPredicate {
+ public:
+  virtual ~BelongPredicate() {
+  }
+  virtual bool operator()(const cv::Vec3f& point,
+                          const cv::Vec3f& point_expanded_from,
+                          const cv::Vec4f& plane) const = 0;
+};
+
+void clusterOnPlane(const cv::Mat_<uchar> &plane_masks,
+                    const cv::Mat_<cv::Vec3f> &points3d,
+                    const std::vector<cv::Vec4f>&planes,
+                    const BelongPredicate& predicate,
+                    size_t min_cluster_size,
+                    std::vector<std::vector<std::vector<cv::Vec2i> > >&clusters2d,
+                    std::vector<std::vector<std::vector<cv::Vec3f> > >&clusters3d) {
+  // If an object touches a plane, its pixels also touch some pixels of the plane
+  // Let's find those pixels first
+  cv::Mat_<uchar> checked = plane_masks != 255, object_seeds;
+  cv::dilate(checked, object_seeds, cv::Mat());
+  object_seeds = object_seeds - checked;
+
+  // For each potential pixel ...
+  clusters2d.clear();
+  clusters3d.clear();
+  for (int y = 1; y < plane_masks.rows - 1; ++y) {
+    uchar* iter = object_seeds.ptr<uchar>(y);
+    for (int x = 1; x < plane_masks.cols - 1; ++x, ++iter) {
+      // Only look at pixels that are on the edge of planes
+      if ((!(*iter)) || (checked(y, x)))
+        continue;
+      // ok we have a seed, first get the plane from it
+      size_t plane_closest = 0;
+      for (int yy = y - 1; yy <= y + 1; ++yy)
+        for (int xx = x - 1; xx <= x + 1; ++xx) {
+          if (plane_masks.at<uchar>(yy, xx) != 255) {
+            plane_closest = plane_masks.at<uchar>(yy, xx);
+            break;
+          }
+        }
+      // Create a new cluster
+      std::vector<cv::Vec2i> cluster2d;
+      std::vector<cv::Vec3f> cluster3d;
+
+      // Now, proceed by region growing to find the rest of the object
+      std::list<cv::Point> point_list(1, cv::Point(x, y));
+      while (!point_list.empty()) {
+        // Look at the neighboring points
+        const cv::Point& point2d = point_list.front();
+        const cv::Vec3f& point3d_1 = points3d(point2d.y, point2d.x);
+        // Go over the neighboring points
+        for (int yy = std::max(point2d.y - 1, 0);
+            yy <= std::min(point2d.y + 1, plane_masks.rows - 1); ++yy)
+          for (int xx = std::max(point2d.x - 1, 0);
+              xx <= std::min(point2d.x + 1, plane_masks.cols - 1); ++xx) {
+            if (checked(yy, xx))
+              continue;
+            // Compute the distance from that point to the original point
+            const cv::Vec3f& point3d_2 = points3d(yy, xx);
+            if (predicate(point3d_1, point3d_2, planes[plane_closest])) {
+              point_list.push_back(cv::Point(xx, yy));
+              cluster2d.push_back(cv::Vec2i(xx, yy));
+              cluster3d.push_back(point3d_2);
+            }
+            checked(yy, xx) = 1;
+          }
+        point_list.pop_front();
+      }
+
+      if (cluster3d.size() < min_cluster_size)
+        continue;
+      if (plane_closest >= clusters2d.size()) {
+        clusters2d.resize(plane_closest + 1);
+        clusters3d.resize(plane_closest + 1);
+      }
+      clusters2d[plane_closest].push_back(cluster2d);
+      clusters3d[plane_closest].push_back(cluster3d);
+    }
+  }
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+class DistancePredicate : public BelongPredicate {
+ public:
+  DistancePredicate(float cluster_distance, float z_min, float z_max)
+      : cluster_distance_(cluster_distance), z_min_(z_min), z_max_(z_max) {
+
+  }
+  bool operator()(const cv::Vec3f& point,
+                  const cv::Vec3f& point_expanded_from,
+                  const cv::Vec4f& plane) const {
+    // Compute the distance from that point to the original point
+     if (pointDistanceSq(point, point_expanded_from)
+     < cluster_distance_ *cluster_distance_) {
+      // Only add the point if it is within the plane distance boundaries
+      float dist = pointPlaneDistance(point,plane);
+      if ((z_min_ < dist) && (dist < z_max_)) {
+        return true;
+      }
+    }
+     return false;
+  }
+ private:
+  float cluster_distance_;
+  float z_min_, z_max_;
+};
+
 /** Cell that finds the clusters touching planes detected in a given depth image
  */
 struct OnPlaneClusterer {
@@ -105,74 +213,9 @@ struct OnPlaneClusterer {
 
     const cv::Mat_<cv::Vec3f> &points3d = *points3d_;
 
-    // If an object touches a plane, its pixels also touch some pixels of the plane
-    // Let's find those pixels first
-    cv::Mat_<uchar> checked = (*masks_) != 255, object_seeds;
-    cv::dilate(checked, object_seeds, cv::Mat());
-    object_seeds = object_seeds - checked;
-
-    // For each potential pixel ...
-    for (int y = 1; y < masks_->rows - 1; ++y) {
-      uchar* iter = object_seeds.ptr<uchar>(y);
-      for (int x = 1; x < masks_->cols - 1; ++x, ++iter) {
-        // Only look at pixels that are on the edge of planes
-        if ((!(*iter)) || (checked(y, x)))
-          continue;
-        // ok we have a seed, first get the plane from it
-        int plane_closest = -1;
-        float plane_distance_min = std::numeric_limits<float>::max();
-        for (int yy = y - 1; yy <= y + 1; ++yy)
-          for (int xx = x - 1; xx <= x + 1; ++xx) {
-            if ((*masks_).at<uchar>(yy, xx) != 255) {
-              // compute the distance from the point to the plane
-              float plane_distance = pointDistanceSq(points3d(y, x),
-                  points3d(yy, xx));
-              if (plane_distance < plane_distance_min) {
-                plane_closest = (*masks_).at<uchar>(yy, xx);
-                plane_distance_min = plane_distance;
-              }
-            }
-          }
-        if (plane_closest < 0)
-          continue;
-        // Create a new cluster
-        std::vector<cv::Vec2i> cluster2d;
-        std::vector<cv::Vec3f> cluster3d;
-
-        // Now, proceed by region growing to find the rest of the object
-        std::list<cv::Point> point_list(1, cv::Point(x, y));
-        while (!point_list.empty()) {
-          // Look at the neighboring points
-          const cv::Point& point2d = point_list.front();
-          const cv::Vec3f& point3d_1 = points3d(point2d.y, point2d.x);
-          for (int yy = std::max(point2d.y - 1, 0); yy <= std::min(point2d.y + 1, masks_->rows - 1); ++yy)
-            for (int xx = std::max(point2d.x - 1, 0); xx <= std::min(point2d.x + 1, masks_->cols - 1); ++xx) {
-              if (checked(yy, xx))
-                continue;
-              // Compute the distance from that point to the original point
-              const cv::Vec3f& point3d_2 = points3d(yy, xx);
-              if (pointDistanceSq(point3d_1, point3d_2)
-                  < (*cluster_distance_) * (*cluster_distance_)) {
-                checked(yy, xx) = 1;
-                point_list.push_back(cv::Point(xx, yy));
-                // Only add the point if it is within the plane distance boundaries
-                float dist = pointPlaneDistance(point3d_2,
-                    (*planes_)[plane_closest]);
-                if ((*z_min_ < dist) && (dist < *z_max_)) {
-                  cluster2d.push_back(cv::Vec2i(xx, yy));
-                  cluster3d.push_back(point3d_2);
-                }
-              }
-            }
-          point_list.pop_front();
-        }
-
-        if (cluster3d.size() < *min_cluster_size_)
-          continue;
-        (*clusters2d_)[plane_closest].push_back(cluster2d);
-        (*clusters3d_)[plane_closest].push_back(cluster3d);
-      }
-    }
+    clusterOnPlane(*masks_, points3d, *planes_,
+                   DistancePredicate(*min_cluster_size_, *z_min_, *z_max_),
+                   *min_cluster_size_, *clusters2d_, *clusters3d_);
 
     return ecto::OK;
   }
