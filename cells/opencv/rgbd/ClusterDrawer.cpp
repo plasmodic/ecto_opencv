@@ -70,7 +70,7 @@ using ecto::tendrils;
           const std::vector<cv::Vec2i> &cluster = clusters[cluster_index];
           for(size_t i = 0; i < cluster.size(); ++i) {
             // Draw the cluster in white
-            (*image_clusters_).at<cv::Vec3b>(cluster[i][1], cluster[i][0]) = cv::Vec3b(255,255,255);
+            (*image_clusters_).at<cv::Vec3b>(cluster[i][1], cluster[i][0]) = cv::Vec3b(0,0,255);
           }
         }
         // Find the contour of the cluster
