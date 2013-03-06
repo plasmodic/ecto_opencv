@@ -130,7 +130,7 @@ void clusterOnPlane(const cv::Mat_<uchar> &plane_masks,
         point_list.pop_front();
       }
 
-      if (cluster3d.size() < min_cluster_size)
+      if ((cluster3d.size() < min_cluster_size) || (cluster3d.empty()))
         continue;
       if (plane_closest >= clusters2d.size()) {
         clusters2d.resize(plane_closest + 1);
@@ -241,12 +241,40 @@ private:
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+class CylinderPredicate : public BelongPredicate {
+ public:
+  CylinderPredicate(const cv::Vec3f& T, float radius_max, float z_min,
+                    float z_max)
+      : T_(T),
+        radius_max_(radius_max),
+        z_min_(z_min),
+        z_max_(z_max) {
+
+  }
+  bool operator()(const cv::Vec3f& point, const cv::Vec3f&,
+                  const cv::Vec4f& plane) const {
+    // Only add the point if it is within the plane distance boundaries
+    float dist = pointPlaneDistance(point, plane);
+    if ((z_min_ < dist) && (dist < z_max_)) {
+      // Also make sure it is within the radius boundary
+      cv::Vec3f projection = projectPointOnPlane(point, plane);
+      if (cv::norm(T_ - projection) < radius_max_)
+        return true;
+    }
+    return false;
+  }
+ private:
+  cv::Vec3f T_;
+  float radius_max_;
+  float z_min_, z_max_;
+};
+
 /** Cell that finds the cluster of points in a cylinder on top of a plane
  */
 struct OnPlaneClustererCylinder {
   static void declare_params(ecto::tendrils& params) {
     params.declare(&OnPlaneClustererCylinder::radius_max_, "radius_crop",
-        "The amount to keep in the x direction (meters) relative\n"
+                   "The amount to keep in the x direction (meters) relative\n"
             "to the coordinate frame defined by the pose.", 0.2);
     params.declare(&OnPlaneClustererCylinder::z_min_, "z_min",
         "The amount to crop above the plane, in meters.", 0.0075);
@@ -304,50 +332,28 @@ struct OnPlaneClustererCylinder {
     }
     const cv::Vec4f &plane_best = (*planes_)[plane_best_index];
 
-    const cv::Mat_<cv::Vec3f> &points3d = *points3d_;
+    // Find the clusters for that plane only
+    std::vector<std::vector<std::vector<cv::Vec2i> > > clusters2d(1);
+    std::vector<std::vector<std::vector<cv::Vec3f> > > clusters3d(1);
 
-    // If an object touches a plane, its pixels also touch some pixels of the plane
-    // Let's find those pixels first
-    cv::Mat_<uchar> checked = (*masks_) == plane_best_index, object_seeds;
-    cv::dilate(checked, object_seeds, cv::Mat());
-    object_seeds = object_seeds - checked;
+    clusterOnPlane(cv::Mat(255*((*masks_) != plane_best_index)), *points3d_,
+                   std::vector<cv::Vec4f>(1, plane_best),
+                   CylinderPredicate(*T_, *radius_max_, *z_min_, *z_max_), 0,
+                   clusters2d, clusters3d);
 
-    // For each potential pixel ...
-    for (int y = 0; y < masks_->rows; ++y) {
-      uchar* iter = object_seeds.ptr<uchar>(y);
-      for (int x = 0; x < masks_->cols; ++x, ++iter) {
-        // Only look at pixels that are on the edge of planes
-        if ((!(*iter)) || (checked(y, x)))
-          continue;
-        // Now, proceed by region growing to find the rest of the object
-        std::list<cv::Point> point_list(1, cv::Point(x, y));
-        while (!point_list.empty()) {
-          // Look at the neighboring points
-          const cv::Point & point2d = point_list.front();
-          for (int yy = std::max(point2d.y - 1, 0); yy <= std::min(point2d.y + 1, masks_->rows - 1); ++yy)
-            for (int xx = std::max(point2d.x - 1, 0); xx <= std::min(point2d.x + 1, mask_->cols - 1); ++xx) {
-              if (checked(yy, xx))
-                continue;
-              const cv::Vec3f& point3d = points3d(yy, xx);
-              checked(yy, xx) = 255;
-
-              // Only add the point if it is within the plane distance boundaries
-              float dist = pointPlaneDistance(point3d, plane_best);
-              if ((*z_min_ < dist) && (dist < *z_max_)) {
-                // Also make sure it is within the radius boundary
-                cv::Vec3f projection = projectPointOnPlane(point3d, plane_best);
-                if (cv::norm(T - projection) < *radius_max_) {
-                  cluster2d_->push_back(cv::Vec2i(xx, yy));
-                  cluster3d_->push_back(point3d);
-                  mask(yy, xx) = 255;
-                  point_list.push_back(cv::Point(xx, yy));
-                }
-              }
-            }
-          point_list.pop_front();
-        }
+    // Merge all the clusters in 1
+    cluster2d_->clear();
+    cluster3d_->clear();
+    for (size_t i = 0; i < clusters2d[0].size(); ++i) {
+      for (size_t j = 0; j < clusters2d[0][i].size(); ++j) {
+        const cv::Vec2i & point2d = clusters2d[0][i][j];
+        cluster2d_->push_back(point2d);
+        cluster3d_->push_back(clusters3d[0][i][j]);
+        // and fille the mask
+        mask(point2d[1], point2d[0]) = 255;
       }
     }
+
     *mask_ = mask;
 
     return ecto::OK;
