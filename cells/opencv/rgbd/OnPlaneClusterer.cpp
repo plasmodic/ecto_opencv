@@ -79,6 +79,8 @@ void clusterOnPlane(const cv::Mat_<uchar> &plane_masks,
                     std::vector<std::vector<std::vector<cv::Vec3f> > >&clusters3d) {
   clusters2d.clear();
   clusters3d.clear();
+  clusters2d.resize(planes.size());
+  clusters3d.resize(planes.size());
   cv::Vec3f bogus_points;
 
   // If an object touches a plane, its pixels also touch some pixels of the plane
@@ -147,10 +149,6 @@ void clusterOnPlane(const cv::Mat_<uchar> &plane_masks,
 
       if ((cluster3d.size() < min_cluster_size) || (cluster3d.empty()))
         continue;
-      if (best_plane >= int(clusters2d.size())) {
-        clusters2d.resize(best_plane + 1);
-        clusters3d.resize(best_plane + 1);
-      }
       clusters2d[best_plane].push_back(cluster2d);
       clusters3d[best_plane].push_back(cluster3d);
     }
