@@ -24,12 +24,10 @@ namespace calib
     int
     process(const tendrils& in, const tendrils& out)
     {
-      *out_T = cv::Mat();
-      *out_R = cv::Mat();
       if (!*in_found)
       {
-        out_T->create(3, 1, CV_64F);
-        out_R->create(3, 3, CV_64F);
+        out_T->release();
+        out_R->release();
         return ecto::OK;
       }
       cv::Mat rvec, tvec;
