@@ -110,20 +110,34 @@ namespace calib
     static void
     declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
     {
-      inputs.declare(&DepthValidDraw::image, "image", "The image").required(true);
-      inputs.declare(&DepthValidDraw::mask, "mask", "The depth mask").required(true);
-      outputs.declare(&DepthValidDraw::result, "image", "Valid areas of the image.");
+      inputs.declare(&DepthValidDraw::image_, "image", "The image").required(true);
+      inputs.declare(&DepthValidDraw::mask_, "mask", "The depth mask").required(true);
+      outputs.declare(&DepthValidDraw::result_, "image", "Valid areas of the image.");
     }
 
     int
     process(const tendrils& inputs, const tendrils& outputs)
     {
-      *result = cv::Mat(image->size(), image->type());
-      *result = cv::Scalar(0, 0, 255);
-      cv::bitwise_and(*image, *image, *result, *mask);
+      // case 0: more elongated that image_, case 1: morevertical, case 2: same ratio
+      cv::Mat_<uchar> mask(image_->size()), mask_ori_not;
+      cv::bitwise_not(*mask_, mask_ori_not);
+      if (mask_->cols * image_->rows > mask_->rows * image_->cols) {
+        cv::Mat sub_mask_top = mask.rowRange(0, float(mask_->rows*image_->cols) / mask_->cols);
+        cv::resize(mask_ori_not, sub_mask_top, sub_mask_top.size());
+        mask.rowRange(sub_mask_top.rows, mask.rows).setTo(1);
+      } else if (mask_->cols * image_->rows < mask_->rows * image_->cols) {
+        cv::Mat sub_mask_left = mask.colRange(0, float(mask_->cols*image_->rows) / mask_->rows);
+        cv::resize(mask_ori_not, sub_mask_left, sub_mask_left.size());
+        mask.colRange(sub_mask_left.cols, mask.cols).setTo(1);
+      } else
+        cv::resize(mask_ori_not, mask, mask.size());
+
+      image_->copyTo(*result_);
+      result_->setTo(cv::Scalar(0, 0, 255), mask);
+
       return ecto::OK;
     }
-    ecto::spore<cv::Mat> image, result, mask;
+    ecto::spore<cv::Mat> image_, result_, mask_;
   };
 }
 using namespace calib;
