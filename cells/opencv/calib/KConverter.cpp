@@ -58,8 +58,8 @@ struct KConverter {
 
   int process(const tendrils& inputs, const tendrils& outputs) {
     K_image_->copyTo(*K_depth_);
-    double ratio_x = double(depth_->cols / 2) / float(image_->cols / 2);
-    double ratio_y = double(depth_->rows / 2) / float(image_->rows / 2);
+    double ratio_x = double(depth_->cols / 2) / double(image_->cols / 2);
+    double ratio_y = double(depth_->rows / 2) / double(image_->rows / 2);
     if (K_image_->depth() == CV_32F) {
       K_depth_->at<float>(0, 0) *= ratio_x;
       K_depth_->at<float>(0, 2) *= ratio_x;
