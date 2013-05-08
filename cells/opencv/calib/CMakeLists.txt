@@ -10,6 +10,7 @@ ectomodule(calib DESTINATION ecto_opencv
   SubrectRectifier.cpp
   DepthTo3d.cpp
   pose_drawing.cpp
+  KConverter.cpp
   Latch.cpp
   TransformCompose.cpp
   FiducialPoseEst.cpp
