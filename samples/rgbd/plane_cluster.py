@@ -35,7 +35,7 @@ if __name__ == '__main__':
 
     #connect up the pose_est
     connections = [ source['depth'] >> depth_to_3d['depth'],
-                    source['K'] >> depth_to_3d['K'],
+                    source['K_depth'] >> depth_to_3d['K'],
                     source['image'] >> imshow(name='original')[:]
                     ]
 
@@ -43,13 +43,13 @@ if __name__ == '__main__':
     connections += [ depth_to_3d['points3d'] >> compute_normals['points3d'] ]
 
     # send the camera calibration parameters
-    connections += [ source['K'] >> compute_normals['K'] ]
+    connections += [ source['K_depth'] >> compute_normals['K'] ]
 
     # find the planes
     connections += [ depth_to_3d['points3d'] >> plane_finder['points3d'],
                          compute_normals['normals'] >> plane_finder['normals'] ]
     connections += [ plane_finder['masks'] >> plane_drawer['masks'],
-                         source['K'] >> plane_finder['K'],
+                         source['K_depth'] >> plane_finder['K'],
                          source['image'] >> plane_drawer['image'],
                          plane_drawer['image'] >> imshow(name='plane')[:] ]
     connections += [ source['image'] >> imshow(name='original')[:] ]

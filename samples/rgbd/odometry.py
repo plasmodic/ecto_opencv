@@ -67,7 +67,7 @@ if __name__ == '__main__':
     #connect up the pose_est
     plasm.connect(source['image'] >> odometry['image'],
                   source['depth'] >> odometry['depth'],
-                  source['K'] >> odometry['K'],
+                  source['K_depth'] >> odometry['K'],
                   )
     
     # display the warped image

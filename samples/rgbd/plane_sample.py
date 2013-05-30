@@ -44,7 +44,7 @@ if __name__ == '__main__':
 
     #connect up the pose_est
     connections = [ source['depth'] >> depth_to_3d['depth'],
-                    source['K'] >> depth_to_3d['K'],
+                    source['K_depth'] >> depth_to_3d['K'],
                     source['image'] >> imshow(name='original',waitKey=1)[:]
                     ]
 
@@ -58,13 +58,13 @@ if __name__ == '__main__':
 
     # send the camera calibration parameters
     for type in normal_types:
-        connections += [ source['K'] >> compute_normals[type]['K'] ]
+        connections += [ source['K_depth'] >> compute_normals[type]['K'] ]
 
     # draw the normals
     for type in normal_types:
         connections += [ compute_normals[type]['normals'] >> draw_normals[type]['normals'],
                          depth_to_3d['points3d'] >> draw_normals[type]['points3d'],
-                         source['image', 'K'] >> draw_normals[type]['image', 'K'],
+                         source['image', 'K_depth'] >> draw_normals[type]['image', 'K'],
                          draw_normals[type]['normal_intensity'] >> imshow(name=str(type),waitKey=1)[:] ]
 
     # find the planes
@@ -72,7 +72,7 @@ if __name__ == '__main__':
         connections += [ depth_to_3d['points3d'] >> plane_finder[type]['points3d'],
                          compute_normals[type]['normals'] >> plane_finder[type]['normals'] ]
         connections += [ plane_finder[type]['masks'] >> plane_drawer[type]['masks'],
-                         source['K'] >> plane_finder[type]['K'],
+                         source['K_depth'] >> plane_finder[type]['K'],
                          source['image'] >> plane_drawer[type]['image'],
                          plane_drawer[type]['image'] >> imshow(name='plane'+str(type))[:] ]
     connections += [ source['image'] >> imshow(name='original', waitKey=10)[:] ]
