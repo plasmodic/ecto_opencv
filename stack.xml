@@ -4,7 +4,7 @@
   <description>Ecto bindings for common opencv functionality.</description>
   <author>Ethan Rublee</author>
   <author email="vrabaud@willowgarage.com">Vincent Rabaud</author>
-  <maintainer email="vrabaud@willowgarage.com">Vincent Rabaud</maintainer>
+  <maintainer email="vincent.rabaud@gmail.com">Vincent Rabaud</maintainer>
   <license>BSD</license>
   <copyright>Willow Garage</copyright>
 
