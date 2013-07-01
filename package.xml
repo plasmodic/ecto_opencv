@@ -7,7 +7,7 @@
   <maintainer email="vincent.rabaud@gmail.com">Vincent Rabaud</maintainer>
   <license>BSD</license>
 
-  <url>http://ecto.willowgarage.com</url>
+  <url>http://plasmodic.github.io/ecto_opencv</url>
 
   <build_depend>boost</build_depend>
   <build_depend>ecto</build_depend>

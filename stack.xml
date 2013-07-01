@@ -8,7 +8,7 @@
   <license>BSD</license>
   <copyright>Willow Garage</copyright>
 
-  <url>http://ecto.willowgarage.com</url>
+  <url>http://plasmodic.github.io/ecto_opencv</url>
   <build_depends>catkin</build_depends>
   <build_depends>boost</build_depends>
   <build_depends>ecto</build_depends>
