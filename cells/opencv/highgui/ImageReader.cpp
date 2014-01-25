@@ -11,7 +11,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include "capture_interface.hpp"
 #include <boost/format.hpp>
-#define BOOST_FILESYSTEM_VERSION 2
+#define BOOST_FILESYSTEM_VERSION 3
 #include <boost/filesystem.hpp>
 #include <boost/foreach.hpp>
 #include <boost/regex.hpp>
