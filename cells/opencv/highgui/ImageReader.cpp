@@ -69,7 +69,7 @@ namespace ecto_opencv
         }
         catch (const std::exception &e)
           {
-            std::cout << dir_itr->filename() << " " << e.what() << std::endl;
+            std::cout << dir_itr->path().filename() << " " << e.what() << std::endl;
           }
       }
 
