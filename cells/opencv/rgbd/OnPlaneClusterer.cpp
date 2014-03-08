@@ -41,6 +41,8 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/rgbd/rgbd.hpp>
 
+#include <queue>
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 float pointDistanceSq(const cv::Vec3f& vec1, const cv::Vec3f& vec2) {
@@ -81,7 +83,6 @@ void clusterOnPlane(const cv::Mat_<uchar> &plane_masks,
   clusters3d.clear();
   clusters2d.resize(planes.size());
   clusters3d.resize(planes.size());
-  cv::Vec3f bogus_points;
 
   // If an object touches a plane, its pixels also touch some pixels of the plane
   // Let's find those pixels first
@@ -103,7 +104,7 @@ void clusterOnPlane(const cv::Mat_<uchar> &plane_masks,
       // ok we have a seed, first get the closest plane
       int best_plane = -1;
       for (size_t i = 0; i < planes.size(); ++i)
-        if (predicate(point3d, bogus_points, planes[i])) {
+        if (predicate(point3d, point3d, planes[i])) {
           best_plane = i;
           break;
         }
@@ -112,12 +113,13 @@ void clusterOnPlane(const cv::Mat_<uchar> &plane_masks,
 
       // Create new clusters
       std::vector<cv::Vec2i> cluster2d;
-      cluster2d.reserve(10000);
+      cluster2d.reserve(1000);
       std::vector<cv::Vec3f> cluster3d;
-      cluster3d.reserve(10000);
+      cluster3d.reserve(1000);
 
       // Now, proceed by region growing to find the rest of the object
-      std::list<cv::Point> point_list(1, cv::Point(x, y));
+      std::queue<cv::Point> point_list;
+      point_list.push(cv::Point(x, y));
       while (!point_list.empty()) {
         // Look at the neighboring points
         const cv::Point& point2d = point_list.front();
@@ -136,15 +138,15 @@ void clusterOnPlane(const cv::Mat_<uchar> &plane_masks,
               continue;
             }
             // Check if the point respects some properties
-            if (predicate(point3d_1, point3d_2, planes[best_plane])) {
-              point_list.push_back(cv::Point(xx, yy));
+            if (predicate(point3d_2, point3d_1, planes[best_plane])) {
+              point_list.push(cv::Point(xx, yy));
               cluster2d.push_back(cv::Vec2i(xx, yy));
               cluster3d.push_back(point3d_2);
               // If it belongs to a plane, never check it again
               checked(yy, xx) = 1;
             }
           }
-        point_list.pop_front();
+        point_list.pop();
       }
 
       if ((cluster3d.size() < min_cluster_size) || (cluster3d.empty()))
