@@ -1,5 +1,5 @@
-Forthcoming
------------
+0.5.2 (2014-04-13)
+------------------
 * rely on opencv_candidate to get the OpenCV dependency
 * Contributors: Vincent Rabaud
 
