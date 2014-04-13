@@ -130,16 +130,3 @@ EctoFeatureDetector<ORB>::declare_params(tendrils& p)
 }
 
 ECTO_CELL(features2d, EctoFeatureDetector<ORB>, "ORBFeature", "An ORB feature detector.");
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-template<>
-void
-EctoFeatureDetector<SIFT>::declare_params(tendrils& p)
-{
-  p.declare<float>("threshold", "");
-  p.declare<float>("edgeThreshold", "");
-  SIFT_interface::declare_common_params(p);
-}
-
-ECTO_CELL(features2d, EctoFeatureDetector<SIFT>, "SIFTFeature", "A SIFT feature detector.");

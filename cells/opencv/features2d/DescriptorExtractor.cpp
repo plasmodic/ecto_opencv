@@ -112,16 +112,3 @@ EctoDescriptorExtractor<ORB>::declare_params(tendrils& p)
 }
 
 ECTO_CELL(features2d, EctoDescriptorExtractor<ORB>, "ORBDescriptor", "An ORB descriptor extractor.");
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-template<>
-void
-EctoDescriptorExtractor<SIFT>::declare_params(tendrils& p)
-{
-  p.declare<float>("threshold", "");
-  p.declare<float>("edgeThreshold", "");
-  SIFT_interface::declare_common_params(p);
-}
-
-ECTO_CELL(features2d, EctoDescriptorExtractor<SIFT>, "SIFTDescriptor", "A SIFT feature detector.");

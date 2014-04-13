@@ -96,21 +96,3 @@ read_tendrils_as_file_node(const ecto::tendrils & tendrils, boost::function<void
   // Remove the temporary file
   boost::filesystem::remove(file_name.c_str());
 }
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-void
-SIFT_interface::declare_common_params(tendrils&p)
-{
-#if (CV_MAJOR_VERSION > 2) || ((CV_MAJOR_VERSION == 2) && (CV_MINOR_VERSION >= 4))
-  p.declare<int>("nOctaveLayers", "", 3);
-#else
-  int a = cv::SIFT::CommonParams::DEFAULT_NOCTAVES, b = cv::SIFT::CommonParams::DEFAULT_NOCTAVE_LAYERS, c =
-      cv::SIFT::CommonParams::DEFAULT_FIRST_OCTAVE, d = cv::SIFT::CommonParams::FIRST_ANGLE;
-  p.declare<int>("nOctaves", "", a);
-  p.declare<int>("nOctaveLayers", "", b);
-  p.declare<int>("firstOctave", "", c);
-  p.declare<int>("angleMode", "", d);
-#endif
-}
-

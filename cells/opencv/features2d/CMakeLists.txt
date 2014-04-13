@@ -12,7 +12,6 @@ ectomodule(features2d DESTINATION ecto_opencv/ecto_cells
   matcher.cpp
   ORB.cpp
   ransac_est.cpp
-  SIFT.cpp
   )
 
 find_package(OpenCV REQUIRED)
