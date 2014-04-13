@@ -1,3 +1,8 @@
+Forthcoming
+-----------
+* rely on opencv_candidate to get the OpenCV dependency
+* Contributors: Vincent Rabaud
+
 0.5.1 (2014-04-13)
 ------------------
 * get code to compile on Indigo
