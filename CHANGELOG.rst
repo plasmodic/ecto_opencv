@@ -1,5 +1,5 @@
-Forthcoming
------------
+0.5.1 (2014-04-13)
+------------------
 * get code to compile on Indigo
 * fix shadow effect on clusters
 * Contributors: Vincent Rabaud
