@@ -63,7 +63,7 @@ if __name__ == '__main__':
 
     #connect up the pose_est
     connections = [ source['depth'] >> imshow(name='depth')[:],
-                    source['depth_raw'] >> depth_cleaner['image'],
+                    source['depth'] >> depth_cleaner['image'],
                     depth_cleaner['image'] >> imshow(name='depth_clean')[:] ]
 
     # connect to normal finders
@@ -76,8 +76,8 @@ if __name__ == '__main__':
         compute_normals[i] = ComputeNormals(method=RgbdNormalsTypes.FALS)
         draw_normals[i] = DrawNormals(step=20)
 
-    connections += [ source['depth_raw'] >> depth_to_3d['depth'],
-                     source['K'] >> depth_to_3d['K'],
+    connections += [ source['depth'] >> depth_to_3d['depth'],
+                     source['K_depth'] >> depth_to_3d['K'],
                     ]
     for i in [0, 1]:
         if i==0:
@@ -86,10 +86,10 @@ if __name__ == '__main__':
             connections += [ depth_to_3d['points3d'] >> depth_swapper['points3d'],
                              depth_cleaner['image'] >> depth_swapper['depth'],
                              depth_swapper['points3d'] >> compute_normals[i]['points3d'] ]
-        connections += [ source['K'] >> compute_normals[i]['K'] ]
+        connections += [ source['K_depth'] >> compute_normals[i]['K'] ]
         connections += [ compute_normals[i]['normals'] >> draw_normals[i]['normals'],
                          depth_to_3d['points3d'] >> draw_normals[i]['points3d'],
-                         source['image', 'K'] >> draw_normals[i]['image', 'K'],
+                         source['image', 'K_depth'] >> draw_normals[i]['image', 'K'],
                          draw_normals[i]['normal_intensity'] >> imshow(name=str(i),waitKey=1)[:] ]
 
     plasm.connect(connections)
