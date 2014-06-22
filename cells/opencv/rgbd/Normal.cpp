@@ -83,6 +83,18 @@ namespace rgbd
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+  template<typename T>
+  void fillIntensity(cv::Mat &normals_in, cv::Mat_<uchar> &normal_intensity) {
+    cv::Mat_<T> normals(normals_in.rows, normals_in.cols, reinterpret_cast<T*>(normals_in.data));
+    for (int y = 0; y < normals.rows; ++y) {
+      T *normal = normals[y], *normal_end = normal + normals.cols;
+      uchar *intensity = normal_intensity[y];
+      for(; normal < normal_end; ++normal, ++intensity) {
+        *intensity = 255 * std::abs((*normal)[2]/cv::norm(*normal));
+      }
+    }
+  };
+
   struct DrawNormals
   {
     static void
@@ -108,7 +120,6 @@ namespace rgbd
     process(const tendrils& inputs, const tendrils& outputs)
     {
       image_in_->copyTo(*image_out_);
-      cv::Mat normal_intensity = cv::Mat(image_in_->rows, image_in_->cols, CV_8U);
 
       // Draw the normals at given steps
       std::vector<cv::Point3f> points3d;
@@ -159,19 +170,12 @@ namespace rgbd
         cv::line(*image_out_, points_beg[i], end_point, cv::Scalar(255, 0, 0));
       }
 
-      for (int y = 0; y < image_in_->rows; ++y)
-        for (int x = 0; x < image_in_->cols; ++x)
-        {
-          cv::Vec3f normal;
-          if (normals_->depth() == CV_32F)
-            normal = normals_->at<cv::Vec3f>(y, x);
-          else
-            normal = normals_->at<cv::Vec3d>(y, x);
-          normal = normal / cv::norm(normal);
-
-          normal_intensity.at<uchar>(y, x) = 255 * std::abs(normal[2]);
-        }
-      normal_intensity.copyTo(*normal_intensity_);
+      normal_intensity_->create(image_in_->rows, image_in_->cols, CV_8U);
+      cv::Mat_<uchar> normal_intensity(*normal_intensity_);
+      if (normals_->depth() == CV_32F)
+        fillIntensity<cv::Vec3f>(*normals_, normal_intensity);
+      else
+        fillIntensity<cv::Vec3d>(*normals_, normal_intensity);
 
       return ecto::OK;
     }
