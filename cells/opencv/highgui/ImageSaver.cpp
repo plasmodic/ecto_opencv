@@ -79,7 +79,7 @@ namespace ecto_opencv
       fs::path p(name);
       fs::path parent(p.parent_path());
       if (!fs::is_directory(parent) && !parent.empty())
-        fs::create_directory(parent);
+        fs::create_directories(parent);
 
       if (!lock_name_->empty())
       {
