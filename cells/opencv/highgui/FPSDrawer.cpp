@@ -16,16 +16,27 @@ namespace ecto_opencv
   struct FPSDrawer
   {
     static void
-    draw(cv::Mat& drawImage, float freq)
+    draw(cv::Mat& drawImage, float freq, double scale)
     {
       using namespace cv;
       Size imgsize = drawImage.size();
-
       std::string scaleText = boost::str(boost::format("%ux%u @ %.2f Hz") % imgsize.width % imgsize.height % freq);
       int baseline = 0;
-      Size sz = getTextSize(scaleText, CV_FONT_HERSHEY_SIMPLEX, 1, 1, &baseline);
+      Size sz = getTextSize(scaleText, CV_FONT_HERSHEY_SIMPLEX, scale, 1, &baseline);
       rectangle(drawImage, Point(10, 30 + 5), Point(10, 30) + Point(sz.width, -sz.height - 5), Scalar::all(0), -1);
-      putText(drawImage, scaleText, Point(10, 30), CV_FONT_HERSHEY_SIMPLEX, 1.0, Scalar::all(255), 1, CV_AA, false);
+      putText(drawImage, scaleText, Point(10, 30), CV_FONT_HERSHEY_SIMPLEX, scale, Scalar::all(255), 1, CV_AA, false);
+    }
+
+    static void
+    declare_params(tendrils& params)
+    {
+      params.declare<double>("scale", "Sets FPS scale size", 1.0);
+    }
+
+    void
+    configure(const tendrils& params, const tendrils& in, const tendrils& out)    
+    {
+      scale_ = params.get<double>("scale");
     }
 
     static void
@@ -43,7 +54,6 @@ namespace ecto_opencv
     process(const tendrils& in, const tendrils& out)
     {
       pt::ptime now = pt::microsec_clock::universal_time();
-
       if (count == 0)
       {
         prev = now;
@@ -59,11 +69,12 @@ namespace ecto_opencv
       cv::Mat image, output;
       in["image"] >> image;
       image.copyTo(output);
-      draw(output, freq);
+      draw(output, freq, scale_);
       out["image"] << output;
       return 0;
     }
     pt::ptime prev;
+    double scale_;
     size_t count;
     double freq;
   };
