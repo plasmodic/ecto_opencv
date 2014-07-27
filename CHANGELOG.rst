@@ -1,3 +1,12 @@
+Forthcoming
+-----------
+* Added FPS scale param
+* recursive directory creation.
+* speedup normal display
+* fix depth cleaner
+* add a normal sample
+* Contributors: Daniel Stonier, Vincent Rabaud, kentsommer
+
 0.5.2 (2014-04-13)
 ------------------
 * rely on opencv_candidate to get the OpenCV dependency
