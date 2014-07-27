@@ -1,5 +1,5 @@
-Forthcoming
------------
+0.5.3 (2014-07-27)
+------------------
 * Added FPS scale param
 * recursive directory creation.
 * speedup normal display
