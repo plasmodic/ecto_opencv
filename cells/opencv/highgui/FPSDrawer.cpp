@@ -30,13 +30,7 @@ namespace ecto_opencv
     static void
     declare_params(tendrils& params)
     {
-      params.declare<double>("scale", "Sets FPS scale size", 1.0);
-    }
-
-    void
-    configure(const tendrils& params, const tendrils& in, const tendrils& out)    
-    {
-      scale_ = params.get<double>("scale");
+      params.declare(&FPSDrawer::scale_, "scale", "Sets FPS font scale size", 1.0);
     }
 
     static void
@@ -69,12 +63,12 @@ namespace ecto_opencv
       cv::Mat image, output;
       in["image"] >> image;
       image.copyTo(output);
-      draw(output, freq, scale_);
+      draw(output, freq, *scale_);
       out["image"] << output;
       return 0;
     }
     pt::ptime prev;
-    double scale_;
+    ecto::spore<double> scale_;
     size_t count;
     double freq;
   };
