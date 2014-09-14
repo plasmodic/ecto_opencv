@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 2.8)
 project(ecto_opencv)
 
-find_package(catkin REQUIRED ecto opencv_candidate)
-catkin_package(DEPENDS ecto opencv_candidate)
+find_package(catkin REQUIRED ecto opencv_candidate cv_backports)
+catkin_package(DEPENDS ecto opencv_candidate cv_backports)
 
 if(NOT CMAKE_BUILD_TYPE)#Only do this the on the first run, if the build type hasn't been set prior
   set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING

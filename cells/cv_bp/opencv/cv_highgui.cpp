@@ -6,6 +6,7 @@
 #include <iostream>
 #include <fstream>
 #include <opencv2/highgui/highgui.hpp>
+#include <cv_backports/imshow.hpp>
 
 namespace bp = boost::python;
 
@@ -38,7 +39,7 @@ namespace
     if(callback == bp::object())
     {
         PyMCallBackData::callbacks_[windowName] = NULL;
-        cv::setMouseCallback(windowName,NULL,NULL);
+        cv_backports::setMouseCallback(windowName,NULL,NULL);
         return;
     }
     //FIXME get rid of this leak...
@@ -46,7 +47,7 @@ namespace
     d->cb = callback;
     d->udata = userdata;
     PyMCallBackData::callbacks_[windowName] = d;
-    cv::setMouseCallback(windowName,&PyMCallBackData::callback_fn,d);
+    cv_backports::setMouseCallback(windowName,&PyMCallBackData::callback_fn,d);
   }
 }
 namespace opencv_wrappers
@@ -83,7 +84,7 @@ namespace opencv_wrappers
 
   int waitKey(int millis)
   {
-    return 255 & cv::waitKey(millis);
+    return 255 & cv_backports::waitKey(millis);
   }
 
   void wrap_highgui()
@@ -94,9 +95,9 @@ namespace opencv_wrappers
     wrap_video_writer();
 
     //image windows
-    bp::def("imshow", cv::imshow);
+    bp::def("imshow", cv_backports::imshow);
     bp::def("waitKey", waitKey);
-    bp::def("namedWindow", cv::namedWindow);
+    bp::def("namedWindow", cv_backports::namedWindow);
 //CV_EXPORTS void setMouseCallback( const string& windowName, MouseCallback onMouse, void* param=0);
     bp::def("setMouseCallback", setMouseCallback_);
     //image io

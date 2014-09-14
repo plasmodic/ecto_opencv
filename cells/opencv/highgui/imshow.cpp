@@ -5,6 +5,7 @@
 #include <boost/format.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/foreach.hpp>
+#include <cv_backports/imshow.hpp>
 
 #include <iostream>
 #include <string>
@@ -39,7 +40,7 @@ namespace ecto_opencv
     operator()(const boost::signals2::connection& c) const
     {
       c.disconnect();
-      cv::destroyWindow(name);
+      cv_backports::destroyWindow(name);
     }
     std::string name;
   };
@@ -61,14 +62,14 @@ namespace ecto_opencv
       c.disconnect();
       if (full_screen)
       {
-        cv::namedWindow(name, CV_WINDOW_KEEPRATIO);
-        cv::setWindowProperty(name, CV_WND_PROP_FULLSCREEN, true);
+        cv_backports::namedWindow(name, CV_WINDOW_KEEPRATIO);
+        cv_backports::setWindowProperty(name, CV_WND_PROP_FULLSCREEN, true);
       }
       else if (auto_size)
       {
-        cv::namedWindow(name, CV_WINDOW_KEEPRATIO);
+        cv_backports::namedWindow(name, CV_WINDOW_KEEPRATIO);
       }
-      cv::imshow(name, image);
+      cv_backports::imshow(name, image);
     }
     const cv::Mat image;
     std::string name;
@@ -97,11 +98,11 @@ namespace ecto_opencv
     void
     operator()()
     {
-      cv::startWindowThread();
+      cv_backports::startWindowThread();
       while (!boost::this_thread::interruption_requested())
       {
         jobs();
-        lastKey = 0xff & cv::waitKey(10);
+        lastKey = 0xff & cv_backports::waitKey(10);
         keys[lastKey] = true;
       }
     }

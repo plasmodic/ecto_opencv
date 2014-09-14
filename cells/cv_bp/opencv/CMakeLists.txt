@@ -69,6 +69,7 @@ target_link_libraries(${bp_opencv_target}
   ${Boost_LIBRARIES}
   ${PYTHON_LIBRARIES}
   ${OpenCV_LIBS}
+  ${cv_backports_LIBRARIES}
   )
 
 install(TARGETS ${bp_opencv_target}
