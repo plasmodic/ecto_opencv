@@ -20,4 +20,8 @@ link_ecto(features2d ${catkin_LIBRARIES}
 )
 
 #For Hamming distance
-set_target_properties(features2d_ectomodule PROPERTIES COMPILE_FLAGS "-msse4.2")
+include(CheckCXXCompilerFlag)
+check_cxx_compiler_flag(-msse4.2 GCC_HAS_SSE)
+if(GCC_HAS_SSE)
+  set_target_properties(features2d_ectomodule PROPERTIES COMPILE_FLAGS "-msse4.2")
+endif()
