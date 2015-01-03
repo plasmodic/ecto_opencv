@@ -1,5 +1,5 @@
-Forthcoming
------------
+0.5.4 (2015-01-03)
+------------------
 * remove SSE dependency
   That would not work on ARM as explained in `#29 <https://github.com/plasmodic/ecto_opencv/issues/29>`_ plus it is useless
   now: opencv_candidate deals with it and it uses OpenCV flags
