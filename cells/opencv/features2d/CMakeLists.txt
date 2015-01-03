@@ -18,6 +18,3 @@ find_package(OpenCV REQUIRED)
 link_ecto(features2d ${catkin_LIBRARIES}
                      ${OpenCV_LIBRARIES}
 )
-
-#For Hamming distance
-set_target_properties(features2d_ectomodule PROPERTIES COMPILE_FLAGS "-msse4.2")
