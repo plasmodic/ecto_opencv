@@ -1,3 +1,10 @@
+Forthcoming
+-----------
+* remove SSE dependency
+  That would not work on ARM as explained in `#29 <https://github.com/plasmodic/ecto_opencv/issues/29>`_ plus it is useless
+  now: opencv_candidate deals with it and it uses OpenCV flags
+* Contributors: Vincent Rabaud
+
 0.5.3 (2014-07-27)
 ------------------
 * Added FPS scale param
