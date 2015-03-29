@@ -44,8 +44,6 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/features2d/features2d.hpp>
 
-#include <opencv_candidate/lsh.h>
-
 namespace
 {
   typedef std::vector<cv::DMatch> matches_t;
@@ -88,7 +86,8 @@ namespace
         // n_tables: 6
         // radius: 45
         // ratio: 0.8
-        matcher_.reset(new lsh::LshMatcher(*n_tables_, *key_size_, *multi_probe_level_));
+        cv::Ptr<cv::flann::IndexParams> indexParams = new cv::flann::LshIndexParams(*n_tables_, *key_size_, *multi_probe_level_);
+        matcher_.reset(new cv::FlannBasedMatcher(indexParams));
         cv::Mat train_desc;
         inputs["train"] >> train_desc;
         matcher_->add(std::vector<cv::Mat>(1, train_desc));
@@ -117,7 +116,7 @@ namespace
     }
   private:
     /** The object used to match descriptors to our DB of descriptors */
-    boost::shared_ptr<lsh::LshMatcher> matcher_;
+    boost::shared_ptr<cv::FlannBasedMatcher> matcher_;
     /** The radius for the nearest neighbors (if not using ratio) */
     ecto::spore<unsigned> radius_, n_tables_, key_size_, multi_probe_level_;
   };
