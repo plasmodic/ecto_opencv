@@ -1,5 +1,5 @@
-Forthcoming
------------
+0.5.5 (2015-03-29)
+------------------
 * compile with the latest opencv_candidate
 * use OpenCV's LSH
 * remove useless file
