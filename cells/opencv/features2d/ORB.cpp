@@ -4,7 +4,6 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/features2d/features2d.hpp>
 #include "interfaces.h"
-#include <opencv_candidate/hamming.h>
 #include <numeric>
 
 /** Cell for ORB feature detection and descriptor extraction
@@ -137,7 +136,7 @@ struct ORBstats
       desc.pop_back(1);
       for (int i = 0, end = desc.rows; i < end; i++)
       {
-        size_t distance = HammingOperator()(desc_i.data, desc.row(i).data, desc.cols);
+        size_t distance = cv::normHamming(desc_i.data, desc.row(i).data, desc.cols);
         distances[distance]++;
       }
     }
