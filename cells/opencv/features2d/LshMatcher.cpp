@@ -100,13 +100,13 @@ namespace
       if (*radius_)
       {
         // Perform radius search
-        matcher_->radiusMatch(descriptors, matches, *radius_);
+        matcher_->knnMatch(descriptors, matches, 1);
       }
       std::vector<cv::DMatch> final_matches;
       final_matches.reserve(descriptors.rows);
       for (int match_index = 0; match_index < descriptors.rows; ++match_index)
       {
-        if (!matches[match_index].empty())
+        if (matches[match_index][0].distance < *radius_)
         {
           final_matches.push_back(matches[match_index].front());
         }
