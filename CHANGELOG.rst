@@ -1,5 +1,5 @@
-Forthcoming
------------
+0.5.6 (2015-04-19)
+------------------
 * fix non-existence of radiusMatch for LSH
 * Contributors: Vincent Rabaud
 
