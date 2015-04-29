@@ -5,7 +5,21 @@
 #include <boost/format.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/foreach.hpp>
+
+#ifdef CV_VERSION_EPOCH
+#if CV_VERSION_EPOCH == 2 && CV_VERSION_MAJOR == 4 && CV_VERSION_MINOR < 10
 #include <cv_backports/imshow.hpp>
+#else
+namespace cv_backports {
+  using cv::destroyWindow;
+  using cv::imshow;
+  using cv::namedWindow;
+  using cv::setWindowProperty;
+  using cv::startWindowThread;
+  using cv::waitKey;
+}
+#endif
+#endif
 
 #include <iostream>
 #include <string>
