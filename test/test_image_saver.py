@@ -3,20 +3,29 @@ import ecto
 import ecto_opencv
 from ecto_opencv import highgui, opencv_test
 import os.path
+import unittest
 
-try:
-    saver = highgui.ImageSaver(filename_format='img.png')
-except RuntimeError, e:
-    assert 'boost::too_many_args:' in str(e)
+class TestImageSaver(unittest.TestCase):
 
-saver = highgui.ImageSaver(filename_format='img_%05d.png')
+    def test_image_saver(self):
 
-plasm = ecto.Plasm()
-plasm.connect(opencv_test.ImageGen()['image'] >> saver['image'])
-plasm.execute(niter=1)
+        try:
+            saver = highgui.ImageSaver(filename_format='img.png')
+        except RuntimeError, e:
+            assert 'boost::too_many_args:' in str(e)
 
-assert os.path.isfile('img_00000.png')
-stats =  os.stat('img_00000.png')
-print stats
-assert stats.st_size > 1000
-os.remove('img_00000.png')
+        saver = highgui.ImageSaver(filename_format='img_%05d.png')
+
+        plasm = ecto.Plasm()
+        plasm.connect(opencv_test.ImageGen()['image'] >> saver['image'])
+        plasm.execute(niter=1)
+
+        assert os.path.isfile('img_00000.png')
+        stats =  os.stat('img_00000.png')
+        print stats
+        assert stats.st_size > 1000
+        os.remove('img_00000.png')
+
+if __name__ == '__main__':
+    import rostest
+    rostest.rosrun('ecto_opencv', 'test_image_saver', TestImageSaver)
