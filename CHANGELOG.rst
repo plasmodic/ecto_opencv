@@ -1,5 +1,5 @@
-Forthcoming
------------
+0.6.0 (2015-05-09)
+------------------
 * add proper rosunit dependency
 * convert Python tests to proper nose tests
 * use cv_backports to pull in opencv2.4.9 imshows with zoom and parallel thread support.
