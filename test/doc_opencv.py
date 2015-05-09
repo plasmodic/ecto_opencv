@@ -14,5 +14,5 @@ class TestListModules(unittest.TestCase):
         ecto.list_ecto_module(imgproc)
 
 if __name__ == '__main__':
-    import rostest
-    rostest.rosrun('ecto_opencv', 'test_ecto_opencv', TestListModules)
+    import rosunit
+    rosunit.rosrun('ecto_opencv', 'test_ecto_opencv', TestListModules)

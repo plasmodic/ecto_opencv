@@ -19,5 +19,7 @@
   <run_depend>opencv_candidate</run_depend>
   <run_depend>cv_backports</run_depend>
 
+  <test_depend>rosunit</test_depend>
+
   <buildtool_depend>catkin</buildtool_depend>
 </package>

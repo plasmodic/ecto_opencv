@@ -27,5 +27,5 @@ class TestImageSaver(unittest.TestCase):
         os.remove('img_00000.png')
 
 if __name__ == '__main__':
-    import rostest
-    rostest.rosrun('ecto_opencv', 'test_image_saver', TestImageSaver)
+    import rosunit
+    rosunit.unitrun('ecto_opencv', 'test_image_saver', TestImageSaver)
