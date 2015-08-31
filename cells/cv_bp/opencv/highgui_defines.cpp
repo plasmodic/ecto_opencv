@@ -120,7 +120,11 @@ namespace opencv_wrappers
     opencv.attr("CV_CAP_PROP_GAIN") = int(CV_CAP_PROP_GAIN);
     opencv.attr("CV_CAP_PROP_EXPOSURE") = int(CV_CAP_PROP_EXPOSURE);
     opencv.attr("CV_CAP_PROP_CONVERT_RGB") = int(CV_CAP_PROP_CONVERT_RGB);
+#if CV_MAJOR_VERSION >= 2 && CV_MINOR_VERSION >= 4 && CV_SUBMINOR_VERSION >= 11
+    opencv.attr("CV_CAP_PROP_WHITE_BALANCE_U") = int(CV_CAP_PROP_WHITE_BALANCE_U);
+#else
     opencv.attr("CV_CAP_PROP_WHITE_BALANCE_BLUE_U") = int(CV_CAP_PROP_WHITE_BALANCE_BLUE_U);
+#endif
     opencv.attr("CV_CAP_PROP_RECTIFICATION") = int(CV_CAP_PROP_RECTIFICATION);
     opencv.attr("CV_CAP_PROP_MONOCROME") = int(CV_CAP_PROP_MONOCROME);
     opencv.attr("CV_CAP_PROP_SHARPNESS") = int(CV_CAP_PROP_SHARPNESS);
@@ -131,7 +135,11 @@ namespace opencv_wrappers
     opencv.attr("CV_CAP_PROP_TEMPERATURE") = int(CV_CAP_PROP_TEMPERATURE);
     opencv.attr("CV_CAP_PROP_TRIGGER") = int(CV_CAP_PROP_TRIGGER);
     opencv.attr("CV_CAP_PROP_TRIGGER_DELAY") = int(CV_CAP_PROP_TRIGGER_DELAY);
+#if CV_MAJOR_VERSION >= 2 && CV_MINOR_VERSION >= 4 && CV_SUBMINOR_VERSION >= 11
+    opencv.attr("CV_CAP_PROP_WHITE_BALANCE_V") = int(CV_CAP_PROP_WHITE_BALANCE_V);
+#else
     opencv.attr("CV_CAP_PROP_WHITE_BALANCE_RED_V") = int(CV_CAP_PROP_WHITE_BALANCE_RED_V);
+#endif
     opencv.attr("CV_CAP_PROP_MAX_DC1394") = int(CV_CAP_PROP_MAX_DC1394);
     // OpenNI map generators
     opencv.attr("CV_CAP_OPENNI_DEPTH_GENERATOR") = int(CV_CAP_OPENNI_DEPTH_GENERATOR);
