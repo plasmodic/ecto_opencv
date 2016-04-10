@@ -6,7 +6,18 @@
 #include <iostream>
 #include <fstream>
 #include <opencv2/highgui/highgui.hpp>
+#if CV_MAJOR_VERSION == 2 && CV_MINOR_VERSION == 4 && CV_SUBMINOR_VERSION < 10
 #include <cv_backports/imshow.hpp>
+#else
+namespace cv_backports {
+  using cv::destroyWindow;
+  using cv::imshow;
+  using cv::namedWindow;
+  using cv::setWindowProperty;
+  using cv::startWindowThread;
+  using cv::waitKey;
+}
+#endif
 
 namespace bp = boost::python;
 
