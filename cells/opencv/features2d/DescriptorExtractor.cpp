@@ -43,6 +43,10 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/features2d/features2d.hpp>
 
+#if CV_MAJOR_VERSION == 3
+#include <opencv2/xfeatures2d.hpp>
+#endif
+
 #include "interfaces.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -82,9 +86,25 @@ struct EctoDescriptorExtractor
   void
   configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
   {
+#if CV_MAJOR_VERSION == 3
+    switch(T) {
+      case SIFT:
+        descriptor_extractor_ = cv::xfeatures2d::SIFT::create();
+        break;
+      case SURF:
+        descriptor_extractor_ = cv::xfeatures2d::SURF::create();
+        break;
+      case ORB:
+        descriptor_extractor_ = cv::ORB::create();
+        break;
+      case BRIEF:
+        descriptor_extractor_ = cv::xfeatures2d::BriefDescriptorExtractor::create();
+        break;
+    }
+#else
     descriptor_extractor_ = cv::DescriptorExtractor::create(descriptor_extractor_type_names[T]);
-
-    read_tendrils_as_file_node(params, boost::bind(&cv::DescriptorExtractor::read, &(*descriptor_extractor_), _1));
+#endif
+    read_tendrils_as_file_node(params, *descriptor_extractor_);
   }
 
   int

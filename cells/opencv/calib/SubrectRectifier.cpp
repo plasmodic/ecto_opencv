@@ -5,7 +5,10 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <boost/filesystem.hpp>
 
+#include <vector>
+
 using namespace ecto;
+using std::vector;
 namespace calib
 {
 struct SubrectRectifier
@@ -64,7 +67,7 @@ struct SubrectRectifier
 
     if (R.rows == 0 || R.cols == 0 || T.rows == 0 || T.cols == 0)
       {
-        *output = cvCreateMat(*xsize_pixels, *ysize_pixels, image.type());
+        *output = cv::Mat(*xsize_pixels, *ysize_pixels, image.type());
         return 0;
       }
 

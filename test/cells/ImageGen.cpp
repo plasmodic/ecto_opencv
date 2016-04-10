@@ -3,7 +3,11 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <iostream>
 #define SHOW() std::cout << __PRETTY_FUNCTION__ << std::endl;
+#if CV_MAJOR_VERSION
+#define REFCOUNT(X)  std::cout << "ref count:" << ((X->u) ? (X->u->refcount) : 0) << std::endl;
+#else
 #define REFCOUNT(X)  std::cout << "ref count:" << ((X->refcount) ? *(X->refcount) : 0) << std::endl;
+#endif
 
 using ecto::tendrils;
 namespace opencv_test

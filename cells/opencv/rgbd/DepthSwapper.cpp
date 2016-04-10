@@ -35,7 +35,11 @@
 
 #include <ecto/ecto.hpp>
 #include <opencv2/calib3d/calib3d.hpp>
+#if CV_MAJOR_VERSION == 3
+#include <opencv2/rgbd.hpp>
+#else
 #include <opencv2/rgbd/rgbd.hpp>
+#endif
 
 using ecto::tendrils;
 namespace rgbd

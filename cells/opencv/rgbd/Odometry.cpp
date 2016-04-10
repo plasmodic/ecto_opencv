@@ -36,19 +36,29 @@
 #include <ecto/ecto.hpp>
 #include <opencv2/core/core.hpp>
 #include <opencv2/calib3d/calib3d.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#if CV_MAJOR_VERSION == 3
+#include <opencv2/rgbd.hpp>
+using cv::rgbd::RgbdOdometry;
+using cv::rgbd::rescaleDepth;
+using cv::rgbd::warpFrame;
+#else
 #include <opencv2/contrib/contrib.hpp>
 #include <opencv2/rgbd/rgbd.hpp>
+using cv::RgbdOdometry;
+using cv::rescaleDepth;
+using cv::warpFrame;
+#endif
 #include <string>
 #include <numeric>
+#include <vector>
 
 using ecto::tendrils;
 
 using namespace cv;
 using namespace std;
 
-namespace rgbd
-{
-  struct Odometry
+  struct OdometryCell
   {
     static void
     declare_params(tendrils& params)
@@ -60,13 +70,13 @@ namespace rgbd
     static void
     declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
     {
-      inputs.declare(&Odometry::current_image_, "image", "The current visual frame.").required(true);
-      inputs.declare(&Odometry::current_depth_, "depth", "The current depth frame.").required(true);
-      inputs.declare(&Odometry::K_, "K", "The camera intrinsic parameter matrix.").required(true);
+      inputs.declare(&OdometryCell::current_image_, "image", "The current visual frame.").required(true);
+      inputs.declare(&OdometryCell::current_depth_, "depth", "The current depth frame.").required(true);
+      inputs.declare(&OdometryCell::K_, "K", "The camera intrinsic parameter matrix.").required(true);
 
-      outputs.declare(&Odometry::R_, "R", "The rotation of the camera pose with respect to the previous frame.");
-      outputs.declare(&Odometry::T_, "T", "The rotation of the camera pose with respect to the previous frame.");
-      outputs.declare(&Odometry::warp_, "image", "The warped previous image.");
+      outputs.declare(&OdometryCell::R_, "R", "The rotation of the camera pose with respect to the previous frame.");
+      outputs.declare(&OdometryCell::T_, "T", "The rotation of the camera pose with respect to the previous frame.");
+      outputs.declare(&OdometryCell::warp_, "image", "The warped previous image.");
     }
     void
     configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
@@ -109,34 +119,35 @@ namespace rgbd
         return ecto::OK;
       }
 
-      cv::TickMeter tm;
       cv::Mat Rt;
 
       cv::Mat cameraMatrix;
       K_->convertTo(cameraMatrix, CV_32FC1);
-      
-      if (odometry.empty())
+
+      if (odometry_.empty())
       {
-          odometry = Algorithm::create<cv::Odometry>("RGBD.RgbdOdometry");
-          odometry->set("cameraMatrix", cameraMatrix);
+          odometry_.reset(new RgbdOdometry());
+#if CV_VERSION_MAJOR == 3
+          odometry_->setCameraMatrix(cameraMatrix);
+#else
+          odometry_->set("cameraMatrix", cameraMatrix);
+#endif
       }
-      
-      if (odometry.empty())
+
+      if (odometry_.empty())
       {
         std::cout << "Odometry algorithm can not be created." << std::endl;
         return -1;
       }
-      
-      tm.start();
 
       bool isFound;
       bool compare_to_first = false;
       if (compare_to_first)
-      isFound = odometry->compute(first_image_gray_, first_depth_meters_, cv::Mat(),
+      isFound = odometry_->compute(first_image_gray_, first_depth_meters_, cv::Mat(),
                                        current_image_gray, current_depth_meters, cv::Mat(),
                                        Rt);
       else
-      isFound = odometry->compute(previous_image_gray_, previous_depth_meters_, cv::Mat(),
+      isFound = odometry_->compute(previous_image_gray_, previous_depth_meters_, cv::Mat(),
                                        current_image_gray, current_depth_meters, cv::Mat(),
                                        Rt);
       if (isFound) {
@@ -145,11 +156,6 @@ namespace rgbd
         else
           previous_pose_ = cv::Mat_<float>(Rt) * previous_pose_;
       }
-
-      tm.stop();
-
-      //std::cout << "Rt = " << Rt << std::endl;
-      std::cout << "Time = " << tm.getTimeSec() << " sec." << std::endl;
 
       if (!isFound)
       {
@@ -164,7 +170,7 @@ namespace rgbd
         const Mat distCoeff(1, 5, CV_32FC1, Scalar(0));
 
         std::cout << previous_pose_ << std::endl;
-        cv::warpFrame(first_image_, first_depth_meters_, cv::Mat(), previous_pose_, cameraMatrix, distCoeff,
+        warpFrame(first_image_, first_depth_meters_, cv::Mat(), previous_pose_, cameraMatrix, distCoeff,
                       warpedImage0);
         warpedImage0.copyTo(*warp_);
       }
@@ -187,7 +193,7 @@ namespace rgbd
     cv::Mat previous_image_;
     cv::Mat previous_depth_meters_;
     cv::Mat_<float> previous_pose_;
-    Ptr<cv::Odometry> odometry;
+    cv::Ptr<RgbdOdometry> odometry_;
     ecto::spore<cv::Mat> warp_;
 
     /** The output rotation matrix */
@@ -195,6 +201,5 @@ namespace rgbd
     /** The output translation matrix */
     ecto::spore<cv::Mat> T_;
   };
-}
 
-ECTO_CELL(rgbd, rgbd::Odometry, "Odometry", "Uses the RGBDOdometry to figure out where the camera is.")
+ECTO_CELL(rgbd, OdometryCell, "Odometry", "Uses the RGBDOdometry to figure out where the camera is.")

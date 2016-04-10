@@ -308,7 +308,11 @@ namespace
   tostr(cv::Mat& m)
   {
     std::stringstream ss;
+#if CV_MAJOR_VERSION == 3
+    ss << cv::Formatter::get(cv::Formatter::FMT_PYTHON)->format(m);
+#else
     cv::Formatter::get("python")->write(ss,m);
+#endif
     return ss.str();
   }
   inline cv::Mat

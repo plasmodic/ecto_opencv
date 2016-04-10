@@ -35,43 +35,49 @@
 
 #include <ecto/ecto.hpp>
 #include <opencv2/calib3d/calib3d.hpp>
+#if CV_MAJOR_VERSION == 3
+#include <opencv2/rgbd.hpp>
+using cv::rgbd::DepthCleaner;
+#else
 #include <opencv2/rgbd/rgbd.hpp>
+using cv::DepthCleaner;
+#endif
 
 using ecto::tendrils;
 namespace rgbd
 {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  struct DepthCleaner
+  struct DepthCleanerCell
   {
     static void
     declare_params(tendrils & params)
     {
-      params.declare(&DepthCleaner::method_, "method", "Conversion type.", cv::DepthCleaner::DEPTH_CLEANER_NIL);
+      params.declare(&DepthCleanerCell::method_, "method", "Conversion type.", DepthCleaner::DEPTH_CLEANER_NIL);
     }
 
     static void
     declare_io(const tendrils& params, tendrils& inputs, tendrils& outputs)
     {
-      inputs.declare(&DepthCleaner::image_in_, "image", "The depth map").required(true);
+      inputs.declare(&DepthCleanerCell::image_in_, "image", "The depth map").required(true);
 
-      outputs.declare(&DepthCleaner::image_out_, "image", "The cleaned up depth image");
+      outputs.declare(&DepthCleanerCell::image_out_, "image", "The cleaned up depth image");
     }
 
     int
     process(const tendrils& inputs, const tendrils& outputs)
     {
       if (depth_cleaner_.empty()) {
-        depth_cleaner_ = new cv::DepthCleaner(image_in_->depth(), 5, *method_);
+        depth_cleaner_ = new DepthCleaner(image_in_->depth(), 5, *method_);
       }
       (*depth_cleaner_)(*image_in_, *image_out_);
 
       return ecto::OK;
     }
-    cv::Ptr<cv::DepthCleaner> depth_cleaner_;
+    cv::Ptr<DepthCleaner> depth_cleaner_;
     ecto::spore<cv::Mat> image_in_, image_out_;
-    ecto::spore<cv::DepthCleaner::DEPTH_CLEANER_METHOD> method_;
+    ecto::spore<DepthCleaner::DEPTH_CLEANER_METHOD> method_;
   };
 }
 
-ECTO_CELL(rgbd, rgbd::DepthCleaner, "DepthCleaner", "Clean the depth map")
+ECTO_CELL(rgbd, rgbd::DepthCleanerCell, "DepthCleaner", "Clean the depth map")

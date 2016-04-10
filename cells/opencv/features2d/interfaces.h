@@ -2,6 +2,7 @@
  * Software License Agreement (BSD License)
  *
  *  Copyright (c) 2011, Willow Garage, Inc.
+ *  Copyright (c) 2016, Google, Inc.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -42,13 +43,59 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/features2d/features2d.hpp>
 
+#include <boost/filesystem.hpp>
+#include <boost/foreach.hpp>
+
 using ecto::tendrils;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+template <typename T>
 void
-read_tendrils_as_file_node(const ecto::tendrils & tendrils, boost::function<void
-(const cv::FileNode &)> function);
+read_tendrils_as_file_node(const ecto::tendrils & tendrils, T obj) {
+  // Get the file
+  std::string file_name;
+  {
+    char buffer[L_tmpnam];
+    char* p = std::tmpnam(buffer);
+    if (p != NULL)
+    {
+      file_name = std::string(buffer) + ".yml";
+    }
+    else
+      throw std::runtime_error("Could not create temporary filename!");
+  }
+
+  // Write the tendril's to it
+  {
+    cv::FileStorage fs(file_name, cv::FileStorage::WRITE);
+    BOOST_FOREACH (const ecto::tendrils::value_type &tendril_pair, tendrils)
+        {
+          std::string tendril_name = tendril_pair.first;
+          const ecto::tendril & tendril = *(tendril_pair.second);
+          std::string type_name = tendril.type_name();
+          fs << tendril_name;
+          if (type_name == "int")
+            fs << tendril.get<int>();
+          else if (type_name == "float")
+            fs << tendril.get<float>();
+          else
+          {
+            std::string error_message = "Unsupported type: ";
+            error_message += type_name;
+            throw std::runtime_error(error_message);
+          }
+        }
+  }
+
+  {
+    cv::FileStorage fs(file_name, cv::FileStorage::READ);
+    obj.read(fs.root());
+  }
+
+  // Remove the temporary file
+  boost::filesystem::remove(file_name.c_str());
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

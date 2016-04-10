@@ -1,6 +1,7 @@
 #include <ecto/ecto.hpp>
 
 #include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 
 #include <boost/format.hpp>
 #include <boost/filesystem.hpp>

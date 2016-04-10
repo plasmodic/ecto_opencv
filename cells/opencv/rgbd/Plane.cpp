@@ -41,7 +41,15 @@
 #include <string>
 
 #include <opencv2/imgproc/imgproc.hpp>
+#if CV_MAJOR_VERSION == 3
+#include <opencv2/rgbd.hpp>
+using cv::rgbd::RgbdNormals;
+using cv::rgbd::RgbdPlane;
+#else
 #include <opencv2/rgbd/rgbd.hpp>
+using cv::RgbdNormals;
+using cv::RgbdPlane;
+#endif
 
 #include <ecto/ecto.hpp>
 
@@ -68,7 +76,7 @@ namespace rgbd
                      "c coefficient of the quadratic sensor error err=a*z^2+b*z+c. 0.0 fo Kinect.", 0.0);
       params.declare(&PlaneFinder::window_size_, "window_size", "The window size for smoothing.", 5);
       params.declare(&PlaneFinder::normal_method_, "normal_method", "The window size for smoothing.",
-                     cv::RgbdNormals::RGBD_NORMALS_METHOD_FALS);
+                     RgbdNormals::RGBD_NORMALS_METHOD_FALS);
       params.declare(&PlaneFinder::min_size_, "min_size", "The smallest size in pixels of a plane.", 0);
     }
 
@@ -95,18 +103,22 @@ namespace rgbd
       if (normals_->empty())
       {
         if (normals_computer_.empty())
-          normals_computer_ = new cv::RgbdNormals(points3d_->rows, points3d_->cols, points3d_->depth(), *K_,
+          normals_computer_ = new RgbdNormals(points3d_->rows, points3d_->cols, points3d_->depth(), *K_,
                                                   *window_size_, *normal_method_);
         (*normals_computer_)(*points3d_, *normals_);
       }
 
       if (plane_computer_.empty())
       {
+#if CV_MAJOR_VERSION == 3
+        plane_computer_.reset(new RgbdPlane());
+#else
         plane_computer_ = cv::Algorithm::create<cv::RgbdPlane>("RGBD.RgbdPlane");
         plane_computer_->set("sensor_error_a", *sensor_error_a_);
         plane_computer_->set("sensor_error_b", *sensor_error_b_);
         plane_computer_->set("sensor_error_c", *sensor_error_c_);
         plane_computer_->set("min_size", *min_size_);
+#endif
       }
       (*plane_computer_)(*points3d_, *normals_, *masks_, *planes_);
 
@@ -114,8 +126,8 @@ namespace rgbd
     }
 
   private:
-    cv::Ptr<cv::RgbdNormals> normals_computer_;
-    cv::Ptr<cv::RgbdPlane> plane_computer_;
+    cv::Ptr<RgbdNormals> normals_computer_;
+    cv::Ptr<RgbdPlane> plane_computer_;
 
     /** If true, display some result */
     ecto::spore<float> threshold_;
@@ -139,7 +151,7 @@ namespace rgbd
 
     ecto::spore<int> window_size_;
 
-    ecto::spore<cv::RgbdNormals::RGBD_NORMALS_METHOD> normal_method_;
+    ecto::spore<RgbdNormals::RGBD_NORMALS_METHOD> normal_method_;
   };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

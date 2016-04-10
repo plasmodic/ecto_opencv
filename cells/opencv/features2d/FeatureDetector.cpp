@@ -44,6 +44,10 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/features2d/features2d.hpp>
 
+#if CV_MAJOR_VERSION == 3
+#include <opencv2/xfeatures2d.hpp>
+#endif
+
 #include "interfaces.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -83,9 +87,23 @@ struct EctoFeatureDetector
   void
   configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
   {
+#if CV_MAJOR_VERSION == 3
+    switch(T) {
+      case FAST:
+        feature_detector_ = cv::FastFeatureDetector::create();
+        break;
+      case ORB:
+        feature_detector_ = cv::ORB::create();
+        break;
+      case SIFT:
+        feature_detector_ = cv::xfeatures2d::SIFT::create();
+        break;
+    }
+#else
     feature_detector_ = cv::FeatureDetector::create(feature_detector_type_names[T]);
+#endif
 
-    read_tendrils_as_file_node(params, boost::bind(&cv::FeatureDetector::read, &(*feature_detector_), _1));
+    read_tendrils_as_file_node(params, *feature_detector_);
   }
 
   int

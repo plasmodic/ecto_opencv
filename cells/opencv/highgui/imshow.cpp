@@ -6,8 +6,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/foreach.hpp>
 
-#ifdef CV_VERSION_EPOCH
-#if CV_VERSION_EPOCH == 2 && CV_VERSION_MAJOR == 4 && CV_VERSION_MINOR < 10
+#if CV_MAJOR_VERSION == 2 && CV_MINOR_VERSION == 4 && CV_SUBMINOR_VERSION < 10
 #include <cv_backports/imshow.hpp>
 #else
 namespace cv_backports {
@@ -18,7 +17,6 @@ namespace cv_backports {
   using cv::startWindowThread;
   using cv::waitKey;
 }
-#endif
 #endif
 
 #include <iostream>

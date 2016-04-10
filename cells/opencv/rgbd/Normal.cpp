@@ -35,7 +35,14 @@
 
 #include <ecto/ecto.hpp>
 #include <opencv2/calib3d/calib3d.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#if CV_MAJOR_VERSION == 3
+#include <opencv2/rgbd.hpp>
+using cv::rgbd::RgbdNormals;
+#else
 #include <opencv2/rgbd/rgbd.hpp>
+using cv::RgbdNormals;
+#endif
 
 using ecto::tendrils;
 namespace rgbd
@@ -47,7 +54,7 @@ namespace rgbd
     static void
     declare_params(tendrils & params)
     {
-      params.declare(&ComputeNormals::method_, "method", "Conversion type.", cv::RgbdNormals::RGBD_NORMALS_METHOD_FALS);
+      params.declare(&ComputeNormals::method_, "method", "Conversion type.", RgbdNormals::RGBD_NORMALS_METHOD_FALS);
       params.declare(&ComputeNormals::window_size_, "window_size", "The window size for smoothing.", 5);
     }
 
@@ -65,19 +72,19 @@ namespace rgbd
     {
       if (normals_computer_.empty()) {
         if ((points3d_->depth() == CV_32F) || (points3d_->depth() == CV_64F))
-          normals_computer_ = new cv::RgbdNormals(points3d_->rows, points3d_->cols, points3d_->depth(), *K_,
+          normals_computer_ = new RgbdNormals(points3d_->rows, points3d_->cols, points3d_->depth(), *K_,
                                                   *window_size_, *method_);
         else
-          normals_computer_ = new cv::RgbdNormals(points3d_->rows, points3d_->cols, CV_32F, *K_,
+          normals_computer_ = new RgbdNormals(points3d_->rows, points3d_->cols, CV_32F, *K_,
                                                   *window_size_, *method_);
       }
       (*normals_computer_)(*points3d_, *normals_);
 
       return ecto::OK;
     }
-    cv::Ptr<cv::RgbdNormals> normals_computer_;
+    cv::Ptr<RgbdNormals> normals_computer_;
     ecto::spore<cv::Mat> points3d_, normals_, K_, depth_;
-    ecto::spore<cv::RgbdNormals::RGBD_NORMALS_METHOD> method_;
+    ecto::spore<RgbdNormals::RGBD_NORMALS_METHOD> method_;
     ecto::spore<int> window_size_;
   };
 

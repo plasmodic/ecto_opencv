@@ -41,7 +41,13 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/features2d/features2d.hpp>
 
+#if CV_MAJOR_VERSION == 2
 #include <opencv2/rgbd/rgbd.hpp>
+using namespace cv;
+#else
+#include <opencv2/rgbd.hpp>
+using namespace cv::rgbd;
+#endif
 
 using ecto::tendrils;
 namespace calib
@@ -71,7 +77,7 @@ namespace calib
       const cv::Mat &depth = inputs.get<cv::Mat>("depth"), &uv = inputs.get<cv::Mat>("points");
 
       cv::Mat points3d;
-      cv::depthTo3dSparse(depth, K, uv, points3d);
+      depthTo3dSparse(depth, K, uv, points3d);
 
       outputs["points3d"] << points3d;
 

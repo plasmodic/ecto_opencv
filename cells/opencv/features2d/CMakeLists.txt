@@ -4,7 +4,6 @@ ectomodule(features2d DESTINATION ecto_opencv/ecto_cells
   DescriptorExtractor.cpp
   DrawKeypoints.cpp
   FeatureDetector.cpp
-  interfaces.cpp
   KeypointsToMat.cpp
   LshMatcher.cpp
   MatchesToMat.cpp

@@ -11,11 +11,11 @@
 struct ORB
 {
   static void
-  declare_params(tendrils& p)
+  declare_params(tendrils& params)
   {
-    p.declare<int>("n_features", "The number of desired features", 1000);
-    p.declare<int>("n_levels", "The number of scales", 3);
-    p.declare<float>("scale_factor", "The factor between scales", 1.2);
+    params.declare(&ORB::n_features_, "n_features", "The number of keypoints to use", 1000);
+    params.declare(&ORB::n_levels_, "n_levels", "The number of levels to use for ORB", 3);
+    params.declare(&ORB::scale_factor_, "scale_factor", "The scale factor to use for ORB", 1.2);
   }
 
   static void
@@ -29,14 +29,16 @@ struct ORB
   void
   configure(const tendrils& params, const tendrils& inputs, const tendrils& outputs)
   {
-#if (CV_MAJOR_VERSION > 2) || ((CV_MAJOR_VERSION == 2) && (CV_MINOR_VERSION >= 4))
-    orb_ = cv::ORB(params.get<int>("n_features"), params.get<float>("scale_factor"), params.get<int>("n_levels"));
+#if CV_MAJOR_VERSION ==3
+    orb_ = cv::ORB::create(*n_features_, *scale_factor_, *n_levels_);
+#elif (CV_MAJOR_VERSION == 2) && (CV_MINOR_VERSION >= 4)
+    orb = cv::Ptr<cv::ORB>(new cv::ORB(*n_features_, *scale_factor_, *n_levels_));
 #else
     cv::ORB::CommonParams orb_params;
     orb_params.first_level_ = 0;
-    orb_params.n_levels_ = params.get<int>("n_levels");
-    orb_params.scale_factor_ = params.get<float>("scale_factor");
-    orb_ = cv::ORB(params.get<int>("n_features"), orb_params);
+    orb_params.n_levels_ = *n_levels_;
+    orb_params.scale_factor_ = *scale_factor_;
+    orb_ = cv::Ptr<cv::ORB>(new cv::ORB(*n_features_, orb_params));
 #endif
   }
 
@@ -49,7 +51,11 @@ struct ORB
     inputs["image"] >> image;
     inputs["mask"] >> mask;
     cv::Mat desc;
-    orb_(image, mask, keypoints, desc, !keypoints.empty()); //use the provided keypoints if they were given.
+#if CV_MAJOR_VERSION == 3
+    orb_->detectAndCompute(image, mask, keypoints, desc, !keypoints.empty()); //use the provided keypoints if they were given.
+#else
+    (*orb_)(image, mask, keypoints, desc, !keypoints.empty()); //use the provided keypoints if they were given.
+#endif
     if (!mask.empty())
     {
       //need to do keypoint validation as ORB is broken.
@@ -80,7 +86,9 @@ struct ORB
     return ecto::OK;
   }
 
-  cv::ORB orb_;
+  ecto::spore<int> n_features_, n_levels_;
+  ecto::spore<float> scale_factor_;
+  cv::Ptr<cv::ORB> orb_;
 };
 struct DescriptorAccumulator
 {
@@ -136,7 +144,11 @@ struct ORBstats
       desc.pop_back(1);
       for (int i = 0, end = desc.rows; i < end; i++)
       {
+#if CV_MAJOR_VERSION == 3
+        size_t distance = cv::norm(desc_i, desc.row(i), cv::NORM_HAMMING);
+#else
         size_t distance = cv::normHamming(desc_i.data, desc.row(i).data, desc.cols);
+#endif
         distances[distance]++;
       }
     }

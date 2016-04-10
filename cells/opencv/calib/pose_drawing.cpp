@@ -6,7 +6,11 @@
 
 #include "calib.hpp"
 #include <boost/format.hpp>
+
 using ecto::tendrils;
+using std::string;
+using std::vector;
+
 namespace calib
 {
   struct PoseDrawer
@@ -38,7 +42,7 @@ namespace calib
       line(drawImage, ip[0], ip[3], c[3]);
       string scaleText = boost::str(boost::format("scale %0.2f meters")%scale);
       int baseline = 0;
-      Size sz = getTextSize(scaleText, CV_FONT_HERSHEY_SIMPLEX, 1, 1, &baseline);
+      Size sz = cv::getTextSize(scaleText, CV_FONT_HERSHEY_SIMPLEX, 1, 1, &baseline);
       Point box_origin(10, drawImage.size().height - 10);
       rectangle(drawImage, box_origin + Point(0, 5), box_origin + Point(sz.width, -sz.height - 5), Scalar::all(0), -1);
       putText(drawImage, scaleText, box_origin, CV_FONT_HERSHEY_SIMPLEX, 1.0, c[0], 1, CV_AA, false);

@@ -120,13 +120,19 @@ namespace opencv_wrappers
     opencv.attr("CV_CAP_PROP_GAIN") = int(CV_CAP_PROP_GAIN);
     opencv.attr("CV_CAP_PROP_EXPOSURE") = int(CV_CAP_PROP_EXPOSURE);
     opencv.attr("CV_CAP_PROP_CONVERT_RGB") = int(CV_CAP_PROP_CONVERT_RGB);
-#if CV_MAJOR_VERSION > 2 || (CV_MAJOR_VERSION == 2 && (CV_MINOR_VERSION > 4 || (CV_MINOR_VERSION == 4 && CV_SUBMINOR_VERSION > 10)))
+#if CV_MAJOR_VERSION == 3
+    opencv.attr("CV_CAP_PROP_WHITE_BALANCE_BLUE_U") = int(CV_CAP_PROP_WHITE_BALANCE_BLUE_U);
+#elif CV_MAJOR_VERSION == 2 && (CV_MINOR_VERSION > 4 || (CV_MINOR_VERSION == 4 && CV_SUBMINOR_VERSION > 10))
     opencv.attr("CV_CAP_PROP_WHITE_BALANCE_U") = int(CV_CAP_PROP_WHITE_BALANCE_U);
 #else
     opencv.attr("CV_CAP_PROP_WHITE_BALANCE_BLUE_U") = int(CV_CAP_PROP_WHITE_BALANCE_BLUE_U);
 #endif
     opencv.attr("CV_CAP_PROP_RECTIFICATION") = int(CV_CAP_PROP_RECTIFICATION);
+#if CV_MAJOR_VERSION == 3
+    opencv.attr("CV_CAP_PROP_MONOCHROME") = int(CV_CAP_PROP_MONOCHROME);
+#else
     opencv.attr("CV_CAP_PROP_MONOCROME") = int(CV_CAP_PROP_MONOCROME);
+#endif
     opencv.attr("CV_CAP_PROP_SHARPNESS") = int(CV_CAP_PROP_SHARPNESS);
     opencv.attr("CV_CAP_PROP_AUTO_EXPOSURE") = int(CV_CAP_PROP_AUTO_EXPOSURE);
     // user can adjust refernce level
@@ -135,7 +141,9 @@ namespace opencv_wrappers
     opencv.attr("CV_CAP_PROP_TEMPERATURE") = int(CV_CAP_PROP_TEMPERATURE);
     opencv.attr("CV_CAP_PROP_TRIGGER") = int(CV_CAP_PROP_TRIGGER);
     opencv.attr("CV_CAP_PROP_TRIGGER_DELAY") = int(CV_CAP_PROP_TRIGGER_DELAY);
-#if CV_MAJOR_VERSION > 2 || (CV_MAJOR_VERSION == 2 && (CV_MINOR_VERSION > 4 || (CV_MINOR_VERSION == 4 && CV_SUBMINOR_VERSION > 10)))
+#if CV_MAJOR_VERSION == 3
+    opencv.attr("CV_CAP_PROP_WHITE_BALANCE_RED_V") = int(CV_CAP_PROP_WHITE_BALANCE_RED_V);
+#elif CV_MAJOR_VERSION > 2 || (CV_MAJOR_VERSION == 2 && (CV_MINOR_VERSION > 4 || (CV_MINOR_VERSION == 4 && CV_SUBMINOR_VERSION > 10)))
     opencv.attr("CV_CAP_PROP_WHITE_BALANCE_V") = int(CV_CAP_PROP_WHITE_BALANCE_V);
 #else
     opencv.attr("CV_CAP_PROP_WHITE_BALANCE_RED_V") = int(CV_CAP_PROP_WHITE_BALANCE_RED_V);
@@ -166,8 +174,10 @@ namespace opencv_wrappers
     opencv.attr("CV_CAP_OPENNI_VGA_30HZ") = int(CV_CAP_OPENNI_VGA_30HZ);
     opencv.attr("CV_CAP_OPENNI_SXGA_15HZ") = int(CV_CAP_OPENNI_SXGA_15HZ);
 
+#if CV_MAJOR_VERSION == 2
     opencv.attr("CV_CAP_ANDROID_COLOR_FRAME") = int(CV_CAP_ANDROID_COLOR_FRAME);
     opencv.attr("CV_CAP_ANDROID_GREY_FRAME") = int(CV_CAP_ANDROID_GREY_FRAME);
+#endif
     //opencv.attr("CV_CAP_ANDROID_YUV_FRAME") = int(CV_CAP_ANDROID_YUV_FRAME);
   }
 }

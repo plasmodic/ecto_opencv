@@ -40,7 +40,11 @@
 #include <string>
 
 #include <opencv2/imgproc/imgproc.hpp>
+#if CV_MAJOR_VERSION == 3
+#include <opencv2/rgbd.hpp>
+#else
 #include <opencv2/rgbd/rgbd.hpp>
+#endif
 
 #include <ecto/ecto.hpp>
 
