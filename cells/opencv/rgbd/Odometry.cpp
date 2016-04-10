@@ -126,7 +126,7 @@ using namespace std;
 
       if (odometry_.empty())
       {
-          odometry_.reset(new RgbdOdometry());
+          odometry_ = cv::Ptr<RgbdOdometry>(new RgbdOdometry());
 #if CV_VERSION_MAJOR == 3
           odometry_->setCameraMatrix(cameraMatrix);
 #else

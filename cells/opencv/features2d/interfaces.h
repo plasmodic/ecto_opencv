@@ -52,7 +52,7 @@ using ecto::tendrils;
 
 template <typename T>
 void
-read_tendrils_as_file_node(const ecto::tendrils & tendrils, T obj) {
+read_tendrils_as_file_node(const ecto::tendrils & tendrils, cv::Ptr<T> obj) {
   // Get the file
   std::string file_name;
   {
@@ -90,7 +90,7 @@ read_tendrils_as_file_node(const ecto::tendrils & tendrils, T obj) {
 
   {
     cv::FileStorage fs(file_name, cv::FileStorage::READ);
-    obj.read(fs.root());
+    obj->read(fs.root());
   }
 
   // Remove the temporary file

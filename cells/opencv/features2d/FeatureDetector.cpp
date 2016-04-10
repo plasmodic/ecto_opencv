@@ -102,8 +102,7 @@ struct EctoFeatureDetector
 #else
     feature_detector_ = cv::FeatureDetector::create(feature_detector_type_names[T]);
 #endif
-
-    read_tendrils_as_file_node(params, *feature_detector_);
+    read_tendrils_as_file_node(params, feature_detector_);
   }
 
   int

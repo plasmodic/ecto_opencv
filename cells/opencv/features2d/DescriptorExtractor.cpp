@@ -104,7 +104,7 @@ struct EctoDescriptorExtractor
 #else
     descriptor_extractor_ = cv::DescriptorExtractor::create(descriptor_extractor_type_names[T]);
 #endif
-    read_tendrils_as_file_node(params, *descriptor_extractor_);
+    read_tendrils_as_file_node(params, descriptor_extractor_);
   }
 
   int

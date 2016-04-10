@@ -32,7 +32,7 @@ struct ORB
 #if CV_MAJOR_VERSION ==3
     orb_ = cv::ORB::create(*n_features_, *scale_factor_, *n_levels_);
 #elif (CV_MAJOR_VERSION == 2) && (CV_MINOR_VERSION >= 4)
-    orb = cv::Ptr<cv::ORB>(new cv::ORB(*n_features_, *scale_factor_, *n_levels_));
+    orb_ = cv::Ptr<cv::ORB>(new cv::ORB(*n_features_, *scale_factor_, *n_levels_));
 #else
     cv::ORB::CommonParams orb_params;
     orb_params.first_level_ = 0;

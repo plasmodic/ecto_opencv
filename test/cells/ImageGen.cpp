@@ -3,7 +3,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <iostream>
 #define SHOW() std::cout << __PRETTY_FUNCTION__ << std::endl;
-#if CV_MAJOR_VERSION
+#if CV_MAJOR_VERSION == 3
 #define REFCOUNT(X)  std::cout << "ref count:" << ((X->u) ? (X->u->refcount) : 0) << std::endl;
 #else
 #define REFCOUNT(X)  std::cout << "ref count:" << ((X->refcount) ? *(X->refcount) : 0) << std::endl;
