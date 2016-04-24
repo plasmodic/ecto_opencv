@@ -1,3 +1,9 @@
+Forthcoming
+-----------
+* fix compilation with OpenCV3
+* Fix version check logic
+* Contributors: Scott K Logan, Vincent Rabaud
+
 0.6.1 (2015-08-31)
 ------------------
 * Fix compatibility with OpenCV 2.4.11+
