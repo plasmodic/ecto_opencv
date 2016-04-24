@@ -1,3 +1,10 @@
+Forthcoming
+-----------
+* make master Kinetic and above only
+  This is because OpenCV3 is the default and cv_backports is now
+  useless.
+* Contributors: Vincent Rabaud
+
 0.6.2 (2016-04-24)
 ------------------
 * fix compilation with OpenCV3
