@@ -1,5 +1,5 @@
-Forthcoming
------------
+0.7.0 (2016-04-24)
+------------------
 * make master Kinetic and above only
   This is because OpenCV3 is the default and cv_backports is now
   useless.
