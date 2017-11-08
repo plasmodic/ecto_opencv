@@ -1,5 +1,5 @@
-Forthcoming
------------
+0.7.1 (2017-11-09)
+------------------
 * fix compilation with OpenCV 3.3
 * Contributors: Vincent Rabaud
 
