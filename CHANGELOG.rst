@@ -1,3 +1,8 @@
+Forthcoming
+-----------
+* fix compilation with OpenCV 3.3
+* Contributors: Vincent Rabaud
+
 0.7.0 (2016-04-24)
 ------------------
 * make master Kinetic and above only
@@ -47,7 +52,7 @@
 ------------------
 * Added FPS scale param
 * recursive directory creation.
-* speedup normal display
+* speedup normal display
 * fix depth cleaner
 * add a normal sample
 * Contributors: Daniel Stonier, Vincent Rabaud, kentsommer
