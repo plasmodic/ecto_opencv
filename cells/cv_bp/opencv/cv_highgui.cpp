@@ -1,4 +1,5 @@
 #include <boost/python.hpp>
+#include <boost/python/args.hpp>
 #include <boost/python/overloads.hpp>
 #include <boost/python/dict.hpp>
 #include <boost/python/tuple.hpp>
@@ -33,6 +34,11 @@ namespace
   ;
   BOOST_PYTHON_FUNCTION_OVERLOADS(imencode_overloads,cv::imencode,3,4)
   ;
+#if (CV_MAJOR_VERSION == 3 && CV_MINOR_VERSION >= 3)
+  BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(videowriter_open_overloads1,cv::VideoWriter::open,4,5);
+  BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(videowriter_open_overloads2,cv::VideoWriter::open,5,6);
+#endif
+
   struct PyMCallBackData
   {
     bp::object cb,udata;
@@ -96,7 +102,16 @@ namespace opencv_wrappers
     bp::class_<cv::VideoWriter> VideoWriter_("VideoWriter");
     VideoWriter_.def(bp::init<>());
     VideoWriter_.def(bp::init<const std::string&, int, double, cv::Size, bool>());
+#if (CV_MAJOR_VERSION == 3 && CV_MINOR_VERSION >= 3)
+    VideoWriter_.def("open",
+      static_cast<bool(cv::VideoWriter::*)(const cv::String&,int,double,cv::Size,bool)>(
+      &cv::VideoWriter::open),videowriter_open_overloads1());
+    VideoWriter_.def("open",
+      static_cast<bool(cv::VideoWriter::*)(const cv::String&,int,int,double,cv::Size,bool)>(
+      &cv::VideoWriter::open),videowriter_open_overloads2());
+#else
     VideoWriter_.def("open", &cv::VideoWriter::open);
+#endif
     VideoWriter_.def("isOpened", &cv::VideoWriter::isOpened);
     VideoWriter_.def("write", &cv::VideoWriter::write);
   }
