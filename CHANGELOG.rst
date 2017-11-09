@@ -1,5 +1,5 @@
-Forthcoming
------------
+0.7.2 (2017-11-09)
+------------------
 * Fix compilation on x86 where float is a long double
 * Contributors: Vincent Rabaud
 
