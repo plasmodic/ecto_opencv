@@ -1,3 +1,8 @@
+Forthcoming
+-----------
+* Fix compilation on x86 where float is a long double
+* Contributors: Vincent Rabaud
+
 0.7.1 (2017-11-09)
 ------------------
 * fix compilation with OpenCV 3.3
