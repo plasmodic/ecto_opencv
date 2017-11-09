@@ -211,10 +211,10 @@ namespace
       mat_set_t<int32_t> (m, o);
       break;
       case CV_32F:
-      mat_set_t<float_t> (m, o);
+      mat_set_t<float> (m, o);
       break;
       case CV_64F:
-      mat_set_t<double_t> (m, o);
+      mat_set_t<double> (m, o);
       break;
       default:
       throw std::logic_error("Given type not supported.");
