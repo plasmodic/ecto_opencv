@@ -10,12 +10,6 @@ find_package(catkin REQUIRED ecto opencv_candidate)
 catkin_package(DEPENDS ecto opencv_candidate)
 endif()
 
-if(NOT CMAKE_BUILD_TYPE)#Only do this the on the first run, if the build type hasn't been set prior
-  set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING
-      "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel."
-      FORCE)
-endif()
-
 find_package(OpenCV REQUIRED)
 message(STATUS "OpenCV version: ${OpenCV_VERSION}")
 message(STATUS "OpenCV headers: ${OpenCV_INCLUDE_DIRS}")

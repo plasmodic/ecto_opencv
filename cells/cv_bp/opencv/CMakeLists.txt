@@ -3,8 +3,6 @@ find_package(Boost COMPONENTS
   python
   REQUIRED
   )
-  
-set(CMAKE_BUILD_TYPE Debug)
 
 find_package(PythonLibs
   REQUIRED)
